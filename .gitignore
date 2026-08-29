@@ -1,0 +1,54 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+*.lock.bak
+pubspec_overrides.yaml
+
+# Workspace members resolve against the root lockfile; per-package lockfiles
+# are stray files pub will warn about.
+apps/*/pubspec.lock
+packages/*/pubspec.lock
+tools/*/pubspec.lock
+
+# fvm — the pinned version in .fvmrc IS committed; the downloaded SDK is not.
+.fvm/versions/
+.fvm/flutter_sdk
+
+# Compiled curriculum. Regenerate with:
+#   fvm dart run tools/curriculum_build/bin/build.dart
+# Committed deliberately so a fresh clone builds without running the tool first.
+!apps/resonance/assets/seed/curriculum.json
+
+# Ingested reference audio — large, and reproducible from the manifests in
+# content/references/. Never commit media.
+apps/resonance/assets/audio/
+content/references/**/*.mp3
+content/references/**/*.wav
+content/references/**/*.m4a
+
+# Apple
+**/ios/Pods/
+**/macos/Pods/
+**/*.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+DerivedData/
+*.mode1v3
+*.pbxuser
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+*.jks
+
+# Secrets — Supabase keys and the Anthropic key live here, never in source.
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml
+.vscode/

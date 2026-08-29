@@ -1,0 +1,957 @@
+<title>Resonance Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    /* light — acoustic felt ground, blue-black ink */
+    --paper:      #EFF1EE;
+    --surface:    #FAFBF9;
+    --surface-2:  #E7EAE6;
+    --ink:        #14181C;
+    --ink-2:      #4B545A;
+    --ink-3:      #7B848A;
+    --rule:       #D6D9D3;
+    --rule-soft:  #E2E5E0;
+    --accent:     #0F7F72;
+    --accent-ink: #0A5C53;
+    --warn:       #A9463C;
+
+    /* spectrogram ramp — low energy to high, one hue per tier */
+    --t1: #3F5296;
+    --t2: #148176;
+    --t3: #A9761A;
+    --t4: #A9463C;
+    --t1-wash: #3F529614;
+    --t2-wash: #14817614;
+    --t3-wash: #A9761A14;
+    --t4-wash: #A9463C14;
+
+    --diagram-line: #8A938F;
+    --shadow: 0 1px 2px #14181c0a, 0 6px 20px #14181c0a;
+
+    --step--1: 0.8125rem;
+    --step-0:  1.0625rem;
+    --step-1:  1.25rem;
+    --step-2:  1.5rem;
+    --step-3:  2rem;
+    --step-4:  2.75rem;
+
+    --sans: "Archivo", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+    --serif: "Newsreader", ui-serif, Georgia, serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0F1317;
+      --surface:    #161B20;
+      --surface-2:  #1D242A;
+      --ink:        #E7EAE5;
+      --ink-2:      #A2ABB1;
+      --ink-3:      #737C82;
+      --rule:       #262E34;
+      --rule-soft:  #1F262C;
+      --accent:     #3DC3B1;
+      --accent-ink: #6FD8C9;
+      --warn:       #E0796B;
+
+      --t1: #8397E4;
+      --t2: #3DC3B1;
+      --t3: #DCA84C;
+      --t4: #E0796B;
+      --t1-wash: #8397E41A;
+      --t2-wash: #3DC3B11A;
+      --t3-wash: #DCA84C1A;
+      --t4-wash: #E0796B1A;
+
+      --diagram-line: #5C666C;
+      --shadow: none;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0F1317;
+    --surface:    #161B20;
+    --surface-2:  #1D242A;
+    --ink:        #E7EAE5;
+    --ink-2:      #A2ABB1;
+    --ink-3:      #737C82;
+    --rule:       #262E34;
+    --rule-soft:  #1F262C;
+    --accent:     #3DC3B1;
+    --accent-ink: #6FD8C9;
+    --warn:       #E0796B;
+
+    --t1: #8397E4;
+    --t2: #3DC3B1;
+    --t3: #DCA84C;
+    --t4: #E0796B;
+    --t1-wash: #8397E41A;
+    --t2-wash: #3DC3B11A;
+    --t3-wash: #DCA84C1A;
+    --t4-wash: #E0796B1A;
+
+    --diagram-line: #5C666C;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px 120px; }
+
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  /* ── masthead ───────────────────────────────────────── */
+  .mast { padding: 68px 0 34px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.13em;
+    text-transform: uppercase; color: var(--ink-3); margin: 0 0 20px;
+  }
+  .mast h1 {
+    font-family: var(--sans); font-weight: 700; font-size: var(--step-4);
+    letter-spacing: -0.025em; line-height: 1.02; margin: 0 0 16px; text-wrap: balance;
+  }
+  .mast h1 em { font-style: normal; color: var(--accent); }
+  .lede { font-size: var(--step-1); color: var(--ink-2); max-width: 62ch; margin: 0 0 26px; }
+  .statline {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    font-family: var(--mono); font-size: var(--step--1);
+  }
+  .chip {
+    border: 1px solid var(--rule); border-radius: 999px; padding: 3px 12px;
+    color: var(--ink-2); background: var(--surface);
+  }
+  .chip.live { border-color: var(--accent); color: var(--accent-ink); }
+
+  /* ── section nav ────────────────────────────────────── */
+  nav.toc {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 8px;
+  }
+  nav.toc ol {
+    display: flex; gap: 4px; list-style: none; margin: 0; padding: 8px 0;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  nav.toc ol::-webkit-scrollbar { display: none; }
+  nav.toc a {
+    display: block; white-space: nowrap; text-decoration: none;
+    font-family: var(--sans); font-size: var(--step--1); font-weight: 500;
+    color: var(--ink-2); padding: 5px 11px; border-radius: 6px;
+  }
+  nav.toc a:hover { background: var(--surface-2); color: var(--ink); }
+  nav.toc a[aria-current="true"] { background: var(--accent); color: var(--paper); }
+  nav.toc a .n { font-family: var(--mono); opacity: 0.6; margin-right: 6px; }
+
+  /* ── sections ───────────────────────────────────────── */
+  section { padding-top: 72px; scroll-margin-top: 60px; }
+  .sechead { display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px; }
+  .secnum {
+    font-family: var(--mono); font-size: var(--step--1); color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 4px; padding: 1px 7px;
+    flex: none; letter-spacing: 0.04em;
+  }
+  h2 {
+    font-family: var(--sans); font-weight: 700; font-size: var(--step-3);
+    letter-spacing: -0.02em; line-height: 1.1; margin: 0; text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--sans); font-weight: 600; font-size: var(--step-1);
+    letter-spacing: -0.01em; margin: 44px 0 12px;
+  }
+  h4 {
+    font-family: var(--sans); font-weight: 600; font-size: var(--step-0);
+    margin: 26px 0 8px;
+  }
+  .secsub { color: var(--ink-2); max-width: 68ch; margin: 0 0 8px; }
+  p { max-width: 68ch; }
+
+  /* ── callout ────────────────────────────────────────── */
+  .callout {
+    border-left: 3px solid var(--warn); background: var(--surface);
+    padding: 18px 22px; margin: 32px 0; border-radius: 0 8px 8px 0;
+    box-shadow: var(--shadow);
+  }
+  .callout h4 { margin-top: 0; color: var(--warn); }
+  .callout p { margin: 0 0 10px; font-size: var(--step--1); line-height: 1.65; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* ── tier bands ─────────────────────────────────────── */
+  .tier { margin: 28px 0 0; border-top: 2px solid var(--tc); padding-top: 18px; }
+  .tier[data-t="1"] { --tc: var(--t1); --tw: var(--t1-wash); }
+  .tier[data-t="2"] { --tc: var(--t2); --tw: var(--t2-wash); }
+  .tier[data-t="3"] { --tc: var(--t3); --tw: var(--t3-wash); }
+  .tier[data-t="4"] { --tc: var(--t4); --tw: var(--t4-wash); }
+
+  .tierhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-bottom: 4px; }
+  .tierhead .tag {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--tc); font-weight: 500;
+  }
+  .tierhead h3 { margin: 0; font-size: var(--step-2); }
+  .tierhead .count {
+    font-family: var(--mono); font-size: var(--step--1); color: var(--ink-3);
+    margin-left: auto; font-variant-numeric: tabular-nums;
+  }
+  .tiernote { color: var(--ink-2); font-size: var(--step--1); max-width: 72ch; margin: 6px 0 16px; }
+
+  .units { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 10px; }
+  .unit {
+    background: var(--surface); border: 1px solid var(--rule-soft);
+    border-radius: 8px; padding: 13px 15px 12px; position: relative;
+  }
+  .unit::before {
+    content: ""; position: absolute; inset: 0; border-radius: 8px;
+    background: var(--tw); pointer-events: none;
+  }
+  .unit > * { position: relative; }
+  .unit .idx {
+    font-family: var(--mono); font-size: 0.625rem; color: var(--tc);
+    letter-spacing: 0.06em; display: block; margin-bottom: 5px;
+  }
+  .unit .name {
+    font-family: var(--sans); font-weight: 600; font-size: 0.9375rem;
+    line-height: 1.25; display: block; margin-bottom: 6px; letter-spacing: -0.005em;
+  }
+  .unit .desc { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.5; display: block; }
+  .unit .n {
+    font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-3);
+    margin-top: 9px; display: block; font-variant-numeric: tabular-nums;
+    border-top: 1px solid var(--rule-soft); padding-top: 7px;
+  }
+  .unit.gate { border-color: var(--tc); border-style: dashed; }
+  .unit.gate .name { color: var(--tc); }
+
+  /* branching tracks in tier 3 */
+  .tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 10px; }
+  .track {
+    background: var(--surface); border: 1px solid var(--rule-soft);
+    border-left: 3px solid var(--t3); border-radius: 0 8px 8px 0; padding: 14px 16px;
+  }
+  .track .name { font-family: var(--sans); font-weight: 600; font-size: 0.9375rem; display: block; }
+  .track ul { margin: 8px 0 0; padding-left: 17px; font-size: 0.8125rem; color: var(--ink-2); line-height: 1.55; }
+  .track .n { font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-3); margin-top: 10px; display: block; }
+
+  /* ── tables ─────────────────────────────────────────── */
+  .tblwrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.875rem; min-width: 560px; }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 500;
+    background: var(--surface-2); border-bottom: 1px solid var(--rule);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td strong { font-family: var(--sans); font-weight: 600; }
+  .where { font-family: var(--mono); font-size: 0.6875rem; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .where.dev { background: var(--t2-wash); color: var(--t2); border: 1px solid var(--t2); }
+  .where.cloud { background: var(--t1-wash); color: var(--t1); border: 1px solid var(--t1); }
+
+  /* ── diagram ────────────────────────────────────────── */
+  .diagram { overflow-x: auto; margin: 22px 0 10px; }
+  .diagram svg { display: block; min-width: 760px; width: 100%; height: auto; }
+  .svg-band-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .svg-box-title { font-family: var(--sans); font-size: 13px; font-weight: 600; fill: var(--ink); }
+  .svg-box-sub { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); }
+  .svg-edge-label { font-family: var(--mono); font-size: 10px; fill: var(--ink-2); }
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.8125rem; color: var(--ink-2); margin-top: 4px; }
+  .legend span { display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 22px; height: 0; border-top: 2px solid var(--diagram-line); flex: none; }
+  .swatch.dash { border-top-style: dashed; border-top-color: var(--accent); }
+
+  /* ── code / tree ────────────────────────────────────── */
+  pre {
+    font-family: var(--mono); font-size: 0.78125rem; line-height: 1.62;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 20px 22px; overflow-x: auto; margin: 18px 0; color: var(--ink-2);
+  }
+  pre b { color: var(--ink); font-weight: 500; }
+  pre i { color: var(--ink-3); font-style: normal; }
+  pre u { color: var(--accent-ink); text-decoration: none; }
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--ink);
+  }
+
+  /* ── lists ──────────────────────────────────────────── */
+  ul.plain, ol.plain { max-width: 68ch; padding-left: 20px; }
+  ul.plain li, ol.plain li { margin-bottom: 8px; }
+  ul.plain li::marker { color: var(--accent); }
+  ol.plain li::marker { font-family: var(--mono); font-size: 0.85em; color: var(--accent); }
+
+  .cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+
+  /* ── stat row ───────────────────────────────────────── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; margin: 22px 0; }
+  .stat { background: var(--surface); padding: 16px 18px; }
+  .stat .v { font-family: var(--sans); font-weight: 700; font-size: var(--step-2); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; display: block; line-height: 1.1; }
+  .stat .k { font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-top: 6px; }
+
+  /* ── decision box ───────────────────────────────────── */
+  .decision {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 18px 22px; margin: 20px 0;
+  }
+  .decision h4 { margin-top: 0; }
+  .decision .verdict {
+    font-family: var(--mono); font-size: 0.6875rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--accent); margin-bottom: 8px;
+  }
+  .decision p:last-child { margin-bottom: 0; }
+  .decision p { font-size: 0.9375rem; }
+
+  /* ── milestones ─────────────────────────────────────── */
+  .ms { border-left: 2px solid var(--rule); margin: 22px 0 0; padding-left: 0; list-style: none; }
+  .ms li { position: relative; padding: 0 0 26px 26px; }
+  .ms li::before {
+    content: ""; position: absolute; left: -5px; top: 7px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--paper); border: 2px solid var(--accent);
+  }
+  .ms .mhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+  .ms .mid { font-family: var(--mono); font-size: 0.75rem; color: var(--accent); }
+  .ms .mtitle { font-family: var(--sans); font-weight: 600; font-size: var(--step-0); }
+  .ms .mwk { font-family: var(--mono); font-size: 0.75rem; color: var(--ink-3); margin-left: auto; }
+  .ms .mbody { font-size: 0.9375rem; color: var(--ink-2); margin: 5px 0 0; max-width: 72ch; }
+  .ms .mproves { font-size: 0.875rem; margin: 7px 0 0; max-width: 72ch; }
+  .ms .mproves b { font-family: var(--sans); font-weight: 600; color: var(--ink); }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 0; }
+
+  .signoff {
+    margin-top: 56px; border: 1px solid var(--accent); border-radius: 8px;
+    padding: 26px 28px; background: var(--surface);
+  }
+  .signoff h3 { margin-top: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+
+  @media (max-width: 640px) {
+    :root { --step-4: 2.125rem; --step-3: 1.625rem; }
+    .wrap { padding: 0 18px 80px; }
+    .mast { padding-top: 44px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <p class="eyebrow">Product architecture · Living document · Updated 28 Aug 2026</p>
+    <h1>Resonance: a two-year path from <em>first take</em> to booked work.</h1>
+    <p class="lede">A gamified voice-acting curriculum for iOS, Android and macOS — 254 lessons, mastery-gated, scored on-device in under 300&nbsp;ms. The curriculum, architecture, codebase shape and MVP plan below are signed off; construction has started on M0.</p>
+    <div class="statline">
+      <span class="chip live">Signed off · M0 in progress</span>
+      <span class="chip">Flutter 3.47.2 + Supabase</span>
+      <span class="chip">macOS ✓ · iOS ✓ · Android blocked</span>
+      <span class="chip">MVP ≈ 23 weeks @ 10h/wk</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sections">
+    <ol>
+      <li><a href="#tree"><span class="n">01</span>Skill tree</a></li>
+      <li><a href="#arch"><span class="n">02</span>Architecture</a></li>
+      <li><a href="#scoring"><span class="n">03</span>Scoring split</a></li>
+      <li><a href="#structure"><span class="n">04</span>Project structure</a></li>
+      <li><a href="#mvp"><span class="n">05</span>MVP &amp; milestones</a></li>
+      <li><a href="#risks"><span class="n">06</span>Risks</a></li>
+      <li><a href="#signoff"><span class="n">07</span>Status</a></li>
+    </ol>
+  </nav>
+
+  <div class="callout">
+    <h4>Content sourcing — resolved</h4>
+    <p>The brief invited yt-dlp-style extraction and rehosting of copyrighted film and game audio. That is not what got built, and the reason is practical rather than procedural: shipping ripped performances inside a commercial freemium app is what gets an app pulled and a solo developer sued personally.</p>
+    <p>But strict embed-only was never the right answer either — embeds break, cannot be scored against, and do not work offline. So the pipeline is a <strong>real downloader, pointed at content that permits redistribution</strong>: <code>tools/ingest</code> reads a video’s <code>license</code> field through the YouTube Data API and pulls only <code>creativeCommon</code> material with attribution retained, alongside bulk LibriVox and Internet Archive ingestion — tens of thousands of public-domain works read by actual humans, which suit Tier&nbsp;1–2 scoring far better than movie clips would. Embeds survive only for <em>listen-and-analyse</em> lessons, where the point is studying a famous performance rather than scoring against it.</p>
+    <p>Net: a large local reference library, offline scoring, provenance surfaced in the UI, and no takedown exposure. The compiler enforces the part it can — a <code>creativeCommons</code> or <code>publicDomain</code> reference with no <code>attribution</code> fails the build.</p>
+  </div>
+
+  <!-- ═══════════ 01 SKILL TREE ═══════════ -->
+  <section id="tree">
+    <div class="sechead"><span class="secnum">01</span><h2>The skill tree</h2></div>
+    <p class="secsub">Four tiers, 30 core units plus six branching specialization tracks. Tiers are colour-coded on an increasing-energy ramp — the same visual logic as a spectrogram, and the ramp carries through the app’s skill-tree map.</p>
+
+    <div class="stats">
+      <div class="stat"><span class="v">254</span><span class="k">Lessons on a typical path</span></div>
+      <div class="stat"><span class="v">390</span><span class="k">Lessons in the full library</span></div>
+      <div class="stat"><span class="v">5</span><span class="k">Mastery levels per lesson</span></div>
+      <div class="stat"><span class="v">~1,000</span><span class="k">Sessions to Master</span></div>
+      <div class="stat"><span class="v">2.7 yr</span><span class="k">At one session per day</span></div>
+    </div>
+    <p style="font-size:0.875rem;color:var(--ink-2);">That last figure is the whole pedagogical bet: 254 unique lessons is not two years of content, but 254 lessons each replayed roughly four times on a widening spacing interval <em>is</em>. Content volume buys variety; the mastery ladder buys duration.</p>
+
+    <h3>How gating actually works</h3>
+    <p class="secsub">Completion unlocks nothing. Every gate is a score threshold, and the anti-grind rule is what makes the calendar do the teaching.</p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Mechanism</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mastery levels</strong></td><td>Bronze&nbsp;60 → Silver&nbsp;70 → Gold&nbsp;78 → Diamond&nbsp;85 → Master&nbsp;90. A fresh attempt at or above the next threshold promotes the lesson one level.</td></tr>
+          <tr><td><strong>Anti-grind</strong></td><td>A given lesson can promote <em>at most once per calendar day</em>. You cannot brute-force a unit in an evening — vocal skill is a motor skill and needs sleep between reps.</td></tr>
+          <tr><td><strong>Unit gate</strong></td><td>The unit’s mastery check unlocks when 80% of its lessons sit at Silver or above. The check is a mixed, previously-unseen battery scored blind against the unit rubric; pass&nbsp;=&nbsp;75.</td></tr>
+          <tr><td><strong>Decay</strong></td><td>Each lesson carries an SM-2-style stability value. When the interval lapses the lesson drops half a level and surfaces in <em>Refresh</em>. It never falls below Bronze once earned — decay nudges, it doesn’t punish.</td></tr>
+          <tr><td><strong>Tier gate</strong></td><td>All units at Gold, plus a tier capstone: an unrehearsed multi-skill performance graded against the tier’s full rubric.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TIER 1 -->
+    <div class="tier" data-t="1">
+      <div class="tierhead">
+        <span class="tag">Tier 1</span>
+        <h3>Foundations</h3>
+        <span class="count">8 units · 54 lessons · ~4 months</span>
+      </div>
+      <p class="tiernote">The instrument before the music. Nothing here is about acting — it is about knowing what your voice does, being able to repeat it on purpose, and not hurting yourself. Every lesson is scorable on-device with no reference clip, which is also why this tier is fully offline.</p>
+      <div class="units">
+        <div class="unit"><span class="idx">1.1</span><span class="name">Meet Your Voice</span><span class="desc">Baseline take, range map, and a habit inventory — uptalk, fry, fillers, jaw tension.</span><span class="n">5 lessons</span></div>
+        <div class="unit"><span class="idx">1.2</span><span class="name">Breath &amp; Support</span><span class="desc">Diaphragmatic setup, sustained tone under load, breath-to-punctuation, the silent catch-breath.</span><span class="n">7 lessons</span></div>
+        <div class="unit"><span class="idx">1.3</span><span class="name">Articulation &amp; Diction</span><span class="desc">Plosives, sibilants, medial consonants, twisters at rising tempo, the over-articulation dial.</span><span class="n">9 lessons</span></div>
+        <div class="unit"><span class="idx">1.4</span><span class="name">Pitch &amp; Resonance</span><span class="desc">Chest / mask / head placement, range mapping, holding and bending a contour on command.</span><span class="n">8 lessons</span></div>
+        <div class="unit"><span class="idx">1.5</span><span class="name">Microphone Technique</span><span class="desc">Proximity effect, off-axis, plosive control, distance dynamics, gain staging by ear.</span><span class="n">7 lessons</span></div>
+        <div class="unit"><span class="idx">1.6</span><span class="name">Warm-Ups &amp; Vocal Health</span><span class="desc">Build a personal routine, read strain signals, hydration and rest, the cool-down nobody does.</span><span class="n">5 lessons</span></div>
+        <div class="unit"><span class="idx">1.7</span><span class="name">Reading Aloud</span><span class="desc">Sight-reading fluency, phrasing, marking a page, punctuation as a musical score.</span><span class="n">8 lessons</span></div>
+        <div class="unit gate"><span class="idx">1.8 · gate</span><span class="name">Foundations Check</span><span class="desc">Unseen battery across all seven units. Gold on every unit required to attempt.</span><span class="n">5 assessments</span></div>
+      </div>
+    </div>
+
+    <!-- TIER 2 -->
+    <div class="tier" data-t="2">
+      <div class="tierhead">
+        <span class="tag">Tier 2</span>
+        <h3>Craft</h3>
+        <span class="count">9 units · 74 lessons · ~8 months</span>
+      </div>
+      <p class="tiernote">Where it becomes acting. The scoring model shifts here: Tier&nbsp;1 asks “did you hit the target,” Tier&nbsp;2 asks “did you make a choice, and did you commit to it.” Contrast and intent become measurable — an emotional-range drill scores the <em>distance between</em> your two takes, not either one alone.</p>
+      <div class="units">
+        <div class="unit"><span class="idx">2.1</span><span class="name">Cold Reading I</span><span class="desc">First-look fluency, marking a script in 60 seconds, recovering from a stumble without stopping.</span><span class="n">8 lessons</span></div>
+        <div class="unit"><span class="idx">2.2</span><span class="name">Script Analysis &amp; Subtext</span><span class="desc">Who / what / why, objective–obstacle–tactic, finding the operative word in every line.</span><span class="n">8 lessons</span></div>
+        <div class="unit"><span class="idx">2.3</span><span class="name">Pacing &amp; Phrasing</span><span class="desc">WPM control against a target band, the pause as punctuation, the beat before the turn.</span><span class="n">8 lessons</span></div>
+        <div class="unit"><span class="idx">2.4</span><span class="name">Emotional Range</span><span class="desc">One line, eight directions. Scored on contrast between takes and believability within each.</span><span class="n">10 lessons</span></div>
+        <div class="unit"><span class="idx">2.5</span><span class="name">Energy &amp; Tempo on Command</span><span class="desc">Move one dial without moving the others — faster but not higher, bigger but not louder.</span><span class="n">7 lessons</span></div>
+        <div class="unit"><span class="idx">2.6</span><span class="name">Taking Direction</span><span class="desc">Adjust-and-redo drills. Decoding the vocabulary: “more sell,” “less announcer,” “pick it up.”</span><span class="n">6 lessons</span></div>
+        <div class="unit"><span class="idx">2.7</span><span class="name">Character Voice Construction</span><span class="desc">Placement, tempo, texture, physicality — then sustaining it unchanged across a full page.</span><span class="n">10 lessons</span></div>
+        <div class="unit"><span class="idx">2.8</span><span class="name">Accents &amp; Dialects I</span><span class="desc">Phoneme-level work: GenAm, RP, Standard British, Mid-Atlantic, two light regionals.</span><span class="n">12 lessons</span></div>
+        <div class="unit gate"><span class="idx">2.9 · gate</span><span class="name">Craft Check</span><span class="desc">Unseen sides, one adjustment given mid-take, graded on the adjustment as much as the read.</span><span class="n">5 assessments</span></div>
+      </div>
+    </div>
+
+    <!-- TIER 3 -->
+    <div class="tier" data-t="3">
+      <div class="tierhead">
+        <span class="tag">Tier 3</span>
+        <h3>Specializations</h3>
+        <span class="count">6 tracks · 218 lessons in library · ~85 on a path</span>
+      </div>
+      <p class="tiernote">Branching. The user picks two tracks to start and can unlock more later; nobody is expected to run all six. Tracks are independent of each other but all require the Craft gate. This is also where the premium boundary naturally falls — two tracks free, the rest on the paid tier.</p>
+      <div class="tracks">
+        <div class="track">
+          <span class="name">Animation &amp; Video Games</span>
+          <ul><li>Sustaining a character over a long session</li><li>Efforts and vocalisations without damage</li><li>Ensemble and matching a scene partner</li><li>Session stamina and pickup discipline</li><li>Creature and non-human voice</li><li>Reading to a loop / to picture</li><li>Track capstone</li></ul>
+          <span class="n">7 units · 46 lessons</span>
+        </div>
+        <div class="track">
+          <span class="name">Commercial &amp; Promo</span>
+          <ul><li>:15 / :30 / :60 hard timing</li><li>Conversational vs. announcer</li><li>Brand tone matching from a brief</li><li>Tag reads and legal-copy speed</li><li>Selling without sounding like selling</li><li>Track capstone</li></ul>
+          <span class="n">6 units · 38 lessons</span>
+        </div>
+        <div class="track">
+          <span class="name">Audiobook Narration</span>
+          <ul><li>Long-form stamina and consistency</li><li>POV and character differentiation</li><li>Punctuation discipline over hours</li><li>Punch-in and pickup workflow</li><li>Pronunciation research</li><li>Proof-listening your own work</li><li>Track capstone</li></ul>
+          <span class="n">7 units · 44 lessons</span>
+        </div>
+        <div class="track">
+          <span class="name">ADR, Dubbing &amp; Lip-Sync</span>
+          <ul><li>Beeps and streamers</li><li>Sync to picture within frames</li><li>Matching an original performance</li><li>Fitting a translated line to a mouth</li><li>Staying plosive-free at sync speed</li><li>Track capstone</li></ul>
+          <span class="n">6 units · 36 lessons</span>
+        </div>
+        <div class="track">
+          <span class="name">Corporate, E-Learning &amp; IVR</span>
+          <ul><li>Neutral clarity at length</li><li>Technical pronunciation research</li><li>Phone-tree pacing and prompts</li><li>Modular recording for reassembly</li><li>Track capstone</li></ul>
+          <span class="n">5 units · 28 lessons</span>
+        </div>
+        <div class="track">
+          <span class="name">Live-Action Looping &amp; Walla</span>
+          <ul><li>Crowd walla texture and layering</li><li>Improvised realism on cue</li><li>Group timing and not stepping on lines</li><li>Matching an on-screen actor’s voice</li><li>Track capstone</li></ul>
+          <span class="n">5 units · 26 lessons</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 4 -->
+    <div class="tier" data-t="4">
+      <div class="tierhead">
+        <span class="tag">Tier 4</span>
+        <h3>Mastery &amp; Industry</h3>
+        <span class="count">7 units · 41 lessons + ongoing</span>
+      </div>
+      <p class="tiernote">The tier that turns a skill into a job. Most of it is not performance work — it is signal chain, file specs, rates and self-management. It unlocks at Gold on one specialization track, not at the end of everything, because people need demo reels before they feel ready for them.</p>
+      <div class="units">
+        <div class="unit"><span class="idx">4.1</span><span class="name">Home Studio &amp; Audio Standards</span><span class="desc">Treatment on a budget, noise floor below −60&nbsp;dB, peaks, RMS, meeting ACX spec.</span><span class="n">7 lessons</span></div>
+        <div class="unit"><span class="idx">4.2</span><span class="name">Editing &amp; Delivery Specs</span><span class="desc">Breath handling, noise reduction that doesn’t phase, punch-in, file naming and formats.</span><span class="n">6 lessons</span></div>
+        <div class="unit"><span class="idx">4.3</span><span class="name">The Demo Reel</span><span class="desc">One reel per genre, structure, the first ten seconds, mastering, when to re-cut.</span><span class="n">8 lessons</span></div>
+        <div class="unit"><span class="idx">4.4</span><span class="name">Auditions &amp; Self-Tape</span><span class="desc">Slating, reading the spec, three-take strategy, 24-hour turnaround discipline.</span><span class="n">7 lessons</span></div>
+        <div class="unit"><span class="idx">4.5</span><span class="name">The Business of Voice</span><span class="desc">Rates, usage and buyouts, agents, SAG-AFTRA, contracts, invoicing, tax basics.</span><span class="n">8 lessons</span></div>
+        <div class="unit"><span class="idx">4.6</span><span class="name">Career Vocal Health</span><span class="desc">Load management across a week, injury warning signs, when to see a laryngologist.</span><span class="n">5 lessons</span></div>
+        <div class="unit gate"><span class="idx">4.7 · ongoing</span><span class="name">Continuous Mastery</span><span class="desc">The permanent end state: the review engine serves decayed lessons and fresh cold reads forever.</span><span class="n">Endless</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 ARCHITECTURE ═══════════ -->
+  <section id="arch">
+    <div class="sechead"><span class="secnum">02</span><h2>System architecture</h2></div>
+    <p class="secsub">The organising principle: <strong>the client is the product, the backend is a filing cabinet.</strong> Every scoring decision that gates progress happens on-device, so the app is fully usable on a plane and no voice recording leaves the phone unless the user asks it to. Third-party media is reached directly by the client and never proxied through our infrastructure.</p>
+
+    <div class="diagram" role="img" aria-label="Three-layer architecture: the Flutter client on device, Supabase as backend, and third-party services. The client talks directly to the YouTube IFrame API and to analytics; everything else routes through Supabase.">
+      <svg viewBox="0 0 1000 710" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--diagram-line)"></path>
+          </marker>
+          <marker id="arwa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"></path>
+          </marker>
+        </defs>
+
+        <!-- BAND A -->
+        <rect x="30" y="30" width="940" height="200" rx="10" fill="var(--t2-wash)" stroke="var(--t2)" stroke-opacity="0.45"></rect>
+        <text x="50" y="58" class="svg-band-label" fill="var(--t2)">On device — Flutter (iOS · Android · macOS)</text>
+
+        <rect x="50" y="78" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="66" y="101" class="svg-box-title">Lesson Runner</text>
+        <text x="66" y="120" class="svg-box-sub">state machine · offline-first</text>
+
+        <rect x="357" y="78" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="373" y="101" class="svg-box-title">Audio Engine</text>
+        <text x="373" y="120" class="svg-box-sub">record · just_audio · buffers</text>
+
+        <rect x="664" y="78" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="680" y="101" class="svg-box-title">Sensory Layer</text>
+        <text x="680" y="120" class="svg-box-sub">haptics · Rive · SFX bus</text>
+
+        <rect x="50" y="155" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="66" y="178" class="svg-box-title">DSP + STT</text>
+        <text x="66" y="197" class="svg-box-sub">FFI: pYIN · RMS · VAD · whisper</text>
+
+        <rect x="357" y="155" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="373" y="178" class="svg-box-title">Local Store</text>
+        <text x="373" y="197" class="svg-box-sub">Drift · encrypted audio · outbox</text>
+
+        <rect x="664" y="155" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="680" y="178" class="svg-box-title">Account &amp; Sync</text>
+        <text x="680" y="197" class="svg-box-sub">optional · anonymous by default</text>
+
+        <!-- BAND B -->
+        <rect x="30" y="290" width="940" height="170" rx="10" fill="var(--t1-wash)" stroke="var(--t1)" stroke-opacity="0.45"></rect>
+        <text x="50" y="318" class="svg-band-label" fill="var(--t1)">Supabase</text>
+
+        <rect x="50" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="66" y="365" class="svg-box-title">Edge Functions</text>
+        <text x="66" y="384" class="svg-box-sub">coach-note</text>
+        <text x="66" y="399" class="svg-box-sub">align · moderate</text>
+        <text x="66" y="414" class="svg-box-sub">league-tick (cron)</text>
+
+        <rect x="280" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="296" y="365" class="svg-box-title">Postgres</text>
+        <text x="296" y="384" class="svg-box-sub">curriculum · progress</text>
+        <text x="296" y="399" class="svg-box-sub">leagues (window fns)</text>
+        <text x="296" y="414" class="svg-box-sub">moderation queue · RLS</text>
+
+        <rect x="510" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="526" y="365" class="svg-box-title">Storage</text>
+        <text x="526" y="384" class="svg-box-sub">consented recordings</text>
+        <text x="526" y="399" class="svg-box-sub">signed URLs only</text>
+        <text x="526" y="414" class="svg-box-sub">encrypted at rest</text>
+
+        <rect x="740" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="756" y="365" class="svg-box-title">Auth</text>
+        <text x="756" y="384" class="svg-box-sub">email · OAuth</text>
+        <text x="756" y="399" class="svg-box-sub">age gate</text>
+        <text x="756" y="414" class="svg-box-sub">parental consent flow</text>
+
+        <!-- BAND C -->
+        <rect x="30" y="520" width="940" height="170" rx="10" fill="var(--t3-wash)" stroke="var(--t3)" stroke-opacity="0.45"></rect>
+        <text x="50" y="548" class="svg-band-label" fill="var(--t3)">Third-party</text>
+
+        <rect x="50" y="570" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="66" y="595" class="svg-box-title">YouTube IFrame</text>
+        <text x="66" y="614" class="svg-box-sub">embed only</text>
+        <text x="66" y="629" class="svg-box-sub">video_id + in/out</text>
+        <text x="66" y="644" class="svg-box-sub">no media stored</text>
+
+        <rect x="280" y="570" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="296" y="595" class="svg-box-title">Anthropic API</text>
+        <text x="296" y="614" class="svg-box-sub">Claude · coach notes</text>
+        <text x="296" y="629" class="svg-box-sub">text in, text out</text>
+        <text x="296" y="644" class="svg-box-sub">no audio</text>
+
+        <rect x="510" y="570" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="526" y="595" class="svg-box-title">Forced Aligner</text>
+        <text x="526" y="614" class="svg-box-sub">MFA on Cloud Run</text>
+        <text x="526" y="629" class="svg-box-sub">accent drills only</text>
+        <text x="526" y="644" class="svg-box-sub">opt-in, ephemeral</text>
+
+        <rect x="740" y="570" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
+        <text x="756" y="595" class="svg-box-title">Analytics &amp; IAP</text>
+        <text x="756" y="614" class="svg-box-sub">PostHog</text>
+        <text x="756" y="629" class="svg-box-sub">RevenueCat</text>
+        <text x="756" y="644" class="svg-box-sub">TTS (post-MVP)</text>
+
+        <!-- A → B -->
+        <g stroke="var(--diagram-line)" stroke-width="1.5" fill="none" marker-end="url(#arw)">
+          <path d="M 193 217 L 193 336"></path>
+          <path d="M 430 217 L 430 336"></path>
+          <path d="M 570 217 L 570 336"></path>
+          <path d="M 845 217 L 845 336"></path>
+        </g>
+        <text x="200" y="266" class="svg-edge-label">metrics + transcript</text>
+        <text x="200" y="280" class="svg-edge-label">(never audio)</text>
+        <text x="437" y="273" class="svg-edge-label">progress sync</text>
+        <text x="577" y="266" class="svg-edge-label">opt-in</text>
+        <text x="577" y="280" class="svg-edge-label">upload</text>
+        <text x="768" y="273" class="svg-edge-label" text-anchor="end">sign-in</text>
+
+        <!-- B → C -->
+        <g stroke="var(--diagram-line)" stroke-width="1.5" fill="none" marker-end="url(#arw)">
+          <path d="M 155 434 L 155 488 L 385 488 L 385 566"></path>
+          <path d="M 125 434 L 125 508 L 615 508 L 615 566"></path>
+        </g>
+        <text x="392" y="482" class="svg-edge-label">coach note</text>
+        <text x="622" y="502" class="svg-edge-label">phoneme alignment</text>
+
+        <!-- direct client ↔ third-party lanes -->
+        <g stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4" fill="none" marker-end="url(#arwa)">
+          <path d="M 50 109 L 14 109 L 14 617 L 46 617"></path>
+          <path d="M 950 186 L 986 186 L 986 617 L 954 617"></path>
+        </g>
+        <text x="24" y="360" class="svg-edge-label" fill="var(--accent)" transform="rotate(-90 24 360)" text-anchor="middle">direct embed · no proxy</text>
+        <text x="976" y="360" class="svg-edge-label" fill="var(--accent)" transform="rotate(-90 976 360)" text-anchor="middle">client SDKs</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i class="swatch"></i> Routed through our backend</span>
+      <span><i class="swatch dash"></i> Client talks directly — media and events never touch our storage</span>
+    </div>
+
+    <div class="cols2">
+      <div class="decision">
+        <p class="verdict">Framework — confirmed</p>
+        <h4>Flutter, not React Native</h4>
+        <p>Two reasons that are specific to this app rather than general preference. First, <strong>macOS is a first-class target here, not an afterthought</strong> — this is a studio tool and people will want it on the machine their interface is plugged into. <code>react-native-macos</code> is a Microsoft-maintained fork that lags the main branch; Flutter macOS is in the core SDK.</p>
+        <p>Second, the two hardest UI surfaces are a 60&nbsp;fps live pitch/waveform visualiser and an animated skill-tree map. Flutter renders both through its own compositor with <code>CustomPainter</code> and first-party Rive support, with no JS bridge between the audio callback and the paint. That bridge is exactly where RN would hurt.</p>
+      </div>
+
+      <div class="decision">
+        <p class="verdict">Backend — confirmed</p>
+        <h4>Supabase, not Firebase</h4>
+        <p>The data is relational and the queries are analytical. Leagues need <code>RANK() OVER (PARTITION BY league_id ORDER BY weekly_xp)</code> with promotion and relegation computed weekly; the curriculum is a DAG of prerequisites; the review scheduler is a range query over due dates. Firestore does all three badly and expensively.</p>
+        <p>Row-Level Security also maps cleanly onto the two hard policy problems: a moderation queue where a recording is invisible until approved, and minors whose audio is never publicly readable. Those become SQL policies rather than application code you can forget to write. Firebase wins on push maturity and offline-out-of-the-box — but we’re building a custom offline layer anyway.</p>
+      </div>
+    </div>
+
+    <h3>Offline model</h3>
+    <p>Drift is the source of truth on device; Postgres is a replica the client pushes to. Every mutation lands in a local <code>outbox</code> table with a monotonic sequence number and syncs on reconnect. Attempts, scores, XP, streak state and mastery levels are all computed locally and replayed server-side — a user with no signal for a week loses nothing, and the streak is evaluated against a device-local calendar with a server reconciliation pass to catch timezone gaming.</p>
+    <p>Only two lesson categories require connectivity: YouTube-embed lessons, and accent drills that use cloud forced alignment. Both are marked in the curriculum data so the skill tree can grey them out cleanly rather than failing at the last second.</p>
+  </section>
+
+  <!-- ═══════════ 03 SCORING ═══════════ -->
+  <section id="scoring">
+    <div class="sechead"><span class="secnum">03</span><h2>Where scoring happens</h2></div>
+    <p class="secsub">The split follows one rule: <strong>anything that gates progress runs on-device.</strong> The feedback screen must be fully populated in under 300&nbsp;ms with numbers, an overlay chart, and a mastery delta — that is the moment the loop either lands or doesn’t. The LLM coach note streams in a beat later as enrichment, and its absence never blocks a score.</p>
+
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Signal</th><th>Method</th><th>Where</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Level, noise floor, clipping</strong></td><td>RMS + peak over the input buffer</td><td><span class="where dev">device</span></td><td>Needed live, during the take, to drive the visualiser and the pre-roll “your room is too loud” gate.</td></tr>
+          <tr><td><strong>Pitch contour</strong></td><td>pYIN via a Rust/C FFI plugin, VAD-gated</td><td><span class="where dev">device</span></td><td>Real-time overlay against the target curve. Round-tripping this to a server makes the feature impossible.</td></tr>
+          <tr><td><strong>Clarity / articulation</strong></td><td>Platform STT (<code>SFSpeechRecognizer</code> / Android <code>SpeechRecognizer</code>) → word-level match against the known script. Whisper <code>base.en</code> deferred past MVP.</td><td><span class="where dev">device</span></td><td>We already know the target text, so this is alignment, not open transcription. Platform recognisers are accurate enough for that, cost nothing, and save a 150&nbsp;MB post-install download — see the schedule note in §5.</td></tr>
+          <tr><td><strong>Pacing</strong></td><td>WPM from STT timestamps vs. the lesson’s target band</td><td><span class="where dev">device</span></td><td>Free once STT has run.</td></tr>
+          <tr><td><strong>Plosive / sibilance events</strong></td><td>Low-band transient detection, 60–200&nbsp;Hz energy spikes</td><td><span class="where dev">device</span></td><td>Deterministic DSP. No model required.</td></tr>
+          <tr><td><strong>Emotional contrast</strong></td><td>Distance between takes across pitch variance, tempo, dynamics, spectral tilt</td><td><span class="where dev">device</span></td><td>Compares the user against themselves, so no reference corpus is needed.</td></tr>
+          <tr><td><strong>Phoneme accuracy (accents)</strong></td><td>Montreal Forced Aligner on Cloud Run, per-phoneme scoring</td><td><span class="where cloud">cloud</span></td><td>The only signal that genuinely needs a heavier acoustic model. Opt-in, audio deleted immediately after scoring.</td></tr>
+          <tr><td><strong>Coach note</strong></td><td>Claude, given the transcript plus the numeric metric bundle</td><td><span class="where cloud">cloud</span></td><td>Sends text and numbers — never audio. Two sentences, one observation and one adjustment, or it doesn’t ship.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Calibrating the rubric</h4>
+    <p>The biggest risk in the whole product is that scores feel arbitrary, because a beginner cannot tell a real 68 from a random one — but they can tell when the app disagrees with their own ears twice in a row. Before the rubric weights are frozen, we record a calibration set of roughly 20 takes per lesson type, have them rated by a working VO coach, and tune weights to correlate with those ratings. That set becomes a regression fixture in CI: change a weight, see which calibration takes move.</p>
+  </section>
+
+  <!-- ═══════════ 04 STRUCTURE ═══════════ -->
+  <section id="structure">
+    <div class="sechead"><span class="secnum">04</span><h2>Project structure</h2></div>
+    <p class="secsub">A Melos monorepo. Feature-first inside the app, with three enforced import rules: <code>features/</code> may import <code>core/</code>, <code>domain/</code> and <code>ui/</code>; <code>core/</code> may import nothing from <code>features/</code>; and <code>domain/</code> imports neither — it is pure Dart, so the scoring rubrics and the review scheduler are unit-testable with no Flutter binding. Riverpod for state, <code>go_router</code> for navigation, <code>freezed</code> for models, <code>drift</code> for local persistence.</p>
+
+<pre><b>resonance/</b>
+├── <b>apps/resonance/</b>                    <i># the Flutter app — iOS · Android · macOS</i>
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── <b>app/</b>                       <i># bootstrap, router, theme, DI overrides</i>
+│   │   ├── <b>core/</b>                      <i># cross-feature infrastructure</i>
+│   │   │   ├── audio/                <i># recorder, player, ring buffers</i>
+│   │   │   ├── dsp/                  <i># Dart API over the native DSP package</i>
+│   │   │   ├── scoring/              <i># metric → score rubrics (pure, calibrated)</i>
+│   │   │   ├── haptics/              <i># capability probe + pattern registry</i>
+│   │   │   ├── sfx/                  <i># UI sound palette, ducking during playback</i>
+│   │   │   ├── sync/                 <i># outbox queue, conflict policy</i>
+│   │   │   ├── db/                   <i># drift schema, DAOs, migrations</i>
+│   │   │   ├── net/                  <i># supabase client, typed edge-fn calls</i>
+│   │   │   └── telemetry/
+│   │   ├── <b>domain/</b>                    <i># entities + repository interfaces — pure Dart</i>
+│   │   │   ├── curriculum/           <i># Tier, Unit, Lesson, Prerequisite, MasteryLevel</i>
+│   │   │   ├── progress/             <i># Attempt, Score, StreakState, VocalEnergy</i>
+│   │   │   └── review/               <i># spaced-repetition scheduler + decay</i>
+│   │   ├── <b>features/</b>
+│   │   │   ├── onboarding/           <i># mic check, baseline take, goal setting</i>
+│   │   │   ├── skill_tree/           <i># the map</i>
+│   │   │   ├── lesson/
+│   │   │   │   ├── runner/           <i># one state machine, parameterised by type</i>
+│   │   │   │   ├── types/            <i># cold_read · pitch_match · shadow · emotion · mic</i>
+│   │   │   │   └── feedback/         <i># score breakdown + user-vs-reference overlay</i>
+│   │   │   ├── streaks/  quests/  leagues/  profile/
+│   │   │   └── <u>community/  paywall/  reel/</u>   <i># post-MVP, scaffolded empty</i>
+│   │   ├── <b>ui/</b>                        <i># the design system</i>
+│   │   │   ├── tokens/  components/  motion/
+│   │   │   └── charts/               <i># waveform + pitch contour CustomPainters</i>
+│   │   └── l10n/
+│   ├── assets/  <i>rive/ · sfx/ · fonts/ · seed/ (compiled curriculum JSON)</i>
+│   ├── macos/ ios/ android/          <i># entitlements: mic input, network client</i>
+│   └── test/  integration_test/
+├── <b>packages/</b>
+│   ├── resonance_dsp/                <i># FFI plugin: pYIN pitch, RMS, VAD, transients</i>
+│   ├── resonance_stt/                <i># whisper.cpp binding + model download manager</i>
+│   └── resonance_models/             <i># freezed models shared by app, tools, functions</i>
+├── <b>backend/supabase/</b>
+│   ├── migrations/                   <i># versioned SQL</i>
+│   ├── functions/                    <i># coach-note · align · moderate · league-tick</i>
+│   └── policies/                     <i># RLS policies + their tests</i>
+├── <b>content/</b>
+│   ├── curriculum/                   <i># tier/unit/lesson YAML — the authoring source</i>
+│   ├── scripts/                      <i># public-domain text + provenance.json per file</i>
+│   └── references/                   <i># video_id, in/out, approver, last_checked — IDs only</i>
+├── <b>tools/</b>
+│   ├── curator/                      <i># Flutter web admin: approve refs, run link checks</i>
+│   └── curriculum_build/             <i># YAML → validated seed JSON, fails CI on a bad DAG</i>
+└── docs/
+</pre>
+    <p>Two structural notes worth arguing about now rather than in month four. <strong>Curriculum is authored as YAML and compiled</strong>, not typed into a database — it gets code review, diffs readably, and ships in the bundle so the tree works offline on first launch. And <strong><code>content/references/</code> stores identifiers only</strong>; there is no code path in the repo that can write a media file into it, which is the structural version of the embed-only rule rather than a promise to remember.</p>
+  </section>
+
+  <!-- ═══════════ 05 MVP ═══════════ -->
+  <section id="mvp">
+    <div class="sechead"><span class="secnum">05</span><h2>MVP scope &amp; milestones</h2></div>
+    <p class="secsub">One unit, two lesson types, the full sensory layer. The sensory work is <em>in</em> deliberately — the brief’s claim is that haptics and sound are product features, and an MVP without them tests a different product. Scope below is the trimmed version for a solo build at ~10&nbsp;h/week.</p>
+
+    <div class="decision" style="border-color:var(--accent);">
+      <p class="verdict">Scope trim — 10h/week</p>
+      <h4>Two cuts that buy back nine weeks</h4>
+      <p><strong>On-device Whisper is deferred.</strong> Platform speech recognition handles alignment against a known script well enough, costs nothing, and removes a 150&nbsp;MB post-install download. Whisper returns when accent drills need it, in Tier&nbsp;2.</p>
+      <p><strong>Pitch-match scoring is cut; the visualiser stays.</strong> The live contour is the tactile hook and ships in M1. Scoring a user’s contour against a target is a separate problem, and unit 1.3 does not need it.</p>
+      <p style="margin-bottom:0;">Together these take the MVP from ~32 weeks to ~23 at 10&nbsp;h/week. Everything cut is additive later — nothing here is a one-way door.</p>
+    </div>
+
+    <h4>The unit: 1.3 Articulation &amp; Diction</h4>
+    <p>Chosen over Pitch &amp; Resonance for one reason: its primary signal is the most reliable one we have. Clarity scored against a known script is close to objectively correct, so if the loop feels unsatisfying we’ll know it’s the loop and not the scorer. Five lessons are <strong>authored and compiling</strong> — plosive precision, sibilance, medial consonants, a tempo ladder, and an over-articulation dial that scores the <em>difference</em> between two takes rather than either one. One embedded-reference lesson proves the listen-and-analyse path.</p>
+
+    <div class="cols2">
+      <div>
+        <h4>In</h4>
+        <ul class="plain">
+          <li>Onboarding: mic check, room-noise gate, baseline take</li>
+          <li>Skill tree showing one unlocked unit and the locked tree beyond it</li>
+          <li>Two lesson types: scored read, listen-and-analyse (embed)</li>
+          <li>On-device scoring: clarity, pace, plosives</li>
+          <li>Live pitch/waveform visualiser (rendered, not scored)</li>
+          <li>Feedback screen: breakdown, user-vs-reference overlay, one Claude coach note</li>
+          <li>Mastery Bronze → Gold, unit gate, XP, daily streak with one freeze</li>
+          <li>Vocal Energy meter</li>
+          <li>Haptics on all three platforms, six-sound UI palette, mascot at three moments</li>
+          <li>Anonymous local account; optional sign-in; delete-my-data</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Out</h4>
+        <ul class="plain">
+          <li>Community recordings, moderation queue, report flow</li>
+          <li>Leagues and leaderboards</li>
+          <li>Accents, specializations, Tier 4</li>
+          <li>Demo reel export</li>
+          <li>Payments and the paywall</li>
+          <li>The curator admin tool — a hand-maintained JSON seed is enough for one lesson</li>
+          <li>Diamond and Master tiers, decay/refresh scheduling</li>
+          <li>Pitch-contour <em>scoring</em> — the visualiser ships, the score does not</li>
+          <li>On-device Whisper — platform STT covers the MVP</li>
+        </ul>
+        <p style="font-size:0.875rem;margin-top:14px;"><strong>Deferring accounts is the load-bearing scope cut.</strong> Anonymous-first means no age gate, no parental consent flow, no COPPA surface and no PII at all in the MVP — because nothing is shared and nothing is uploaded. All of that arrives with community features, where it actually belongs.</p>
+      </div>
+    </div>
+
+    <h4>Definition of done</h4>
+    <p>A new user opens the app cold, works through five articulation lessons across five days, watches a mastery ring fill, holds a streak, gets one specific and correct-sounding coach note per attempt — and can do all of it in aeroplane mode except the one embed lesson. If that person wants to open the app on day six without a notification, the MVP succeeded.</p>
+
+    <ol class="ms">
+      <li>
+        <div class="mhead"><span class="mid">M0</span><span class="mtitle">Rails</span><span class="mwk">weeks 1–3 · in progress</span></div>
+        <p class="mbody">Pub workspace, app building on all targets with mic entitlements, design tokens and theme, router, the YAML→seed compiler, Drift schema, CI.</p>
+        <p class="mproves"><b>Done so far:</b> workspace and three package scaffolds; macOS and iOS both building; Flutter pinned at 3.47.2 via fvm; colour, type, spacing and motion tokens with full light/dark; the mastery ladder implemented and covered by 13 tests; the curriculum compiler with duplicate-id, dangling-prerequisite and cycle detection; Tier 1 authored with unit 1.3 complete; the skill tree rendering from the compiled seed, covered by 12 more tests.</p>
+        <p class="mproves"><b>Left:</b> Drift schema, CI workflow, bundled fonts, and the macOS WebView spike.</p>
+      </li>
+      <li>
+        <div class="mhead"><span class="mid">M1</span><span class="mtitle">Audio spine</span><span class="mwk">weeks 4–8</span></div>
+        <p class="mbody">Record and playback, the <code>resonance_dsp</code> FFI plugin (RMS, pYIN, VAD, transients), live waveform and pitch visualiser holding 60&nbsp;fps, room-noise pre-roll gate.</p>
+        <p class="mproves"><b>Proves:</b> the tactile core. If the visualiser isn’t beautiful and instant here, nothing later fixes it.</p>
+      </li>
+      <li>
+        <div class="mhead"><span class="mid">M2</span><span class="mtitle">Score &amp; feedback</span><span class="mwk">weeks 9–13</span></div>
+        <p class="mbody">Platform STT, alignment to the target script, clarity/pace/plosive rubrics tuned against the calibration set, the feedback screen, and the <code>coach-note</code> edge function. Plus <code>tools/ingest</code> for licence-checked reference audio.</p>
+        <p class="mproves"><b>Proves:</b> the loop is worth repeating — the single riskiest assumption in the product.</p>
+      </li>
+      <li>
+        <div class="mhead"><span class="mid">M3</span><span class="mtitle">Progression</span><span class="mwk">weeks 14–16</span></div>
+        <p class="mbody">Mastery Bronze→Gold wired to persisted progress, unit gate, XP, streak plus freeze, Vocal Energy. The ladder logic is already written and tested; this milestone is persistence and UI.</p>
+        <p class="mproves"><b>Proves:</b> gating creates anticipation rather than frustration.</p>
+      </li>
+      <li>
+        <div class="mhead"><span class="mid">M4</span><span class="mtitle">Sensory layer</span><span class="mwk">weeks 17–19</span></div>
+        <p class="mbody">Haptic registry across Core Haptics, Android <code>VibrationEffect</code> and a macOS no-op; six-sound UI palette; celebration moments; a full reduced-motion path. Ships with placeholder art and sound.</p>
+        <p class="mproves"><b>Proves:</b> premium feel. With placeholders this validates the <em>timing</em> of the feedback, which is the half that is expensive to get wrong; the assets can be swapped later without touching the code.</p>
+      </li>
+      <li>
+        <div class="mhead"><span class="mid">M5</span><span class="mtitle">Embed &amp; sync</span><span class="mwk">weeks 20–21</span></div>
+        <p class="mbody">The listen-and-analyse lesson on the embedded player with in/out points, optional Supabase account, outbox sync on reconnect, delete-my-data.</p>
+        <p class="mproves"><b>Proves:</b> the reference path and offline-first sync, the two things that would be expensive to retrofit.</p>
+      </li>
+      <li>
+        <div class="mhead"><span class="mid">M6</span><span class="mtitle">Harden</span><span class="mwk">weeks 22–23</span></div>
+        <p class="mbody">Performance pass, crash reporting, analytics events, accessibility audit including VoiceOver on the lesson runner, TestFlight and internal track.</p>
+        <p class="mproves"><b>Proves:</b> it survives contact with real users on real devices.</p>
+      </li>
+    </ol>
+    <p style="font-size:0.875rem;color:var(--ink-2);margin-top:4px;">Twenty-three calendar weeks at ~10&nbsp;hours a week. M1 and M2 are the least compressible — they are research as much as construction, and no amount of scheduling makes a pitch tracker behave in a noisy room. If the runway matters more than the scope, the next thing to cut is the embed lesson in M5, which would save two more weeks.</p>
+  </section>
+
+  <!-- ═══════════ 06 RISKS ═══════════ -->
+  <section id="risks">
+    <div class="sechead"><span class="secnum">06</span><h2>Risks worth pricing in now</h2></div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Risk</th><th>Why it bites</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>macOS WebView</strong></td>
+            <td><code>youtube_player_iframe</code> depends on the webview platform interface, and macOS support there is materially weaker than on mobile. Discovering this in week 13 would be expensive.</td>
+            <td>Spike it in M0, not M5. Fallback: a thin native WKWebView platform view, or opening the timestamped URL in the default browser and treating the lesson as a guided listen.</td>
+          </tr>
+          <tr>
+            <td><strong>STT size and latency</strong></td>
+            <td>Whisper <code>small</code> is ~480&nbsp;MB — unacceptable in a first download, and slow on mid-range Android.</td>
+            <td><em>Resolved for MVP:</em> platform recognisers only, no model download at all. Whisper returns when accent drills need per-phoneme timing, and by then it is a paid-tier feature that can justify the download.</td>
+          </tr>
+          <tr>
+            <td><strong>Dart ecosystem version pinning</strong></td>
+            <td>Hit immediately: <code>drift_dev</code>, <code>riverpod_generator</code> and <code>custom_lint</code> could not co-resolve on the machine’s Flutter 3.44, because Riverpod 2 codegen depends on an analyzer needing the <code>macros</code> package Dart has since removed.</td>
+            <td>Flutter pinned per-project at 3.47.2 via fvm, so the shared SDK and the other repos on this machine are untouched. Riverpod moved to 3.x. <code>custom_lint</code>/<code>riverpod_lint</code> dropped — they still pin an older analyzer than freezed&nbsp;4 allows. Revisit when they catch up; nothing depends on them.</td>
+          </tr>
+          <tr>
+            <td><strong>Android build environment</strong></td>
+            <td>The dev machine has no JDK and no Android SDK, so a third of the target platforms is currently unverifiable.</td>
+            <td>The Android target is scaffolded and will build once <code>temurin</code> and Android Studio are installed. Worth doing before M1 rather than after — platform channel and FFI work is exactly where Android diverges, and finding that out in week 8 is worse than in week 3.</td>
+          </tr>
+          <tr>
+            <td><strong>Pitch tracking on real rooms</strong></td>
+            <td>pYIN degrades badly with room noise and phone-mic AGC, and a wrong contour reads as the app being broken.</td>
+            <td>Hard-gate scoring behind the noise-floor check, VAD-gate the tracker, and show confidence in the overlay rather than drawing a confident wrong line.</td>
+          </tr>
+          <tr>
+            <td><strong>Scores feel arbitrary</strong></td>
+            <td>Two disagreements with the user’s own ears and trust is gone for good.</td>
+            <td>The coach-rated calibration set from §3, wired into CI as a regression fixture.</td>
+          </tr>
+          <tr>
+            <td><strong>Original art and sound</strong></td>
+            <td>M4 assumes a mascot and a six-sound palette exist. Neither is an engineering task, and the brief rules out anything derivative.</td>
+            <td>Commission both during M1–M3 so they land before M4 starts. Needs a budget decision now, not in week eleven.</td>
+          </tr>
+          <tr>
+            <td><strong>The name</strong></td>
+            <td>“Resonance” is a common product word — there are meditation, audio and wellness apps using it, which makes both the App Store listing and the trademark position weak.</td>
+            <td>Worth a search before launch. If you want alternatives from the same world: <em>Timbre</em>, <em>Booth</em>, <em>Slate</em>. Cheap to change now, expensive after TestFlight.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ 07 STATUS ═══════════ -->
+  <section id="signoff">
+    <div class="sechead"><span class="secnum">07</span><h2>Decisions &amp; status</h2></div>
+    <p class="secsub">Everything below is settled. The open items are engineering unknowns, not product questions.</p>
+
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Decision</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Content sourcing</strong></td><td>Licence-checked ingestion — CC-BY and public domain downloaded and cached; embeds only for listen-and-analyse. No rehosting of copyrighted performances.</td></tr>
+          <tr><td><strong>Backend</strong></td><td>Supabase.</td></tr>
+          <tr><td><strong>Accounts</strong></td><td>Anonymous-first for MVP. No age gate, no consent flow, no PII until community features land.</td></tr>
+          <tr><td><strong>MVP unit</strong></td><td>Tier 1 Unit 3 — Articulation &amp; Diction. Five lessons authored.</td></tr>
+          <tr><td><strong>Art &amp; sound</strong></td><td>Ships with placeholders. M4 validates timing, not assets.</td></tr>
+          <tr><td><strong>Capacity</strong></td><td>Solo, ~10&nbsp;h/week. Schedule and scope trimmed to ~23 weeks.</td></tr>
+          <tr><td><strong>Toolchain</strong></td><td>Flutter 3.47.2, pinned per-project with fvm. Riverpod 3, drift, go_router, freezed.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="signoff">
+      <h3>Where M0 stands</h3>
+      <ul class="plain">
+        <li><strong>Building:</strong> macOS and iOS both compile and run. Android is scaffolded but blocked on a local JDK + SDK install.</li>
+        <li><strong>Tested:</strong> 25 passing — 13 on the mastery ladder (thresholds, the once-per-day rule, decay floors, a five-day climb, and a grind attempt that correctly gets nowhere), 12 on the curriculum pipeline and skill tree.</li>
+        <li><strong>Content pipeline:</strong> authored YAML compiles to a validated seed. Duplicate ids, dangling prerequisites, cycles, unknown lesson types, inverted WPM bands and un-credited references all fail the build.</li>
+        <li><strong>Rendering:</strong> the skill tree draws all eight Tier&nbsp;1 units from the compiled seed, with segmented mastery rings, locked states, and unauthored units showing their planned size rather than zero.</li>
+      </ul>
+      <p style="margin-bottom:0;"><strong>Next:</strong> Drift schema and progress persistence, a CI workflow, bundled fonts, and the macOS WebView spike — then M1 and the audio spine.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+    var map = {};
+    links.forEach(function (a) {
+      var el = document.querySelector(a.getAttribute('href'));
+      if (el) map[el.id] = a;
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (a) { a.removeAttribute('aria-current'); });
+          if (map[e.target.id]) map[e.target.id].setAttribute('aria-current', 'true');
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+    Object.keys(map).forEach(function (id) { obs.observe(document.getElementById(id)); });
+  })();
+</script>

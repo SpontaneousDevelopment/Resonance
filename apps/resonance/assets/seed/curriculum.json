@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "tiers": [
+    {
+      "number": 1,
+      "title": "Foundations",
+      "summary": "The instrument before the music. Nothing here is about acting — it is about knowing what your voice does, repeating it on purpose, and not hurting yourself along the way.",
+      "branching": false,
+      "units": [
+        {
+          "id": "t1u1-meet-your-voice",
+          "tier": 1,
+          "index": 1,
+          "title": "Meet Your Voice",
+          "summary": "A baseline take, a map of your range, and an honest inventory of the habits you cannot hear yet.",
+          "is_gate": false,
+          "planned_lesson_count": 5,
+          "prerequisites": [],
+          "lessons": []
+        },
+        {
+          "id": "t1u2-breath-support",
+          "tier": 1,
+          "index": 2,
+          "title": "Breath & Support",
+          "summary": "Diaphragmatic setup, sustained tone under load, and the silent catch-breath that keeps a long line from collapsing.",
+          "is_gate": false,
+          "planned_lesson_count": 7,
+          "prerequisites": [
+            "t1u1-meet-your-voice"
+          ],
+          "lessons": []
+        },
+        {
+          "id": "t1u3-articulation",
+          "tier": 1,
+          "index": 3,
+          "title": "Articulation & Diction",
+          "summary": "Consonants are where intelligibility lives. This unit trains precision without tipping into the over-enunciated read that marks an amateur.",
+          "is_gate": false,
+          "planned_lesson_count": null,
+          "prerequisites": [
+            "t1u2-breath-support"
+          ],
+          "lessons": [
+            {
+              "id": "t1u3l1-plosive-precision",
+              "unit_id": "t1u3-articulation",
+              "title": "Plosive Precision",
+              "type": "scoredRead",
+              "brief": "Read at a steady, conversational pace. Land every P, B, T, D, K and G cleanly — but keep the mic off-axis so the plosives stay crisp without thumping. We are scoring consonant clarity and plosive control together, because they pull against each other.",
+              "script": "Peter picked a bitter batch of pickled peppers, packed them tight, and put the barrel back beside the broken gate. Keep the tempo even. Do not push the P. Let the consonant do the work, and let the breath behind it stay quiet.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null
+              },
+              "target_wpm_min": 130,
+              "target_wpm_max": 165,
+              "estimated_seconds": 120
+            },
+            {
+              "id": "t1u3l2-sibilance-control",
+              "unit_id": "t1u3-articulation",
+              "title": "Taming the S",
+              "type": "scoredRead",
+              "brief": "Sibilance is the fastest way to sound harsh on a condenser. Read this with fully formed S sounds that stay short. Long, hissing S sounds cost points; swallowed ones cost more.",
+              "script": "She sells sea shells, and the shells she sells are surely seaside shells. Six slick sisters swiftly stitched a silk sash. Keep each S brief. Stop it early. Let the vowel carry the line.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null
+              },
+              "target_wpm_min": 130,
+              "target_wpm_max": 165,
+              "estimated_seconds": 120
+            },
+            {
+              "id": "t1u3l3-medial-consonants",
+              "unit_id": "t1u3-articulation",
+              "title": "The Middle of the Word",
+              "type": "scoredRead",
+              "brief": "Most people articulate the start and end of a word and let the middle go. This passage is built almost entirely from words that fall apart if you do that.",
+              "script": "Particularly probable statistics regularly deteriorate under comparable circumstances. The temperature fluctuated considerably, and the laboratory's preliminary interpretation was consequently unreliable. February, library, comfortable, deteriorate.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null
+              },
+              "target_wpm_min": 120,
+              "target_wpm_max": 155,
+              "estimated_seconds": 150
+            },
+            {
+              "id": "t1u3l4-tempo-ladder",
+              "unit_id": "t1u3-articulation",
+              "title": "The Tempo Ladder",
+              "type": "scoredRead",
+              "brief": "Same line, three times: slow, conversational, then fast. Clarity must hold at every rung. Your score is the *lowest* clarity across the three passes, so the fast one is where the unit is won or lost.",
+              "script": "The rugged brigadier bragged briefly about the burglary before breakfast, then hurried back through the bracken.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null
+              },
+              "target_wpm_min": 110,
+              "target_wpm_max": 210,
+              "estimated_seconds": 180
+            },
+            {
+              "id": "t1u3l5-over-articulation-dial",
+              "unit_id": "t1u3-articulation",
+              "title": "The Over-Articulation Dial",
+              "type": "scoredRead",
+              "brief": "Now the opposite problem. Read this twice — once deliberately over-enunciated, once genuinely conversational. We score the *difference*: you should be able to hear the dial move. Precision you cannot switch off is a limitation, not a skill.",
+              "script": "I told him I would be there at eight, and I meant it. It is not complicated. He just has to answer the phone.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null
+              },
+              "target_wpm_min": 140,
+              "target_wpm_max": 180,
+              "estimated_seconds": 180
+            }
+          ]
+        },
+        {
+          "id": "t1u4-pitch-resonance",
+          "tier": 1,
+          "index": 4,
+          "title": "Pitch & Resonance",
+          "summary": "Chest, mask and head placement; mapping your usable range; holding and bending a contour on command.",
+          "is_gate": false,
+          "planned_lesson_count": 8,
+          "prerequisites": [
+            "t1u3-articulation"
+          ],
+          "lessons": []
+        },
+        {
+          "id": "t1u5-microphone",
+          "tier": 1,
+          "index": 5,
+          "title": "Microphone Technique",
+          "summary": "Proximity effect, off-axis positioning, plosive control, distance dynamics, and setting gain by ear rather than by meter.",
+          "is_gate": false,
+          "planned_lesson_count": 7,
+          "prerequisites": [
+            "t1u4-pitch-resonance"
+          ],
+          "lessons": []
+        },
+        {
+          "id": "t1u6-vocal-health",
+          "tier": 1,
+          "index": 6,
+          "title": "Warm-Ups & Vocal Health",
+          "summary": "Build a routine you will actually do, learn to read strain signals early, and practise the cool-down nobody bothers with.",
+          "is_gate": false,
+          "planned_lesson_count": 5,
+          "prerequisites": [
+            "t1u5-microphone"
+          ],
+          "lessons": []
+        },
+        {
+          "id": "t1u7-reading-aloud",
+          "tier": 1,
+          "index": 7,
+          "title": "Reading Aloud",
+          "summary": "Sight-reading fluency, phrasing, marking a page, and treating punctuation as a musical score rather than grammar.",
+          "is_gate": false,
+          "planned_lesson_count": 8,
+          "prerequisites": [
+            "t1u6-vocal-health"
+          ],
+          "lessons": []
+        },
+        {
+          "id": "t1u8-foundations-check",
+          "tier": 1,
+          "index": 8,
+          "title": "Foundations Check",
+          "summary": "An unseen battery drawn from all seven units. Passing opens Tier 2.",
+          "is_gate": true,
+          "planned_lesson_count": 5,
+          "prerequisites": [
+            "t1u1-meet-your-voice",
+            "t1u2-breath-support",
+            "t1u3-articulation",
+            "t1u4-pitch-resonance",
+            "t1u5-microphone",
+            "t1u6-vocal-health",
+            "t1u7-reading-aloud"
+          ],
+          "lessons": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+# Root of the Resonance pub workspace.
+#
+# This package publishes nothing and contains no code — it exists so that
+# `dart pub get` resolves every member below against a single lockfile.
+# Code-generation dev_dependencies live in the member packages that actually
+# run build_runner, not here.
+#
+# Toolchain is pinned by .fvmrc (Flutter 3.47.2). Use `fvm flutter ...`.
+# See docs/blueprint.html for the architecture this layout implements.
+name: _resonance_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - apps/resonance
+  - packages/resonance_dsp
+  - packages/resonance_models
+  - tools/curriculum_build

@@ -1,0 +1,12 @@
+name: curriculum_build
+description: Compiles the authored curriculum YAML into a validated JSON seed.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+resolution: workspace
+
+dependencies:
+  yaml: ^3.1.4
+  path: ^1.9.0

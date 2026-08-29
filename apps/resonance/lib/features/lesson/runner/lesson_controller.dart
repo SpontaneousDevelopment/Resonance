@@ -73,7 +73,6 @@ class LessonController extends ChangeNotifier {
   StreamSubscription<FrameAnalysis>? _analysisSubscription;
 
   final List<FrameAnalysis> _frames = [];
-  final List<double> _plosiveScores = [];
 
   LessonPhase _phase = LessonPhase.ready;
   LessonPhase get phase => _phase;
@@ -158,7 +157,6 @@ class LessonController extends ChangeNotifier {
 
   Future<void> startRecording() async {
     _frames.clear();
-    _plosiveScores.clear();
     _score = null;
     _promotion = null;
     _coachNote = null;
@@ -207,7 +205,9 @@ class LessonController extends ChangeNotifier {
       take: take,
       transcript: transcript,
       frameAnalyses: _frames,
-      plosiveScores: _plosiveScores,
+      // Comes from the take rather than a field the controller maintained but
+      // never filled — which silently scored every attempt as pop-free.
+      plosiveScores: take.plosiveScores,
     );
 
     final (updatedMastery, promotion) = _mastery.applyAttempt(
@@ -244,7 +244,6 @@ class LessonController extends ChangeNotifier {
   /// the room between takes would be pointless ceremony.
   void reset() {
     _frames.clear();
-    _plosiveScores.clear();
     _score = null;
     _promotion = null;
     _coachNote = null;

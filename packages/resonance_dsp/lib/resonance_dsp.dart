@@ -204,13 +204,20 @@ class VoiceAnalyser {
   /// is not.
   double plosiveScore(Float32List frame) {
     _assertUsable();
-    _samples.asTypedList(frame.length).setAll(0, frame);
+    // Same guard as [analyse]. Without it a longer-than-frameSize buffer writes
+    // past the end of a native allocation sized for exactly [frameSize] floats
+    // — a heap overflow that corrupts whatever malloc placed after it, and
+    // which would typically crash somewhere unrelated and much later.
+    if (frame.length != frameSize) {
+      throw ArgumentError('Expected $frameSize samples, got ${frame.length}');
+    }
+    _samples.asTypedList(frameSize).setAll(0, frame);
 
     final out = calloc<ffi.Float>();
     try {
       final score = _bindings.res_plosive_score(
         _samples,
-        frame.length,
+        frameSize,
         sampleRate,
         _previousLowEnergy,
         out,

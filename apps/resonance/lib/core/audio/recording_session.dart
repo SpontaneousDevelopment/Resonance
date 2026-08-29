@@ -114,6 +114,15 @@ class RecordingSession {
   /// the score pass.
   final List<Float32List> _takeFrames = [];
 
+  /// Plosive energy per frame of the current take.
+  ///
+  /// Computed during recording rather than afterwards because the detector is
+  /// stateful — it compares each frame's low-band energy against the previous
+  /// one, since a plosive is a *sudden* low burst and a sustained low note is
+  /// not. Replaying frames later would work, but doing it inline keeps one
+  /// source of truth for the frame ordering.
+  final List<double> _takePlosiveScores = [];
+
   /// Seconds of audio captured, measured on the audio clock.
   double get elapsedSeconds => _frames.samplesConsumed / sampleRate;
 
@@ -170,6 +179,7 @@ class RecordingSession {
     _frames.reset();
     _analyser.reset();
     _takeFrames.clear();
+    _takePlosiveScores.clear();
 
     final stream = await _recorder.startStream(_config);
     _subscription = stream.listen(
@@ -185,6 +195,7 @@ class RecordingSession {
   void _onBytes(Uint8List bytes) {
     for (final frame in _frames.addPcm16(bytes)) {
       _takeFrames.add(frame);
+      _takePlosiveScores.add(_analyser.plosiveScore(frame));
       _analysisController.add(_analyser.analyse(frame));
     }
   }
@@ -199,6 +210,7 @@ class RecordingSession {
     final tail = _frames.flush();
     if (tail != null) {
       _takeFrames.add(tail);
+      _takePlosiveScores.add(_analyser.plosiveScore(tail));
       _analysisController.add(_analyser.analyse(tail));
     }
 
@@ -209,6 +221,7 @@ class RecordingSession {
       path: path,
       sampleRate: sampleRate,
       frames: List.unmodifiable(_takeFrames),
+      plosiveScores: List.unmodifiable(_takePlosiveScores),
       durationSeconds: elapsedSeconds,
     );
   }
@@ -218,6 +231,7 @@ class RecordingSession {
     _subscription = null;
     await _recorder.cancel();
     _takeFrames.clear();
+    _takePlosiveScores.clear();
     _frames.reset();
     _setState(RecordingState.idle);
   }
@@ -257,6 +271,7 @@ class Take {
     required this.sampleRate,
     required this.frames,
     required this.durationSeconds,
+    this.plosiveScores = const [],
   });
 
   /// Where the encoded file landed, or null if the platform did not write one.
@@ -266,6 +281,9 @@ class Take {
 
   /// Every analysed frame, in order. Feeds the post-take waveform and scoring.
   final List<Float32List> frames;
+
+  /// Plosive energy per frame, aligned with [frames].
+  final List<double> plosiveScores;
 
   final double durationSeconds;
 

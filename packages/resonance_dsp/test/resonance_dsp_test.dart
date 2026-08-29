@@ -208,6 +208,8 @@ void main() {
     });
   });
 
+  plosiveGuardTests();
+
   group('free functions', () {
     test('rms of a full-scale sine is 1/sqrt(2)', () {
       expect(rms(sine(220, amplitude: 1.0)), closeTo(0.7071, 0.02));
@@ -217,6 +219,48 @@ void main() {
       expect(toDb(0), -100);
       expect(toDb(1), closeTo(0, 0.001));
       expect(toDb(0.5), closeTo(-6.02, 0.05));
+    });
+  });
+}
+
+/// Added after an audit found `plosiveScore` writing a caller-supplied length
+/// into a buffer allocated for `frameSize`. `analyse` had the guard; this did
+/// not. The overflow would corrupt whatever malloc placed after the buffer and
+/// surface as a crash somewhere unrelated, much later — the worst kind to chase.
+void plosiveGuardTests() {
+  group('plosiveScore bounds', () {
+    late VoiceAnalyser analyser;
+
+    setUp(() {
+      analyser = VoiceAnalyser(sampleRate: sampleRate, frameSize: frameSize);
+    });
+    tearDown(() => analyser.dispose());
+
+    test('rejects a frame longer than frameSize', () {
+      expect(
+        () => analyser.plosiveScore(Float32List(frameSize * 2)),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects a frame shorter than frameSize', () {
+      expect(
+        () => analyser.plosiveScore(Float32List(frameSize ~/ 2)),
+        throwsArgumentError,
+      );
+    });
+
+    test('accepts an exact frame', () {
+      expect(() => analyser.plosiveScore(sine(80)), returnsNormally);
+    });
+
+    test('a rejected frame leaves the analyser usable', () {
+      expect(
+        () => analyser.plosiveScore(Float32List(frameSize + 1)),
+        throwsArgumentError,
+      );
+      // If the overflow had happened, this is where the corruption would show.
+      expect(analyser.analyse(sine(220)).pitchHz, closeTo(220, 3));
     });
   });
 }

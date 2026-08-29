@@ -1,4 +1,9 @@
 # Dart / Flutter
+#
+# build/ must never be committed. Beyond size: macOS resolves a bundle id
+# through LaunchServices, which indexes built bundles wherever they sit — a
+# stale bundle claiming the same identifier will shadow the current one and TCC
+# will kill the app on a permission request. See tools/verify_plists.
 .dart_tool/
 .packages
 build/
@@ -46,6 +51,10 @@ DerivedData/
 .env
 .env.*
 !.env.example
+
+# Built native test binaries
+packages/resonance_dsp/test/native/dsp_test
+packages/resonance_dsp/test/native/bench
 
 # OS / editor
 .DS_Store

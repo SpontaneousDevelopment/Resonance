@@ -5,20 +5,20 @@
 Pod::Spec.new do |s|
   s.name             = 'resonance_dsp'
   s.version          = '0.0.1'
-  s.summary          = 'A new Flutter FFI plugin project.'
+  s.summary          = 'Real-time voice analysis primitives for Resonance.'
   s.description      = <<-DESC
-A new Flutter FFI plugin project.
+Pitch (YIN), level, voicing and plosive detection over raw audio frames.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/resonance-app/resonance'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Resonance' => 'joshuaglass1999@gmail.com' }
 
   # This will ensure the source files in Classes/ are included in the native
   # builds of apps using this FFI plugin. Podspec does not support relative
   # paths, so Classes contains a forwarder C file that relatively imports
   # `../src/*` so that the C sources can be shared among all target platforms.
   s.source           = { :path => '.' }
-  s.source_files = 'resonance_dsp/Sources/resonance_dsp/**/*'
+  s.source_files = 'Classes/**/*'
 
   # If your plugin requires a privacy manifest, for example if it collects user
   # data, update the PrivacyInfo.xcprivacy file to describe your plugin's

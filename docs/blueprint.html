@@ -357,7 +357,7 @@
     <h1>Resonance: a two-year path from <em>first take</em> to booked work.</h1>
     <p class="lede">A gamified voice-acting curriculum for iOS, Android and macOS — 254 lessons, mastery-gated, scored on-device in under 300&nbsp;ms. The curriculum, architecture, codebase shape and MVP plan below are signed off; construction has started on M0.</p>
     <div class="statline">
-      <span class="chip live">M0 complete · M1 next</span>
+      <span class="chip live">M2 in progress</span>
       <span class="chip">Flutter 3.47.2 + Supabase</span>
       <span class="chip">macOS ✓ · iOS ✓ · Android pending SDK</span>
       <span class="chip">MVP ≈ 23 weeks @ 10h/wk</span>
@@ -818,14 +818,17 @@
         <p class="mproves"><b>Left:</b> the Android SDK wizard and a JDK 21 downgrade, both local-machine setup.</p>
       </li>
       <li>
-        <div class="mhead"><span class="mid">M1</span><span class="mtitle">Audio spine</span><span class="mwk">weeks 4–8</span></div>
-        <p class="mbody">Record and playback, the <code>resonance_dsp</code> FFI plugin (RMS, pYIN, VAD, transients), live waveform and pitch visualiser holding 60&nbsp;fps, room-noise pre-roll gate.</p>
-        <p class="mproves"><b>Proves:</b> the tactile core. If the visualiser isn’t beautiful and instant here, nothing later fixes it.</p>
+        <div class="mhead"><span class="mid">M1</span><span class="mtitle">Audio spine</span><span class="mwk">weeks 4–8 · complete</span></div>
+        <p class="mbody">The <code>resonance_dsp</code> FFI plugin (YIN pitch, RMS/dBFS, voicing, plosive onset, waveform envelope), PCM capture with frame re-chunking, the live visualiser, and the room-noise pre-roll gate.</p>
+        <p class="mproves"><b>Measured:</b> YIN tracks a tone to better than 0.05% across 80–440&nbsp;Hz and finds the fundamental of a harmonic-rich sawtooth without octave errors. A 2048-sample window costs 1.17&nbsp;ms — <b>7% of a 60&nbsp;fps frame budget</b>, which settled the window size and confirmed the FFI split was worth it.</p>
+        <p class="mproves"><b>Two bugs caught before they shipped:</b> a 1200&nbsp;Hz tone reported 400&nbsp;Hz, because restricting the YIN search to the vocal range makes it land on a genuine <em>multiple</em> of the true period; the search now runs to 2&nbsp;kHz and range-checks afterwards. And the plugin template’s podspec pointed at a Swift Package layout that does not exist, so the DSP would not have compiled into the app at all.</p>
       </li>
       <li>
         <div class="mhead"><span class="mid">M2</span><span class="mtitle">Score &amp; feedback</span><span class="mwk">weeks 9–13</span></div>
         <p class="mbody">Platform STT, alignment to the target script, clarity/pace/plosive rubrics tuned against the calibration set, the feedback screen, and the <code>coach-note</code> edge function. Plus <code>tools/ingest</code> for licence-checked reference audio.</p>
-        <p class="mproves"><b>Proves:</b> the loop is worth repeating — the single riskiest assumption in the product.</p>
+        <p class="mproves"><b>Done:</b> Needleman–Wunsch word alignment with normalisation for contractions, numerals and punctuation; the scoring rubric with its weights and guards; the speech-recognition interface with platform and fake implementations; the feedback screen; the <code>coach-note</code> edge function on Claude Opus&nbsp;5; and the lesson controller that sequences the whole attempt.</p>
+        <p class="mproves"><b>The ordering is the product:</b> the score is computed entirely on-device and rendered immediately, and only then is the note requested. Someone on a train sees their full breakdown at the same speed as someone on wifi — the only difference is whether a note appears underneath a moment later. Every failure path in the note returns null rather than throwing, and the endpoint answers <code>200</code> even on error, because a missing note is not worth retry logic around something already on screen.</p>
+        <p class="mproves"><b>Left:</b> <code>tools/ingest</code>, the coach-rated calibration set, persisting attempts through to the database, and an integration test covering the full record-to-feedback path on a real device.</p>
       </li>
       <li>
         <div class="mhead"><span class="mid">M3</span><span class="mtitle">Progression</span><span class="mwk">weeks 14–16</span></div>
@@ -872,6 +875,26 @@
             <td><strong>Dart ecosystem version pinning</strong></td>
             <td>Hit immediately: <code>drift_dev</code>, <code>riverpod_generator</code> and <code>custom_lint</code> could not co-resolve on the machine’s Flutter 3.44, because Riverpod 2 codegen depends on an analyzer needing the <code>macros</code> package Dart has since removed.</td>
             <td>Flutter pinned per-project at 3.47.2 via fvm, so the shared SDK and the other repos on this machine are untouched. Riverpod moved to 3.x. <code>custom_lint</code>/<code>riverpod_lint</code> dropped — they still pin an older analyzer than freezed&nbsp;4 allows. Revisit when they catch up; nothing depends on them.</td>
+          </tr>
+          <tr>
+            <td><strong>Apple privacy usage descriptions</strong></td>
+            <td>A missing <code>NS*UsageDescription</code> is not a warning or a catchable exception — macOS and iOS terminate the process with <code>SIGABRT</code> the instant the API is touched. <code>NSSpeechRecognitionUsageDescription</code> was missing, so the app died the moment the user pressed Record, with no Dart error and nothing in the console. It was only diagnosable from the crash report’s TCC termination namespace.</td>
+            <td>Key added to both Apple targets, and the speech probe moved into the room check so a prompt lands during a two-second test rather than after a performance. <strong>Adding the key was not sufficient</strong>: macOS resolves a bundle id through LaunchServices, which indexes built bundles wherever they sit on disk. A leftover <code>build/ios/</code> bundle from M0 — built before any usage description existed — still claimed <code>app.resonance</code>, so TCC read <em>its</em> plist and killed the app however correct the macOS one was. Diagnosing it took reading the faulting thread’s stack and dumping the LaunchServices database; nothing in the crash report names the shadowing bundle. <code>tools/verify_plists</code> now checks source plists, macOS entitlements, <em>and</em> every built bundle claiming the identifier — each check verified by deliberately breaking it.</td>
+          </tr>
+          <tr>
+            <td><strong>The flow is not covered end to end</strong></td>
+            <td>Found in real use, not by the suite: every screen worked in isolation and nothing asserted they connected, so stopping a recording left the user stranded. Two bugs in a row arrived this way.</td>
+            <td><em>Closed.</em> An <code>integration_test</code> suite now drives the real app binary on macOS and runs in CI. Writing it immediately found a third defect the unit tests could not: the <code>GoRouter</code> was a top-level <code>final</code>, so its navigation state leaked between tests — and across hot restarts. It is now built per app instance. Tests needing the microphone live in a separate file, because the first permission access raises a modal dialog that blocks the run and takes every later test down with it.</td>
+          </tr>
+          <tr>
+            <td><strong>Microphone contention</strong></td>
+            <td>The recogniser and the recorder both want the microphone. On Apple platforms <code>speech_to_text</code> drives <code>SFSpeechRecognizer</code> off its own audio engine while <code>record</code> opens its own capture, and whether two clients can tap one input device is platform- and version-dependent. It cannot be settled without a live mic.</td>
+            <td>Speech recognition sits behind an interface with a fake implementation, so the whole scoring and feedback pipeline is built and tested without it. If live capture contends, the fix is one new implementation of that interface — transcribing the finished file instead of listening live — and nothing downstream changes. <strong>Needs a real-device test before M2 closes.</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Swift Package Manager migration</strong></td>
+            <td>Flutter warns that <code>resonance_dsp</code> does not support SPM and that this will become an error. It is our own plugin, so nobody else will fix it.</td>
+            <td>CocoaPods still works and the DSP framework builds and exports its symbols. Worth converting during a quiet moment rather than under a deadline — the change is a <code>Package.swift</code> and a source move, not a rewrite.</td>
           </tr>
           <tr>
             <td><strong>Android build environment</strong></td>
@@ -931,9 +954,13 @@
         <li><strong>Content pipeline:</strong> authored YAML compiles to a validated seed. Duplicate ids, dangling prerequisites, cycles, unknown lesson types, inverted WPM bands and un-credited references all fail the build — verified by feeding it a deliberately broken tree.</li>
         <li><strong>Rendering:</strong> the skill tree draws all eight Tier&nbsp;1 units from the compiled seed with segmented mastery rings, locked states, and unauthored units showing their planned size. Archivo, Newsreader and JetBrains Mono are bundled as variable fonts.</li>
         <li><strong>Persistence:</strong> Drift schema covering mastery, attempts with separable score components, streak, daily XP and the sync outbox. Delete-my-data is implemented and tested.</li>
-        <li><strong>CI:</strong> analyze, format, test, curriculum compile, a stale-seed guard, a stale-codegen guard, and builds for all three platforms.</li>
+        <li><strong>CI:</strong> analyze, format, test, curriculum compile, a stale-seed guard, a stale-codegen guard, the native DSP harness, and builds for all three platforms.</li>
+        <li><strong>Audio (M1):</strong> the DSP plugin with 27 native algorithm checks and 21 FFI binding tests; PCM re-chunking that provably loses no sample across ragged callbacks; the semitone-axis visualiser that gaps across breaths rather than drawing a line to zero; and a room check that runs <em>before</em> the take.</li>
+        <li><strong>Scoring (M2):</strong> word alignment that reports a dropped word as one omission rather than cascading into a false near-total failure; a rubric whose most important test is simply that a better read always outranks a worse one; and a feedback screen that marks the script where words were lost, because “Clarity 78” teaches nothing and a struck-through “batch” teaches immediately.</li>
+        <li><strong>Streak rules (M3, brought forward):</strong> the freeze is spent automatically, because at the moment the decision would need making the user is by definition not in the app. One missed day is covered; two are not — a freeze is for a bad night, not a lapsed habit, and papering over more would make the number mean nothing.</li>
+        <li><strong>Privacy boundary, enforced in the type system:</strong> the coach-note client’s signature accepts a transcript and numbers and has no parameter through which audio could be passed. The edge function additionally rejects any request body carrying an audio field, so widening the boundary later takes a deliberate change in two places.</li>
       </ul>
-      <p style="margin-bottom:0;"><strong>M0 is done bar Android.</strong> Next is M1 and the audio spine — record, playback, the DSP plugin, and the live visualiser.</p>
+      <p style="margin-bottom:0;"><strong>198 checks across six suites</strong> — 145 app, 21 FFI, 27 native C, 5 integration tests against the real binary, plus a Deno type-check of the edge functions and a privacy-key verifier. M0 and M1 are complete bar the Android SDK; M2 is nearly there.</p>
     </div>
   </section>
 

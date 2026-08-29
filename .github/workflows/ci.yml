@@ -57,15 +57,52 @@ jobs:
             exit 1
           fi
 
+      # A missing usage description is not a warning — the OS kills the app
+      # with SIGABRT the instant the API is touched, with no Dart error at all.
+      # Cheap to check, expensive to discover on a device.
+      - name: Verify Info.plist privacy keys
+        run: ./tools/verify_plists/verify.sh
+
       - name: Analyze
         run: flutter analyze
 
       - name: Format check
         run: dart format --set-exit-if-changed --output=none .
 
-      - name: Test
+      - name: Test the app
         working-directory: apps/resonance
         run: flutter test --reporter=github
+
+      # The DSP tests compile src/resonance_dsp.c into a standalone dylib and
+      # exercise it through FFI — `flutter test` runs on the Dart VM, which is
+      # not the app binary the podspec statically links the DSP into.
+      - name: Test the DSP
+        working-directory: packages/resonance_dsp
+        run: flutter test --reporter=github
+
+      # The C also has a standalone harness covering the algorithms themselves:
+      # pitch accuracy against synthesised tones, octave and subharmonic
+      # rejection, and the 60 fps frame budget.
+      - name: Verify the DSP algorithms
+        run: |
+          cc -O2 -Ipackages/resonance_dsp/src \
+             packages/resonance_dsp/src/resonance_dsp.c \
+             packages/resonance_dsp/test/native/dsp_test.c \
+             -o /tmp/dsp_test -lm
+          /tmp/dsp_test
+
+  verify-functions:
+    name: Type-check edge functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      # Supabase Edge Functions run on Deno. Type-checking them here catches
+      # the class of mistake that otherwise only surfaces on deploy.
+      - name: Check
+        run: deno check backend/supabase/functions/**/*.ts
 
   build-apple:
     name: Build ${{ matrix.target }}
@@ -89,6 +126,17 @@ jobs:
       - name: Build
         working-directory: apps/resonance
         run: ${{ matrix.command }}
+
+      # Drives the real app binary, which is the only way to catch a dead-end
+      # route or a missing Info.plist usage description — the OS kills the
+      # process for the latter with no Dart error at all.
+      #
+      # microphone_test.dart is deliberately excluded: its first access raises a
+      # modal permission dialog, and with nobody to click it the run blocks.
+      - name: Integration tests
+        if: matrix.target == 'macos'
+        working-directory: apps/resonance
+        run: flutter test integration_test/lesson_flow_test.dart -d macos
 
   build-android:
     name: Build Android

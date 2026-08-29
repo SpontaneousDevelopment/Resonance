@@ -1,129 +1,283 @@
-import 'dart:async';
-import 'dart:ffi';
-import 'dart:io';
-import 'dart:isolate';
+/// Real-time voice analysis over raw audio frames.
+///
+/// The native side is stateless and allocation-free; all buffer ownership lives
+/// here in [VoiceAnalyser], which allocates once and reuses the same native
+/// memory for every frame. Allocating per frame at 60 Hz would produce exactly
+/// the kind of sawtooth GC pressure that shows up as visualiser stutter.
+library;
+
+import 'dart:ffi' as ffi;
+import 'dart:io' show Platform;
+import 'dart:math' as math;
+import 'dart:typed_data';
+
+import 'package:ffi/ffi.dart';
 
 import 'resonance_dsp_bindings_generated.dart';
 
-/// A very short-lived native function.
-///
-/// For very short-lived functions, it is fine to call them on the main isolate.
-/// They will block the Dart execution while running the native function, so
-/// only do this for native functions which are guaranteed to be short-lived.
-int sum(int a, int b) => _bindings.sum(a, b);
-
-/// A longer lived native function, which occupies the thread calling it.
-///
-/// Do not call these kind of native functions in the main isolate. They will
-/// block Dart execution. This will cause dropped frames in Flutter applications.
-/// Instead, call these native functions on a separate isolate.
-///
-/// Modify this to suit your own use case. Example use cases:
-///
-/// 1. Reuse a single isolate for various different kinds of requests.
-/// 2. Use multiple helper isolates for parallel execution.
-Future<int> sumAsync(int a, int b) async {
-  final SendPort helperIsolateSendPort = await _helperIsolateSendPort;
-  final int requestId = _nextSumRequestId++;
-  final _SumRequest request = _SumRequest(requestId, a, b);
-  final Completer<int> completer = Completer<int>();
-  _sumRequests[requestId] = completer;
-  helperIsolateSendPort.send(request);
-  return completer.future;
-}
-
 const String _libName = 'resonance_dsp';
 
-/// The dynamic library in which the symbols for [ResonanceDspBindings] can be found.
-final DynamicLibrary _dylib = () {
+ffi.DynamicLibrary? _override;
+
+/// Points the bindings at an explicitly loaded library.
+///
+/// Exists for tests. Under `flutter test` the Dart VM is not the app binary, so
+/// on Apple platforms — where the podspec links the DSP statically into the app
+/// — [ffi.DynamicLibrary.process] finds none of these symbols. Tests build the
+/// C into a standalone dylib and install it here. Production never calls this.
+void debugOverrideDspLibrary(ffi.DynamicLibrary? library) {
+  _override = library;
+  _bindingsCache = null;
+}
+
+ffi.DynamicLibrary _openLibrary() {
+  final override = _override;
+  if (override != null) return override;
+
   if (Platform.isMacOS || Platform.isIOS) {
-    return DynamicLibrary.open('$_libName.framework/$_libName');
+    // Statically linked into the app binary by the podspec, so the symbols are
+    // already in this process.
+    return ffi.DynamicLibrary.process();
   }
   if (Platform.isAndroid || Platform.isLinux) {
-    return DynamicLibrary.open('lib$_libName.so');
+    return ffi.DynamicLibrary.open('lib$_libName.so');
   }
   if (Platform.isWindows) {
-    return DynamicLibrary.open('$_libName.dll');
+    return ffi.DynamicLibrary.open('$_libName.dll');
   }
-  throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
-}();
-
-/// The bindings to the native functions in [_dylib].
-final ResonanceDspBindings _bindings = ResonanceDspBindings(_dylib);
-
-/// A request to compute `sum`.
-///
-/// Typically sent from one isolate to another.
-class _SumRequest {
-  final int id;
-  final int a;
-  final int b;
-
-  const _SumRequest(this.id, this.a, this.b);
+  throw UnsupportedError(
+    'resonance_dsp has no build for ${Platform.operatingSystem}',
+  );
 }
 
-/// A response with the result of `sum`.
-///
-/// Typically sent from one isolate to another.
-class _SumResponse {
-  final int id;
-  final int result;
+ResonanceDspBindings? _bindingsCache;
 
-  const _SumResponse(this.id, this.result);
+ResonanceDspBindings get _bindings =>
+    _bindingsCache ??= ResonanceDspBindings(_openLibrary());
+
+/// Sentinel for "no usable pitch in this frame".
+///
+/// Deliberately not zero and not null-in-a-double: the visualiser must draw a
+/// *gap* for an unvoiced frame, and a 0 Hz reading would draw a line to the
+/// bottom of the chart, which reads as a sudden pitch drop the speaker never
+/// made.
+const double kNoPitch = -1.0;
+
+/// One frame's worth of analysis.
+class FrameAnalysis {
+  const FrameAnalysis({
+    required this.rms,
+    required this.db,
+    required this.peak,
+    required this.pitchHz,
+    required this.pitchConfidence,
+    required this.isVoiced,
+    required this.isClipping,
+  });
+
+  const FrameAnalysis.silent()
+    : rms = 0,
+      db = -100,
+      peak = 0,
+      pitchHz = kNoPitch,
+      pitchConfidence = 0,
+      isVoiced = false,
+      isClipping = false;
+
+  /// Linear RMS level, 0..1.
+  final double rms;
+
+  /// Level in dBFS, floored at -100.
+  final double db;
+
+  /// Peak absolute sample. Catches short transients that RMS averages away.
+  final double peak;
+
+  /// Fundamental in Hz, or [kNoPitch].
+  final double pitchHz;
+
+  /// 0..1. The visualiser fades the trace by this rather than drawing a
+  /// confident line through a breathy or creaky frame.
+  final double pitchConfidence;
+
+  final bool isVoiced;
+  final bool isClipping;
+
+  bool get hasPitch => pitchHz > 0;
+
+  /// Pitch as a musical interval above C0, which is what the contour chart
+  /// plots — a semitone axis makes an octave leap look like an octave leap,
+  /// where a linear Hz axis squashes the bottom of the range flat.
+  double get semitonesAboveC0 =>
+      hasPitch ? 12 * (math.log(pitchHz / _c0Hz) / math.ln2) : double.nan;
+
+  /// C0, the reference the semitone axis is measured from.
+  static const _c0Hz = 16.351625;
+
+  @override
+  String toString() =>
+      'FrameAnalysis(${db.toStringAsFixed(1)} dB, '
+      '${hasPitch ? "${pitchHz.toStringAsFixed(1)} Hz @ ${(pitchConfidence * 100).round()}%" : "unvoiced"}'
+      '${isClipping ? ", CLIPPING" : ""})';
 }
 
-/// Counter to identify [_SumRequest]s and [_SumResponse]s.
-int _nextSumRequestId = 0;
+/// Analyses successive frames of audio, reusing one set of native buffers.
+///
+/// Not thread-safe and not reentrant: create one per recording session, use it
+/// from a single isolate, and [dispose] it when the session ends.
+class VoiceAnalyser {
+  VoiceAnalyser({this.sampleRate = 48000, this.frameSize = 2048})
+    : assert(
+        frameSize >= 256,
+        'A frame below 256 samples cannot resolve a low fundamental',
+      ),
+      assert(
+        frameSize & (frameSize - 1) == 0,
+        'frameSize should be a power of two',
+      ) {
+    _samples = calloc<ffi.Float>(frameSize);
+    _scratch = calloc<ffi.Float>(frameSize ~/ 2);
+    _result = calloc<ResFrameAnalysis>();
+  }
 
-/// Mapping from [_SumRequest] `id`s to the completers corresponding to the correct future of the pending request.
-final Map<int, Completer<int>> _sumRequests = <int, Completer<int>>{};
+  /// Samples per second of the incoming audio.
+  final int sampleRate;
 
-/// The SendPort belonging to the helper isolate.
-Future<SendPort> _helperIsolateSendPort = () async {
-  // The helper isolate is going to send us back a SendPort, which we want to
-  // wait for.
-  final Completer<SendPort> completer = Completer<SendPort>();
+  /// Window length. 2048 at 48 kHz is ~43 ms — long enough for two periods of
+  /// the lowest male fundamental, short enough to stay under a sixth of the
+  /// 60 fps frame budget on desktop.
+  final int frameSize;
 
-  // Receive port on the main isolate to receive messages from the helper.
-  // We receive two types of messages:
-  // 1. A port to send messages on.
-  // 2. Responses to requests we sent.
-  final ReceivePort receivePort = ReceivePort()
-    ..listen((dynamic data) {
-      if (data is SendPort) {
-        // The helper isolate sent us the port on which we can sent it requests.
-        completer.complete(data);
-        return;
-      }
-      if (data is _SumResponse) {
-        // The helper isolate sent us a response to a request we sent.
-        final Completer<int> completer = _sumRequests[data.id]!;
-        _sumRequests.remove(data.id);
-        completer.complete(data.result);
-        return;
-      }
-      throw UnsupportedError('Unsupported message type: ${data.runtimeType}');
-    });
+  late final ffi.Pointer<ffi.Float> _samples;
+  late final ffi.Pointer<ffi.Float> _scratch;
+  late final ffi.Pointer<ResFrameAnalysis> _result;
 
-  // Start the helper isolate.
-  await Isolate.spawn((SendPort sendPort) async {
-    final ReceivePort helperReceivePort = ReceivePort()
-      ..listen((dynamic data) {
-        // On the helper isolate listen to requests and respond to them.
-        if (data is _SumRequest) {
-          final int result = _bindings.sum_long_running(data.a, data.b);
-          final _SumResponse response = _SumResponse(data.id, result);
-          sendPort.send(response);
-          return;
-        }
-        throw UnsupportedError('Unsupported message type: ${data.runtimeType}');
-      });
+  bool _disposed = false;
 
-    // Send the port to the main isolate on which we can receive requests.
-    sendPort.send(helperReceivePort.sendPort);
-  }, receivePort.sendPort);
+  /// The room's measured noise floor in dBFS, used to gate voicing.
+  ///
+  /// Set from the pre-roll room check. Until that runs it stays at -100, which
+  /// disables gating rather than guessing — a wrong floor is worse than none.
+  double noiseFloorDb = -100;
 
-  // Wait until the helper isolate has sent us back the SendPort on which we
-  // can start sending requests.
-  return completer.future;
-}();
+  /// Carries plosive onset state between frames.
+  double _previousLowEnergy = 0;
+
+  /// Analyses one frame.
+  ///
+  /// [frame] must hold exactly [frameSize] samples in [-1, 1]. Set
+  /// [detectPitch] false for the level meter, where pitch is not drawn and the
+  /// YIN pass would be wasted work.
+  FrameAnalysis analyse(Float32List frame, {bool detectPitch = true}) {
+    _assertUsable();
+    if (frame.length != frameSize) {
+      throw ArgumentError('Expected $frameSize samples, got ${frame.length}');
+    }
+
+    _samples.asTypedList(frameSize).setAll(0, frame);
+
+    _bindings.res_analyse_frame(
+      _samples,
+      frameSize,
+      sampleRate,
+      noiseFloorDb,
+      detectPitch ? _scratch : ffi.nullptr,
+      _result,
+    );
+
+    final r = _result.ref;
+    return FrameAnalysis(
+      rms: r.rms,
+      db: r.db,
+      peak: r.peak,
+      pitchHz: r.pitch_hz,
+      pitchConfidence: r.pitch_confidence,
+      isVoiced: r.is_voiced == 1,
+      isClipping: r.is_clipping == 1,
+    );
+  }
+
+  /// Plosive energy in this frame, 0..1.
+  ///
+  /// Stateful across calls — it compares against the previous frame's low-band
+  /// energy, because a plosive is a sudden low burst and a sustained low note
+  /// is not.
+  double plosiveScore(Float32List frame) {
+    _assertUsable();
+    _samples.asTypedList(frame.length).setAll(0, frame);
+
+    final out = calloc<ffi.Float>();
+    try {
+      final score = _bindings.res_plosive_score(
+        _samples,
+        frame.length,
+        sampleRate,
+        _previousLowEnergy,
+        out,
+      );
+      _previousLowEnergy = out.value;
+      return score;
+    } finally {
+      calloc.free(out);
+    }
+  }
+
+  /// Reduces a buffer to [bucketCount] min/max pairs for waveform drawing.
+  ///
+  /// Returns a flat list of `bucketCount * 2` values: min then max per bucket.
+  /// Min/max pairs rather than averaged magnitude, because an averaged envelope
+  /// renders as a smooth blob that looks nothing like the take.
+  Float32List waveformEnvelope(Float32List samples, int bucketCount) {
+    _assertUsable();
+    final input = calloc<ffi.Float>(samples.length);
+    final output = calloc<ffi.Float>(bucketCount * 2);
+    try {
+      input.asTypedList(samples.length).setAll(0, samples);
+      _bindings.res_waveform_envelope(
+        input,
+        samples.length,
+        bucketCount,
+        output,
+      );
+      return Float32List.fromList(output.asTypedList(bucketCount * 2));
+    } finally {
+      calloc.free(input);
+      calloc.free(output);
+    }
+  }
+
+  /// Resets frame-to-frame state. Call between takes so the first frame of a
+  /// new recording is not judged against the last frame of the previous one.
+  void reset() {
+    _previousLowEnergy = 0;
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    calloc.free(_samples);
+    calloc.free(_scratch);
+    calloc.free(_result);
+  }
+
+  void _assertUsable() {
+    if (_disposed) {
+      throw StateError('VoiceAnalyser used after dispose()');
+    }
+  }
+}
+
+/// Root-mean-square of a buffer. Allocation-light convenience for one-off use;
+/// prefer [VoiceAnalyser.analyse] in the hot path.
+double rms(Float32List samples) {
+  final buffer = calloc<ffi.Float>(samples.length);
+  try {
+    buffer.asTypedList(samples.length).setAll(0, samples);
+    return _bindings.res_rms(buffer, samples.length);
+  } finally {
+    calloc.free(buffer);
+  }
+}
+
+/// Linear amplitude to dBFS, floored at -100.
+double toDb(double linear) => _bindings.res_to_db(linear);

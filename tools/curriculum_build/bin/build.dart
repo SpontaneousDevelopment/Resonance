@@ -43,6 +43,32 @@ const _validReferenceSources = {
 final _errors = <String>{};
 void _fail(String message) => _errors.add(message);
 
+final _warnings = <String>{};
+void _warn(String message) => _warnings.add(message);
+
+/// Phrases that read as coaching rather than as something to perform.
+///
+/// A script is the text the user says out loud; direction belongs in `brief`.
+/// Mixing them is easy to do and hard to see in YAML, and the result is a user
+/// dutifully reading "keep the tempo even" into a microphone — which is then
+/// scored against the target transcript as though it were part of the line.
+///
+/// A heuristic, so it warns rather than fails: a genuine script may well
+/// contain "let the". The author decides.
+const _directionPhrases = [
+  'keep the tempo',
+  'keep each',
+  'do not push',
+  "don't push",
+  'let the consonant',
+  'let the vowel',
+  'try to',
+  'remember to',
+  'focus on',
+  'notice how',
+  'read it again',
+];
+
 void main(List<String> args) {
   final repoRoot = _findRepoRoot();
   final contentDir = Directory(p.join(repoRoot, 'content', 'curriculum'));
@@ -77,6 +103,14 @@ void main(List<String> args) {
   }
 
   _validateTree(tiers);
+
+  if (_warnings.isNotEmpty) {
+    stderr.writeln('\n${_warnings.length} warning(s):\n');
+    for (final w in _warnings) {
+      stderr.writeln('  ! $w');
+    }
+    stderr.writeln('');
+  }
 
   if (_errors.isNotEmpty) {
     stderr.writeln(
@@ -222,6 +256,19 @@ Map<String, dynamic> _convertLesson(
     'accentDrill',
   };
   final script = _squash(raw['script'] as String?);
+  if (script != null) {
+    final lower = script.toLowerCase();
+    for (final phrase in _directionPhrases) {
+      if (lower.contains(phrase)) {
+        _warn(
+          '$source: lesson $id — the script contains "$phrase", which reads '
+          'like direction. Scripts are spoken aloud verbatim and scored '
+          'against; move coaching into `brief`.',
+        );
+      }
+    }
+  }
+
   if (needsScript.contains(type) && (script == null || script.isEmpty)) {
     _fail('$source: lesson $id — type "$type" requires a `script`');
   }

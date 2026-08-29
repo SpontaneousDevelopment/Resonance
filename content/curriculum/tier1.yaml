@@ -51,17 +51,19 @@ units:
         brief: >-
           Read at a steady, conversational pace. Land every P, B, T, D, K and G
           cleanly — but keep the mic off-axis so the plosives stay crisp without
-          thumping. We are scoring consonant clarity and plosive control together,
-          because they pull against each other.
+          thumping. Keep the tempo even, and don't push the P: let the consonant
+          do the work while the breath behind it stays quiet. We score consonant
+          clarity and plosive control together, because they pull against each
+          other.
         target_wpm_min: 130
         target_wpm_max: 165
         reference:
           source: none
         script: >-
           Peter picked a bitter batch of pickled peppers, packed them tight,
-          and put the barrel back beside the broken gate. Keep the tempo
-          even. Do not push the P. Let the consonant do the work, and let the
-          breath behind it stay quiet.
+          and put the barrel back beside the broken gate. The proper paper was
+          buried beneath a big black book, but Bobby brought it back before
+          breakfast.
 
       - id: t1u3l2-sibilance-control
         unit_id: t1u3-articulation
@@ -70,16 +72,17 @@ units:
         estimated_seconds: 120
         brief: >-
           Sibilance is the fastest way to sound harsh on a condenser. Read this
-          with fully formed S sounds that stay short. Long, hissing S sounds cost
-          points; swallowed ones cost more.
+          with fully formed S sounds that stay short — stop each one early and
+          let the vowel carry the line. Long, hissing S sounds cost points;
+          swallowed ones cost more.
         target_wpm_min: 130
         target_wpm_max: 165
         reference:
           source: none
         script: >-
           She sells sea shells, and the shells she sells are surely seaside
-          shells. Six slick sisters swiftly stitched a silk sash. Keep each S
-          brief. Stop it early. Let the vowel carry the line.
+          shells. Six slick sisters swiftly stitched a silk sash, then set it
+          aside to see whether the stitches would settle.
 
       - id: t1u3l3-medial-consonants
         unit_id: t1u3-articulation

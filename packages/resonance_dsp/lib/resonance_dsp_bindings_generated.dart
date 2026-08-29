@@ -22,32 +22,253 @@ class ResonanceDspBindings {
     ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName) lookup,
   ) : _lookup = lookup;
 
-  /// A very short-lived native function.
+  /// Analyses one frame.
   ///
-  /// For very short-lived functions, it is fine to call them on the main isolate.
-  /// They will block the Dart execution while running the native function, so
-  /// only do this for native functions which are guaranteed to be short-lived.
-  int sum(int a, int b) {
-    return _sum(a, b);
+  /// @param samples      mono float samples in [-1, 1]
+  /// @param sample_count window length; 1024–4096 is sensible at 44.1/48 kHz
+  /// @param sample_rate  e.g. 48000
+  /// @param noise_floor_db the room's measured noise floor, used to gate voicing.
+  /// Pass -100 to disable gating.
+  /// @param scratch      room for `sample_count / 2` floats, owned by the caller
+  /// and reused across frames so nothing allocates in the
+  /// audio path. Pass NULL to skip pitch detection and get
+  /// level and voicing only, which is all the meter needs.
+  /// @param out          filled on return; never null
+  void res_analyse_frame(
+    ffi.Pointer<ffi.Float> samples,
+    int sample_count,
+    int sample_rate,
+    double noise_floor_db,
+    ffi.Pointer<ffi.Float> scratch,
+    ffi.Pointer<ResFrameAnalysis> out,
+  ) {
+    return _res_analyse_frame(
+      samples,
+      sample_count,
+      sample_rate,
+      noise_floor_db,
+      scratch,
+      out,
+    );
   }
 
-  late final _sumPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>('sum');
-  late final _sum = _sumPtr.asFunction<int Function(int, int)>();
+  late final _res_analyse_framePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Pointer<ffi.Float>,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Float,
+            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ResFrameAnalysis>,
+          )
+        >
+      >('res_analyse_frame');
+  late final _res_analyse_frame = _res_analyse_framePtr
+      .asFunction<
+        void Function(
+          ffi.Pointer<ffi.Float>,
+          int,
+          int,
+          double,
+          ffi.Pointer<ffi.Float>,
+          ffi.Pointer<ResFrameAnalysis>,
+        )
+      >();
 
-  /// A longer lived native function, which occupies the thread calling it.
-  ///
-  /// Do not call these kind of native functions in the main isolate. They will
-  /// block Dart execution. This will cause dropped frames in Flutter applications.
-  /// Instead, call these native functions on a separate isolate.
-  int sum_long_running(int a, int b) {
-    return _sum_long_running(a, b);
+  /// Root-mean-square of a buffer, linear.
+  double res_rms(ffi.Pointer<ffi.Float> samples, int sample_count) {
+    return _res_rms(samples, sample_count);
   }
 
-  late final _sum_long_runningPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>(
-        'sum_long_running',
-      );
-  late final _sum_long_running = _sum_long_runningPtr
-      .asFunction<int Function(int, int)>();
+  late final _res_rmsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Float Function(ffi.Pointer<ffi.Float>, ffi.Int32)
+        >
+      >('res_rms');
+  late final _res_rms = _res_rmsPtr
+      .asFunction<double Function(ffi.Pointer<ffi.Float>, int)>();
+
+  /// Converts a linear amplitude to dBFS, clamped at -100.
+  double res_to_db(double linear) {
+    return _res_to_db(linear);
+  }
+
+  late final _res_to_dbPtr =
+      _lookup<ffi.NativeFunction<ffi.Float Function(ffi.Float)>>('res_to_db');
+  late final _res_to_db = _res_to_dbPtr.asFunction<double Function(double)>();
+
+  /// Estimates the fundamental frequency using YIN.
+  ///
+  /// Returns [RES_PITCH_NONE] when no periodicity is found below `threshold`
+  /// aperiodicity. `out_confidence` may be null.
+  ///
+  /// `scratch` must have room for `sample_count / 2` floats and is used for the
+  /// difference function — passed in so the caller can reuse one allocation for
+  /// the life of a recording rather than allocating per frame.
+  double res_pitch_yin(
+    ffi.Pointer<ffi.Float> samples,
+    int sample_count,
+    int sample_rate,
+    double threshold,
+    ffi.Pointer<ffi.Float> scratch,
+    ffi.Pointer<ffi.Float> out_confidence,
+  ) {
+    return _res_pitch_yin(
+      samples,
+      sample_count,
+      sample_rate,
+      threshold,
+      scratch,
+      out_confidence,
+    );
+  }
+
+  late final _res_pitch_yinPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Float Function(
+            ffi.Pointer<ffi.Float>,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Float,
+            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ffi.Float>,
+          )
+        >
+      >('res_pitch_yin');
+  late final _res_pitch_yin = _res_pitch_yinPtr
+      .asFunction<
+        double Function(
+          ffi.Pointer<ffi.Float>,
+          int,
+          int,
+          double,
+          ffi.Pointer<ffi.Float>,
+          ffi.Pointer<ffi.Float>,
+        )
+      >();
+
+  /// Downsamples a buffer into `out_count` peak-pairs for waveform drawing.
+  ///
+  /// Writes `out_count * 2` floats: min then max for each bucket. Drawing from
+  /// min/max pairs rather than averaged magnitude is what makes a rendered
+  /// waveform look like the recording instead of a blurred envelope.
+  void res_waveform_envelope(
+    ffi.Pointer<ffi.Float> samples,
+    int sample_count,
+    int out_count,
+    ffi.Pointer<ffi.Float> out_min_max,
+  ) {
+    return _res_waveform_envelope(
+      samples,
+      sample_count,
+      out_count,
+      out_min_max,
+    );
+  }
+
+  late final _res_waveform_envelopePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Pointer<ffi.Float>,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Pointer<ffi.Float>,
+          )
+        >
+      >('res_waveform_envelope');
+  late final _res_waveform_envelope = _res_waveform_envelopePtr
+      .asFunction<
+        void Function(ffi.Pointer<ffi.Float>, int, int, ffi.Pointer<ffi.Float>)
+      >();
+
+  /// Detects plosive energy: a sudden burst concentrated below ~200 Hz.
+  ///
+  /// Returns 0..1, where 0 is clean and 1 is a full thump on the diaphragm.
+  /// Implemented as the ratio of low-band to broadband energy, weighted by how
+  /// abruptly the level rose — a steady low note is not a plosive, a sudden one
+  /// is.
+  ///
+  /// `prev_low_energy` carries state between frames; pass 0 on the first frame
+  /// and thereafter the value written to `out_low_energy`.
+  double res_plosive_score(
+    ffi.Pointer<ffi.Float> samples,
+    int sample_count,
+    int sample_rate,
+    double prev_low_energy,
+    ffi.Pointer<ffi.Float> out_low_energy,
+  ) {
+    return _res_plosive_score(
+      samples,
+      sample_count,
+      sample_rate,
+      prev_low_energy,
+      out_low_energy,
+    );
+  }
+
+  late final _res_plosive_scorePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Float Function(
+            ffi.Pointer<ffi.Float>,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Float,
+            ffi.Pointer<ffi.Float>,
+          )
+        >
+      >('res_plosive_score');
+  late final _res_plosive_score = _res_plosive_scorePtr
+      .asFunction<
+        double Function(
+          ffi.Pointer<ffi.Float>,
+          int,
+          int,
+          double,
+          ffi.Pointer<ffi.Float>,
+        )
+      >();
 }
+
+/// Per-frame analysis result.
+final class ResFrameAnalysis extends ffi.Struct {
+  /// Root-mean-square level of the frame, linear, 0..1.
+  @ffi.Float()
+  external double rms;
+
+  /// [rms] expressed in dBFS. Silence clamps to -100 rather than -inf so the
+  /// value is always safe to draw and to average.
+  @ffi.Float()
+  external double db;
+
+  /// Peak absolute sample in the frame, linear. Used for clip detection, which
+  /// RMS alone will miss on a short transient.
+  @ffi.Float()
+  external double peak;
+
+  /// Estimated fundamental in Hz, or [RES_PITCH_NONE].
+  @ffi.Float()
+  external double pitch_hz;
+
+  /// Confidence in [pitch_hz], 0..1. Derived from the YIN aperiodicity, so a
+  /// breathy or creaky frame reports a real number with low confidence rather
+  /// than pretending certainty. The UI fades the trace by this value instead of
+  /// drawing a confident wrong line.
+  @ffi.Float()
+  external double pitch_confidence;
+
+  /// 1 when the frame is judged to contain voice, 0 otherwise.
+  @ffi.Int32()
+  external int is_voiced;
+
+  /// 1 when any sample in the frame reached digital full scale.
+  @ffi.Int32()
+  external int is_clipping;
+}
+
+const double RES_PITCH_NONE = -1.0;

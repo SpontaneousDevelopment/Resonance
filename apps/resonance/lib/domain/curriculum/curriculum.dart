@@ -49,9 +49,9 @@ enum LessonType {
   final bool requiresNetwork;
 
   static LessonType fromId(String id) => LessonType.values.firstWhere(
-        (t) => t.name == id,
-        orElse: () => throw FormatException('Unknown lesson type: $id'),
-      );
+    (t) => t.name == id,
+    orElse: () => throw FormatException('Unknown lesson type: $id'),
+  );
 }
 
 /// Where a lesson's reference audio comes from.
@@ -89,9 +89,9 @@ enum ReferenceSource {
       this == ReferenceSource.publicDomain;
 
   static ReferenceSource fromId(String id) => ReferenceSource.values.firstWhere(
-        (s) => s.name == id,
-        orElse: () => throw FormatException('Unknown reference source: $id'),
-      );
+    (s) => s.name == id,
+    orElse: () => throw FormatException('Unknown reference source: $id'),
+  );
 }
 
 /// A reference clip attached to a lesson.
@@ -183,8 +183,7 @@ class Lesson {
       script: json['script'] as String?,
       reference: json['reference'] == null
           ? null
-          : LessonReference.fromJson(
-              json['reference'] as Map<String, dynamic>),
+          : LessonReference.fromJson(json['reference'] as Map<String, dynamic>),
       targetWpmMin: json['target_wpm_min'] as int?,
       targetWpmMax: json['target_wpm_max'] as int?,
       estimatedSeconds: json['estimated_seconds'] as int? ?? 150,
@@ -250,9 +249,8 @@ class Unit {
       summary: json['summary'] as String,
       isGate: json['is_gate'] as bool? ?? false,
       plannedLessonCount: json['planned_lesson_count'] as int?,
-      prerequisiteUnitIds:
-          (json['prerequisites'] as List<dynamic>? ?? const [])
-              .cast<String>(),
+      prerequisiteUnitIds: (json['prerequisites'] as List<dynamic>? ?? const [])
+          .cast<String>(),
       lessons: (json['lessons'] as List<dynamic>? ?? const [])
           .map((e) => Lesson.fromJson(e as Map<String, dynamic>))
           .toList(growable: false),
@@ -309,8 +307,7 @@ class Curriculum {
   Iterable<Unit> get allUnits => tiers.expand((t) => t.units);
   Iterable<Lesson> get allLessons => allUnits.expand((u) => u.lessons);
 
-  Unit? unitById(String id) =>
-      allUnits.where((u) => u.id == id).firstOrNull;
+  Unit? unitById(String id) => allUnits.where((u) => u.id == id).firstOrNull;
 
   Lesson? lessonById(String id) =>
       allLessons.where((l) => l.id == id).firstOrNull;

@@ -48,12 +48,12 @@ class _UnitNodeState extends State<UnitNode> {
     return Semantics(
       button: enabled,
       enabled: enabled,
-      label: '${unit.label} ${unit.title}. '
+      label:
+          '${unit.label} ${unit.title}. '
           '${unit.displayLessonCount} lessons. '
           '${enabled ? widget.mastery.level.label : "Locked"}.',
       child: MouseRegion(
-        cursor:
-            enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: GestureDetector(
@@ -93,10 +93,7 @@ class _UnitNodeState extends State<UnitNode> {
                             ),
                             if (unit.isGate) ...[
                               const SizedBox(width: ResSpace.tight),
-                              _Pill(
-                                label: 'CHECK',
-                                color: tierColor,
-                              ),
+                              _Pill(label: 'CHECK', color: tierColor),
                             ],
                           ],
                         ),
@@ -108,8 +105,9 @@ class _UnitNodeState extends State<UnitNode> {
                         const SizedBox(height: ResSpace.hair),
                         Text(
                           unit.summary,
-                          style: ResType.caption
-                              .copyWith(color: colors.inkMuted),
+                          style: ResType.caption.copyWith(
+                            color: colors.inkMuted,
+                          ),
                         ),
                         const SizedBox(height: ResSpace.snug),
                         Row(

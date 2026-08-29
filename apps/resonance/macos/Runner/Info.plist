@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Resonance records your voice so it can score your delivery. Recordings stay on this device unless you choose to share one.</string>
 </dict>
 </plist>

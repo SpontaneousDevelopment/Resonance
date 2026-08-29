@@ -56,13 +56,15 @@ class _Tree extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('YOUR PATH', style: ResType.label.copyWith(
-                  color: colors.inkFaint,
-                )),
+                Text(
+                  'YOUR PATH',
+                  style: ResType.label.copyWith(color: colors.inkFaint),
+                ),
                 const SizedBox(height: ResSpace.snug),
-                Text('Foundations', style: ResType.hero.copyWith(
-                  color: colors.ink,
-                )),
+                Text(
+                  'Foundations',
+                  style: ResType.hero.copyWith(color: colors.ink),
+                ),
                 const SizedBox(height: ResSpace.tight),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 460),
@@ -78,9 +80,7 @@ class _Tree extends StatelessWidget {
         for (final tier in curriculum.tiers) ...[
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: gutter),
-            sliver: SliverToBoxAdapter(
-              child: _TierHeader(tier: tier),
-            ),
+            sliver: SliverToBoxAdapter(child: _TierHeader(tier: tier)),
           ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
@@ -91,8 +91,7 @@ class _Tree extends StatelessWidget {
             ),
             sliver: SliverList.separated(
               itemCount: tier.units.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: ResSpace.snug),
+              separatorBuilder: (_, _) => const SizedBox(height: ResSpace.snug),
               itemBuilder: (context, index) {
                 final unit = tier.units[index];
                 return UnitNode(

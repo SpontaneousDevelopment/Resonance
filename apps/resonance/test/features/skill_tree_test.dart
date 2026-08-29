@@ -29,9 +29,7 @@ Future<void> _pumpTree(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        curriculumProvider.overrideWith((ref) => seed),
-      ],
+      overrides: [curriculumProvider.overrideWith((ref) => seed)],
       child: MaterialApp(
         theme: ResTheme.light(),
         home: const SkillTreeScreen(),
@@ -118,8 +116,7 @@ void main() {
       expect(find.text('Foundations Check'), findsOneWidget);
     });
 
-    testWidgets('shows the tier header with open/total counts',
-        (tester) async {
+    testWidgets('shows the tier header with open/total counts', (tester) async {
       await _pumpTree(tester);
 
       expect(find.text('TIER 1'), findsOneWidget);
@@ -127,8 +124,9 @@ void main() {
       expect(find.text('1/8 open'), findsOneWidget);
     });
 
-    testWidgets('unauthored units show their planned size, not zero',
-        (tester) async {
+    testWidgets('unauthored units show their planned size, not zero', (
+      tester,
+    ) async {
       await _pumpTree(tester);
 
       // Unit 1.2 is unwritten but declares seven lessons.
@@ -147,8 +145,9 @@ void main() {
       expect(find.byType(MasteryRing), findsNWidgets(8));
     });
 
-    testWidgets('locked units are marked unavailable to screen readers',
-        (tester) async {
+    testWidgets('locked units are marked unavailable to screen readers', (
+      tester,
+    ) async {
       final handle = tester.ensureSemantics();
       await _pumpTree(tester);
 

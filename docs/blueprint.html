@@ -357,9 +357,9 @@
     <h1>Resonance: a two-year path from <em>first take</em> to booked work.</h1>
     <p class="lede">A gamified voice-acting curriculum for iOS, Android and macOS — 254 lessons, mastery-gated, scored on-device in under 300&nbsp;ms. The curriculum, architecture, codebase shape and MVP plan below are signed off; construction has started on M0.</p>
     <div class="statline">
-      <span class="chip live">Signed off · M0 in progress</span>
+      <span class="chip live">M0 complete · M1 next</span>
       <span class="chip">Flutter 3.47.2 + Supabase</span>
-      <span class="chip">macOS ✓ · iOS ✓ · Android blocked</span>
+      <span class="chip">macOS ✓ · iOS ✓ · Android pending SDK</span>
       <span class="chip">MVP ≈ 23 weeks @ 10h/wk</span>
     </div>
   </header>
@@ -811,10 +811,11 @@
 
     <ol class="ms">
       <li>
-        <div class="mhead"><span class="mid">M0</span><span class="mtitle">Rails</span><span class="mwk">weeks 1–3 · in progress</span></div>
+        <div class="mhead"><span class="mid">M0</span><span class="mtitle">Rails</span><span class="mwk">weeks 1–3 · complete</span></div>
         <p class="mbody">Pub workspace, app building on all targets with mic entitlements, design tokens and theme, router, the YAML→seed compiler, Drift schema, CI.</p>
         <p class="mproves"><b>Done so far:</b> workspace and three package scaffolds; macOS and iOS both building; Flutter pinned at 3.47.2 via fvm; colour, type, spacing and motion tokens with full light/dark; the mastery ladder implemented and covered by 13 tests; the curriculum compiler with duplicate-id, dangling-prerequisite and cycle detection; Tier 1 authored with unit 1.3 complete; the skill tree rendering from the compiled seed, covered by 12 more tests.</p>
-        <p class="mproves"><b>Left:</b> Drift schema, CI workflow, bundled fonts, and the macOS WebView spike.</p>
+        <p class="mproves"><b>Also done:</b> Drift schema with a sync outbox and a tested delete-my-data path; bundled variable fonts; mic entitlements and usage strings on both Apple targets; a CI workflow with stale-seed and stale-codegen guards; and the macOS WebView spike, which passed — see risks.</p>
+        <p class="mproves"><b>Left:</b> the Android SDK wizard and a JDK 21 downgrade, both local-machine setup.</p>
       </li>
       <li>
         <div class="mhead"><span class="mid">M1</span><span class="mtitle">Audio spine</span><span class="mwk">weeks 4–8</span></div>
@@ -860,7 +861,7 @@
           <tr>
             <td><strong>macOS WebView</strong></td>
             <td><code>youtube_player_iframe</code> depends on the webview platform interface, and macOS support there is materially weaker than on mobile. Discovering this in week 13 would be expensive.</td>
-            <td>Spike it in M0, not M5. Fallback: a thin native WKWebView platform view, or opening the timestamped URL in the default browser and treating the lesson as a guided listen.</td>
+            <td><em>Resolved.</em> Spiked in M0 as planned, and the ecosystem moved: <code>webview_flutter</code> 4.14 now carries an endorsed macOS implementation via <code>webview_flutter_wkwebview</code> 3.26. macOS builds with the embed player and registers <code>WebViewFlutterPlugin</code>; all three targets share one widget and no fallback is needed. One trap found: without the <code>com.apple.security.network.client</code> entitlement the WebView loads a blank page and reports no error. Entitlement added.</td>
           </tr>
           <tr>
             <td><strong>STT size and latency</strong></td>
@@ -875,7 +876,7 @@
           <tr>
             <td><strong>Android build environment</strong></td>
             <td>The dev machine has no JDK and no Android SDK, so a third of the target platforms is currently unverifiable.</td>
-            <td>The Android target is scaffolded and will build once <code>temurin</code> and Android Studio are installed. Worth doing before M1 rather than after — platform channel and FFI work is exactly where Android diverges, and finding that out in week 8 is worse than in week 3.</td>
+            <td>Android Studio and Temurin are now installed, but the SDK components still need Studio’s first-launch wizard. A second trap: the JDK on PATH is Temurin&nbsp;26, and Android Gradle Plugin does not support it — 21 is the current ceiling, and CI pins that. Worth finishing before M1: platform-channel and FFI work is exactly where Android diverges.</td>
           </tr>
           <tr>
             <td><strong>Pitch tracking on real rooms</strong></td>
@@ -925,12 +926,14 @@
     <div class="signoff">
       <h3>Where M0 stands</h3>
       <ul class="plain">
-        <li><strong>Building:</strong> macOS and iOS both compile and run. Android is scaffolded but blocked on a local JDK + SDK install.</li>
-        <li><strong>Tested:</strong> 25 passing — 13 on the mastery ladder (thresholds, the once-per-day rule, decay floors, a five-day climb, and a grind attempt that correctly gets nowhere), 12 on the curriculum pipeline and skill tree.</li>
-        <li><strong>Content pipeline:</strong> authored YAML compiles to a validated seed. Duplicate ids, dangling prerequisites, cycles, unknown lesson types, inverted WPM bands and un-credited references all fail the build.</li>
-        <li><strong>Rendering:</strong> the skill tree draws all eight Tier&nbsp;1 units from the compiled seed, with segmented mastery rings, locked states, and unauthored units showing their planned size rather than zero.</li>
+        <li><strong>Building:</strong> macOS and iOS compile, run, and register the WebView plugin. Android is scaffolded but still needs Studio’s SDK wizard and a JDK&nbsp;21 downgrade.</li>
+        <li><strong>Tested:</strong> 40 passing, analyzer clean, formatter clean. 13 on the mastery ladder (thresholds, the once-per-day rule, decay floors, a five-day climb, and a grind attempt that correctly gets nowhere); 15 on persistence (mastery round-trip, XP accumulation, outbox ordering, and a delete-my-data check that asserts the outbox is emptied too); 12 on the curriculum pipeline and skill tree.</li>
+        <li><strong>Content pipeline:</strong> authored YAML compiles to a validated seed. Duplicate ids, dangling prerequisites, cycles, unknown lesson types, inverted WPM bands and un-credited references all fail the build — verified by feeding it a deliberately broken tree.</li>
+        <li><strong>Rendering:</strong> the skill tree draws all eight Tier&nbsp;1 units from the compiled seed with segmented mastery rings, locked states, and unauthored units showing their planned size. Archivo, Newsreader and JetBrains Mono are bundled as variable fonts.</li>
+        <li><strong>Persistence:</strong> Drift schema covering mastery, attempts with separable score components, streak, daily XP and the sync outbox. Delete-my-data is implemented and tested.</li>
+        <li><strong>CI:</strong> analyze, format, test, curriculum compile, a stale-seed guard, a stale-codegen guard, and builds for all three platforms.</li>
       </ul>
-      <p style="margin-bottom:0;"><strong>Next:</strong> Drift schema and progress persistence, a CI workflow, bundled fonts, and the macOS WebView spike — then M1 and the audio spine.</p>
+      <p style="margin-bottom:0;"><strong>M0 is done bar Android.</strong> Next is M1 and the audio spine — record, playback, the DSP plugin, and the live visualiser.</p>
     </div>
   </section>
 

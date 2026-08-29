@@ -52,12 +52,13 @@ void main(List<String> args) {
     exit(1);
   }
 
-  final tierFiles = contentDir
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.yaml'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final tierFiles =
+      contentDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.yaml'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
   if (tierFiles.isEmpty) {
     stderr.writeln('No .yaml files in ${contentDir.path}');
@@ -78,7 +79,9 @@ void main(List<String> args) {
   _validateTree(tiers);
 
   if (_errors.isNotEmpty) {
-    stderr.writeln('\nCurriculum build failed with ${_errors.length} error(s):\n');
+    stderr.writeln(
+      '\nCurriculum build failed with ${_errors.length} error(s):\n',
+    );
     for (final e in _errors) {
       stderr.writeln('  • $e');
     }
@@ -91,22 +94,30 @@ void main(List<String> args) {
   final outFile = File(
     p.join(repoRoot, 'apps', 'resonance', 'assets', 'seed', 'curriculum.json'),
   )..parent.createSync(recursive: true);
-  outFile.writeAsStringSync(
-    const JsonEncoder.withIndent('  ').convert(seed),
-  );
+  outFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(seed));
 
   final unitCount = tiers.fold<int>(
-      0, (sum, t) => sum + (t['units'] as List).length);
+    0,
+    (sum, t) => sum + (t['units'] as List).length,
+  );
   final lessonCount = tiers.fold<int>(
-      0,
-      (sum, t) => sum +
-          (t['units'] as List).fold<int>(
-              0, (s, u) => s + ((u as Map)['lessons'] as List).length));
+    0,
+    (sum, t) =>
+        sum +
+        (t['units'] as List).fold<int>(
+          0,
+          (s, u) => s + ((u as Map)['lessons'] as List).length,
+        ),
+  );
 
-  stdout.writeln('Curriculum seed written to '
-      '${p.relative(outFile.path, from: repoRoot)}');
-  stdout.writeln('  ${tiers.length} tier(s) · $unitCount unit(s) · '
-      '$lessonCount authored lesson(s)');
+  stdout.writeln(
+    'Curriculum seed written to '
+    '${p.relative(outFile.path, from: repoRoot)}',
+  );
+  stdout.writeln(
+    '  ${tiers.length} tier(s) · $unitCount unit(s) · '
+    '$lessonCount authored lesson(s)',
+  );
 }
 
 // ── Conversion ──────────────────────────────────────────────────────────────
@@ -157,8 +168,10 @@ Map<String, dynamic> _convertUnit(Map<String, dynamic> raw, String source) {
   }
 
   if (lessons.isEmpty && raw['planned_lesson_count'] == null) {
-    _fail('$source: unit $id has no lessons and no `planned_lesson_count`. '
-        'Unauthored units must declare their intended size.');
+    _fail(
+      '$source: unit $id has no lessons and no `planned_lesson_count`. '
+      'Unauthored units must declare their intended size.',
+    );
   }
 
   return {
@@ -187,13 +200,17 @@ Map<String, dynamic> _convertLesson(
 
   final type = raw['type'];
   if (type is! String || !_validLessonTypes.contains(type)) {
-    _fail('$source: lesson $id — unknown type "$type". '
-        'Valid: ${_validLessonTypes.join(", ")}');
+    _fail(
+      '$source: lesson $id — unknown type "$type". '
+      'Valid: ${_validLessonTypes.join(", ")}',
+    );
   }
 
   if (raw['unit_id'] != null && raw['unit_id'] != unitId) {
-    _fail('$source: lesson $id — declares unit_id "${raw['unit_id']}" but '
-        'is nested under "$unitId"');
+    _fail(
+      '$source: lesson $id — declares unit_id "${raw['unit_id']}" but '
+      'is nested under "$unitId"',
+    );
   }
 
   // Types that score speech against a written target need that target.
@@ -211,13 +228,19 @@ Map<String, dynamic> _convertLesson(
 
   final reference = raw['reference'] == null
       ? null
-      : _convertReference(_toMap(raw['reference'] as Map), source, id as String);
+      : _convertReference(
+          _toMap(raw['reference'] as Map),
+          source,
+          id as String,
+        );
 
   final wpmMin = raw['target_wpm_min'];
   final wpmMax = raw['target_wpm_max'];
   if (wpmMin is int && wpmMax is int && wpmMin >= wpmMax) {
-    _fail('$source: lesson $id — target_wpm_min ($wpmMin) must be below '
-        'target_wpm_max ($wpmMax)');
+    _fail(
+      '$source: lesson $id — target_wpm_min ($wpmMin) must be below '
+      'target_wpm_max ($wpmMax)',
+    );
   }
 
   return {
@@ -248,18 +271,24 @@ Map<String, dynamic> _convertReference(
   // cannot ship, so this is a build error rather than a runtime fallback.
   if (refSource == 'creativeCommons' || refSource == 'publicDomain') {
     if (raw['attribution'] == null) {
-      _fail('$source: lesson $lessonId — "$refSource" reference requires an '
-          '`attribution`');
+      _fail(
+        '$source: lesson $lessonId — "$refSource" reference requires an '
+        '`attribution`',
+      );
     }
   }
   if (refSource == 'embed' && raw['video_id'] == null) {
-    _fail('$source: lesson $lessonId — "embed" reference requires a `video_id`');
+    _fail(
+      '$source: lesson $lessonId — "embed" reference requires a `video_id`',
+    );
   }
   if (refSource != 'embed' &&
       refSource != 'none' &&
       raw['asset_path'] == null) {
-    _fail('$source: lesson $lessonId — "$refSource" reference requires an '
-        '`asset_path`');
+    _fail(
+      '$source: lesson $lessonId — "$refSource" reference requires an '
+      '`asset_path`',
+    );
   }
 
   return {
@@ -287,8 +316,7 @@ void _validateTree(List<Map<String, dynamic>> tiers) {
 
       if (!unitIds.add(id)) _fail('Duplicate unit id: $id');
 
-      allPrerequisites[id] =
-          (unit['prerequisites'] as List).cast<String>();
+      allPrerequisites[id] = (unit['prerequisites'] as List).cast<String>();
 
       for (final lesson
           in (unit['lessons'] as List).cast<Map<String, dynamic>>()) {
@@ -304,7 +332,9 @@ void _validateTree(List<Map<String, dynamic>> tiers) {
   for (final entry in allPrerequisites.entries) {
     for (final prerequisite in entry.value) {
       if (!unitIds.contains(prerequisite)) {
-        _fail('Unit ${entry.key} requires "$prerequisite", which does not exist');
+        _fail(
+          'Unit ${entry.key} requires "$prerequisite", which does not exist',
+        );
       }
     }
   }
@@ -354,8 +384,9 @@ void _detectCycles(Map<String, List<String>> graph) {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-Map<String, dynamic> _toMap(Map source) =>
-    source.map((k, v) => MapEntry(k.toString(), v is YamlList ? v.toList() : v));
+Map<String, dynamic> _toMap(Map source) => source.map(
+  (k, v) => MapEntry(k.toString(), v is YamlList ? v.toList() : v),
+);
 
 /// Collapses the newlines that YAML folded scalars leave behind, so a script
 /// authored across several lines renders as one paragraph.
@@ -373,7 +404,9 @@ String _findRepoRoot() {
     }
     final parent = dir.parent;
     if (parent.path == dir.path) {
-      stderr.writeln('Could not locate the repo root from ${Directory.current}');
+      stderr.writeln(
+        'Could not locate the repo root from ${Directory.current}',
+      );
       exit(1);
     }
     dir = parent;

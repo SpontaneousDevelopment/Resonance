@@ -100,13 +100,7 @@ class _RingPainter extends CustomPainter {
 
     for (var i = 0; i < _segments; i++) {
       paint.color = i < filled ? fillColor : trackColor;
-      canvas.drawArc(
-        arcRect,
-        start + i * (sweep + _gap),
-        sweep,
-        false,
-        paint,
-      );
+      canvas.drawArc(arcRect, start + i * (sweep + _gap), sweep, false, paint);
     }
   }
 

@@ -62,8 +62,10 @@ void main() {
       expect(first.promoted, isTrue);
       expect(afterFirst.level, MasteryLevel.bronze);
 
-      final (afterSecond, second) =
-          afterFirst.applyAttempt(score: 88, at: day1Late);
+      final (afterSecond, second) = afterFirst.applyAttempt(
+        score: 88,
+        at: day1Late,
+      );
 
       expect(second.promoted, isFalse);
       expect(second.block, PromotionBlock.alreadyPromotedToday);
@@ -78,8 +80,10 @@ void main() {
       // which is the thing the rule is actually about.
       const fresh = Mastery.fresh();
       final (afterFirst, _) = fresh.applyAttempt(score: 75, at: day1Late);
-      final (afterSecond, second) =
-          afterFirst.applyAttempt(score: 75, at: day2Early);
+      final (afterSecond, second) = afterFirst.applyAttempt(
+        score: 75,
+        at: day2Early,
+      );
 
       expect(second.promoted, isTrue);
       expect(afterSecond.level, MasteryLevel.silver);
@@ -160,8 +164,10 @@ void main() {
       final evening = DateTime(2026, 9, 1, 20, 0);
 
       for (var i = 0; i < 10; i++) {
-        final (next, _) =
-            m.applyAttempt(score: 95, at: evening.add(Duration(minutes: i * 5)));
+        final (next, _) = m.applyAttempt(
+          score: 95,
+          at: evening.add(Duration(minutes: i * 5)),
+        );
         m = next;
       }
 

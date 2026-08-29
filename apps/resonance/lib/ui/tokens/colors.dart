@@ -127,10 +127,10 @@ class ResColors {
   /// The tier ramp indexed 1..4, so callers can colour a node straight from
   /// its tier number without a switch at every call site.
   Color tier(int tierNumber) => switch (tierNumber) {
-        1 => tier1,
-        2 => tier2,
-        3 => tier3,
-        4 => tier4,
-        _ => inkFaint,
-      };
+    1 => tier1,
+    2 => tier2,
+    3 => tier3,
+    4 => tier4,
+    _ => inkFaint,
+  };
 }

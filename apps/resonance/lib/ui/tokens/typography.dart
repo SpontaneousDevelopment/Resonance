@@ -15,6 +15,14 @@ import 'package:flutter/widgets.dart';
 ///
 /// Font files are bundled (see pubspec `fonts:`), not fetched, because the app
 /// must render correctly offline on first launch.
+///
+/// All three families ship as **variable** fonts — one file per family rather
+/// than one per weight, which saves about 4 MB in the bundle. Variable fonts
+/// need the weight axis set explicitly via [FontVariation]; setting only
+/// [FontWeight] leaves the face at its default instance and every weight in the
+/// app renders identically. Each style below sets both: the variation drives
+/// the bundled face, and the [FontWeight] keeps the fallback stack correct if
+/// the bundled file is ever missing.
 class ResType {
   const ResType._();
 
@@ -33,6 +41,7 @@ class ResType {
     fontSize: 34,
     height: 1.08,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: -0.8,
   );
 
@@ -42,6 +51,7 @@ class ResType {
     fontSize: 24,
     height: 1.16,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: -0.4,
   );
 
@@ -51,6 +61,7 @@ class ResType {
     fontSize: 18,
     height: 1.25,
     fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
     letterSpacing: -0.2,
   );
 
@@ -60,6 +71,7 @@ class ResType {
     fontSize: 15,
     height: 1.45,
     fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
   );
 
   static const bodyStrong = TextStyle(
@@ -68,6 +80,7 @@ class ResType {
     fontSize: 15,
     height: 1.45,
     fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
   );
 
   static const caption = TextStyle(
@@ -76,6 +89,7 @@ class ResType {
     fontSize: 13,
     height: 1.4,
     fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
   );
 
   /// Uppercase eyebrows and section labels. Letter-spaced, never below 11pt.
@@ -85,6 +99,7 @@ class ResType {
     fontSize: 11,
     height: 1.3,
     fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
     letterSpacing: 1.1,
   );
 
@@ -97,6 +112,7 @@ class ResType {
     fontSize: 22,
     height: 1.72,
     fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
     letterSpacing: 0.1,
   );
 
@@ -107,6 +123,7 @@ class ResType {
     fontSize: 22,
     height: 1.72,
     fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
     letterSpacing: 0.1,
   );
 
@@ -118,6 +135,7 @@ class ResType {
     fontSize: 40,
     height: 1.0,
     fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
     fontFeatures: [FontFeature.tabularFigures()],
   );
 
@@ -127,6 +145,7 @@ class ResType {
     fontSize: 14,
     height: 1.3,
     fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
     fontFeatures: [FontFeature.tabularFigures()],
   );
 }

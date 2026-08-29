@@ -100,11 +100,11 @@ class Mastery {
   });
 
   const Mastery.fresh()
-      : level = MasteryLevel.locked,
-        attempts = 0,
-        bestScore = 0,
-        lastPromotedOn = null,
-        lastAttemptedOn = null;
+    : level = MasteryLevel.locked,
+      attempts = 0,
+      bestScore = 0,
+      lastPromotedOn = null,
+      lastAttemptedOn = null;
 
   final MasteryLevel level;
   final int attempts;

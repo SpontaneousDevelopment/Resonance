@@ -38,8 +38,7 @@ extension ResThemeContext on BuildContext {
 
   /// True when the window is wide enough for a side rail rather than a bottom
   /// bar — practically, macOS and landscape tablets.
-  bool get isExpanded =>
-      MediaQuery.sizeOf(this).width >= ResBreak.expanded;
+  bool get isExpanded => MediaQuery.sizeOf(this).width >= ResBreak.expanded;
 
   /// Horizontal page gutter for the current width.
   double get gutter =>
@@ -88,11 +87,7 @@ class ResTheme {
       textTheme: text,
       splashFactory: InkSparkle.splashFactory,
       extensions: [ResColorsExtension(c)],
-      dividerTheme: DividerThemeData(
-        color: c.ruleSoft,
-        thickness: 1,
-        space: 1,
-      ),
+      dividerTheme: DividerThemeData(color: c.ruleSoft, thickness: 1, space: 1),
       cardTheme: CardThemeData(
         color: c.surface,
         elevation: 0,

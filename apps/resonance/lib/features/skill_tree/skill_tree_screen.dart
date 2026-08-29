@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../app/router.dart';
 import '../../core/curriculum_repository.dart';
 import '../../domain/curriculum/curriculum.dart';
 import '../../domain/curriculum/mastery.dart';
@@ -102,6 +105,11 @@ class _Tree extends StatelessWidget {
                   // domain/curriculum/mastery.dart and is already tested.
                   mastery: const Mastery.fresh(),
                   isUnlocked: unit.isAuthored,
+                  onTap: unit.isAuthored
+                      ? () => context.push(
+                          Routes.lessonPath(unit.lessons.first.id),
+                        )
+                      : null,
                 );
               },
             ),

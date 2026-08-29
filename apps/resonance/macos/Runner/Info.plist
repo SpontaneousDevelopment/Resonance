@@ -30,5 +30,7 @@
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Resonance records your voice so it can score your delivery. Recordings stay on this device unless you choose to share one.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Resonance compares what you said against the script so it can score your clarity. The comparison happens on this device; your recording is never uploaded.</string>
 </dict>
 </plist>

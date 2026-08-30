@@ -69,11 +69,17 @@ Scoped as M0–M6 for the MVP. See the blueprint for the full plan.
 - **M1 — Audio spine.** Complete. The DSP plugin, PCM frame re-chunking, the
   semitone-axis live visualiser, and the pre-roll room check. YIN tracks to
   better than 0.05% across 80–440 Hz at ~7% of a 60 fps frame budget.
-- **M2 — Score & feedback.** Mostly complete. Word alignment, the scoring
-  rubric, the speech-recognition interface, the feedback screen, the lesson
-  controller, and the `coach-note` edge function. **Outstanding:** `tools/ingest`
-  (licence-checked reference audio) and the coach-rated calibration set that
-  tunes the rubric weights.
+- **M2 — Score & feedback.** Complete. Word alignment, the scoring rubric, the
+  speech-recognition interface, the feedback screen, the lesson controller, the
+  `coach-note` edge function, and `tools/ingest`.
+
+  **Rubric weights are hand-set, not coach-calibrated.** This is an accepted
+  pre-launch gap, not an outstanding task: calibration needs a working voice
+  coach to rate takes against, and building that relationship is deliberately
+  deferred until the project goes public. Do not flag it in milestone audits,
+  and do not produce calibration materials or tuning work in the meantime —
+  there is nowhere for the output to go, and hand-tuning weights against
+  intuition would make them *look* calibrated without being so.
 - **M3 — Progression.** Complete. Progress persists: one transaction commits
   the attempt, mastery, XP, streak and energy together, with a rollback test.
   Unit gating requires Silver across 80% of a unit — Bronze is one lucky take,
@@ -151,12 +157,33 @@ Three rules follow from that:
    noticed because nothing asserted that a declared cue is *reachable*. Where a
    registry enumerates capabilities, assert the enum is covered by something
    that actually produces them; existence checks pass on dead entries.
-5. **A rewrite silently drops behaviour the old code had.** Replacing the
-   breather's `AnimatedContainer` with a ticker lost reduced-motion support —
+5. **A green suite proves "true when written", not "true now".** Replacing the
+   breather's `AnimatedContainer` with a ticker dropped reduced-motion support:
    the old widget read `disableAnimationsOf`, the new one had no reference to
-   it, and the audit item that covered it had passed against the *old*
-   mechanism. When a mechanism is replaced, re-test the cross-cutting concerns
-   against the new one specifically rather than assuming they carried.
+   it, and nothing went red. When a mechanism is replaced, re-test the
+   cross-cutting concerns against the new one rather than assuming they carried.
+
+   Two things make this hard to catch, and both are worth knowing:
+
+   *Coverage does not help.* The behaviour disappeared along with the lines that
+   implemented it, so there was no uncovered branch to report. The new code was
+   fully covered and simply did less.
+
+   *Audit items named after a concern get ticked by any test mentioning it.*
+   "Reduced motion works" was marked green by a test covering the **sensory
+   director** — a different component that happened to share the concern's name.
+   Checking the history (`git log -S reduceMotion -- test/`) shows the breather
+   never had such a test at all. Name audit items after the component
+   (`the breather honours reduced motion`), never after the concern, or one
+   passing test retires the whole question.
+
+   **No cheap mechanical guard exists for this.** Flagging source changes whose
+   test files did not also change is easy to write and mostly false positives,
+   so it gets ignored, which is worse than nothing. What does help is keeping
+   each cross-cutting concern's tests in one file that names every component
+   subject to it, so an absent component is visible while reading — the same
+   trick as the cue-reachability test, minus the enum that makes it enforceable.
+   Treat it as review discipline, not tooling.
 6. **Paired acquire/release calls leak.** `duck()`/`unduck()` written as a pair
    leaked on every exit that skipped the second half — dispose, reset, and a
    throw between them. A handle whose release is idempotent, held in one field

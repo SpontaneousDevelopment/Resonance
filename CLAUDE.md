@@ -32,6 +32,8 @@ is shared with unrelated projects.
 ```sh
 fvm flutter pub get                                       # resolves the workspace
 fvm dart run tools/curriculum_build/bin/build.dart        # recompile curriculum
+fvm dart run tools/ingest/bin/ingest.dart verify          # audio vs manifest
+fvm dart run tools/ingest/bin/ingest.dart restore         # fetch audio on a fresh clone
 fvm flutter analyze && fvm flutter test                   # from apps/resonance
 fvm flutter test integration_test/lesson_flow_test.dart -d macos
 ./tools/verify_plists/verify.sh                           # privacy keys + entitlements
@@ -51,7 +53,7 @@ root, several packages beneath it.
 | `packages/resonance_models` | **Still the `flutter create` scaffold.** Nothing imports it. Delete or fill it; do not assume it holds anything. |
 | `backend/supabase` | Migrations, RLS policies, and the `coach-note` edge function (Deno). |
 | `content/curriculum` | Authored curriculum YAML — the source of truth, compiled to a bundled JSON seed. |
-| `tools/` | Curriculum compiler, privacy-key verifier. |
+| `tools/` | Curriculum compiler, privacy-key verifier, licence-checked audio ingestion. |
 
 Import rules inside the app, in dependency order: `domain/` is pure Dart with no
 Flutter import; `core/` may import `domain/` but never `features/`; `features/`

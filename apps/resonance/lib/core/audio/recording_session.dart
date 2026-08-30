@@ -1,10 +1,48 @@
 import 'dart:async';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:resonance_dsp/resonance_dsp.dart';
 
 import 'frame_buffer.dart';
+
+/// The five things the session needs from a microphone.
+///
+/// A seam rather than a direct dependency on `AudioRecorder`: that class opens
+/// a platform channel from its constructor, so a session could not be built at
+/// all in a test, which left the duck's release-on-stop path unassertable. The
+/// same pattern as [SpeechRecogniser].
+abstract interface class AudioCapture {
+  Future<bool> hasPermission();
+  Future<Stream<Uint8List>> startStream(RecordConfig config);
+  Future<String?> stop();
+  Future<void> cancel();
+  Future<void> dispose();
+}
+
+/// The real microphone.
+class RecordAudioCapture implements AudioCapture {
+  RecordAudioCapture([AudioRecorder? recorder])
+    : _recorder = recorder ?? AudioRecorder();
+
+  final AudioRecorder _recorder;
+
+  @override
+  Future<bool> hasPermission() => _recorder.hasPermission();
+
+  @override
+  Future<Stream<Uint8List>> startStream(RecordConfig config) =>
+      _recorder.startStream(config);
+
+  @override
+  Future<String?> stop() => _recorder.stop();
+
+  @override
+  Future<void> cancel() => _recorder.cancel();
+
+  @override
+  Future<void> dispose() => _recorder.dispose();
+}
 
 /// What the recorder is doing right now.
 enum RecordingState {
@@ -72,29 +110,36 @@ class RoomCheck {
 /// recorder and no container.
 class RecordingSession {
   RecordingSession({
-    AudioRecorder? recorder,
+    AudioCapture? capture,
     this.sampleRate = 48000,
     this.frameSize = 2048,
-  }) : _injectedRecorder = recorder,
-       _frames = FrameBuffer(frameSize: frameSize),
-       _analyser = VoiceAnalyser(sampleRate: sampleRate, frameSize: frameSize);
+  }) : _injectedCapture = capture,
+       _frames = FrameBuffer(frameSize: frameSize);
 
-  final AudioRecorder? _injectedRecorder;
+  final AudioCapture? _injectedCapture;
 
   /// Created on first use, not in the constructor.
   ///
-  /// Constructing an [AudioRecorder] opens a platform channel, so building it
-  /// eagerly meant that merely *listening* to [analysis] — which the visualiser
-  /// does before the user has touched anything — reached for the microphone
-  /// stack. In a widget test with no platform behind it, that blocks forever.
-  AudioRecorder? _lazyRecorder;
-  AudioRecorder get _recorder =>
-      _lazyRecorder ??= _injectedRecorder ?? AudioRecorder();
+  /// Opening the microphone eagerly meant that merely *listening* to
+  /// [analysis] — which the visualiser does before the user has touched
+  /// anything — reached for the platform. In a widget test with nothing behind
+  /// it, that blocks forever.
+  AudioCapture? _lazyCapture;
+  AudioCapture get _recorder =>
+      _lazyCapture ??= _injectedCapture ?? RecordAudioCapture();
+
   final int sampleRate;
   final int frameSize;
 
   final FrameBuffer _frames;
-  final VoiceAnalyser _analyser;
+
+  /// Built on first use. Constructing it reaches into the native DSP, so an
+  /// eager one meant a session could not exist without the plugin linked.
+  VoiceAnalyser? _lazyAnalyser;
+  VoiceAnalyser get _analyser => _lazyAnalyser ??= VoiceAnalyser(
+    sampleRate: sampleRate,
+    frameSize: frameSize,
+  );
 
   StreamSubscription<Uint8List>? _subscription;
 
@@ -126,7 +171,7 @@ class RecordingSession {
   /// Seconds of audio captured, measured on the audio clock.
   double get elapsedSeconds => _frames.samplesConsumed / sampleRate;
 
-  double get noiseFloorDb => _analyser.noiseFloorDb;
+  double get noiseFloorDb => _lazyAnalyser?.noiseFloorDb ?? -100;
 
   Future<bool> hasPermission() => _recorder.hasPermission();
 
@@ -177,7 +222,9 @@ class RecordingSession {
     if (_state == RecordingState.recording) return;
 
     _frames.reset();
-    _analyser.reset();
+    // Only reset an analyser that exists — building one here would reach into
+    // the native DSP purely to clear state it has never held.
+    _lazyAnalyser?.reset();
     _takeFrames.clear();
     _takePlosiveScores.clear();
 
@@ -229,7 +276,12 @@ class RecordingSession {
   Future<void> cancel() async {
     await _subscription?.cancel();
     _subscription = null;
-    await _recorder.cancel();
+    // Same reasoning as dispose: abandoning a take must not throw.
+    try {
+      await _lazyCapture?.cancel();
+    } catch (error) {
+      debugPrint('Recorder cancel failed: $error');
+    }
     _takeFrames.clear();
     _takePlosiveScores.clear();
     _frames.reset();
@@ -257,10 +309,18 @@ class RecordingSession {
     await _subscription?.cancel();
     await _analysisController.close();
     await _stateController.close();
-    _analyser.dispose();
-    // Only tear down a recorder that was actually opened — touching the getter
-    // here would construct one purely in order to dispose it.
-    await _lazyRecorder?.dispose();
+    // Only tear down what was actually opened — touching either getter here
+    // would construct it purely in order to dispose it.
+    _lazyAnalyser?.dispose();
+    // Best effort. Teardown runs while a screen is being popped, and the
+    // platform side may already be gone — a throw here would crash the app on
+    // the way out of a lesson, which is strictly worse than a leaked recorder
+    // the OS reclaims anyway.
+    try {
+      await _lazyCapture?.dispose();
+    } catch (error) {
+      debugPrint('Recorder teardown failed: $error');
+    }
   }
 }
 

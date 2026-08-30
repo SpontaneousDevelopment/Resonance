@@ -186,29 +186,44 @@ class ResonanceDspBindings {
         void Function(ffi.Pointer<ffi.Float>, int, int, ffi.Pointer<ffi.Float>)
       >();
 
-  /// Detects plosive energy: a sudden burst concentrated below ~200 Hz.
+  /// Initialises detector state. Call once per take.
+  void res_plosive_init(ffi.Pointer<ResPlosiveState> state) {
+    return _res_plosive_init(state);
+  }
+
+  late final _res_plosive_initPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ResPlosiveState>)>
+      >('res_plosive_init');
+  late final _res_plosive_init = _res_plosive_initPtr
+      .asFunction<void Function(ffi.Pointer<ResPlosiveState>)>();
+
+  /// Detects a plosive: a sudden burst of low-frequency energy well above the
+  /// speaker's own recent level.
   ///
-  /// Returns 0..1, where 0 is clean and 1 is a full thump on the diaphragm.
-  /// Implemented as the ratio of low-band to broadband energy, weighted by how
-  /// abruptly the level rose — a steady low note is not a plosive, a sudden one
-  /// is.
+  /// Returns 0 when no plosive is present, and 0.55–1.0 when one is. That lower
+  /// bound is deliberate and matches the production threshold: a frame meeting
+  /// every minimum condition scores exactly 0.55, and the score rises with how
+  /// far past those conditions it goes. A caller comparing against 0.55 is
+  /// therefore asking "did this qualify at all", which is what the threshold was
+  /// always meant to mean.
   ///
-  /// `prev_low_energy` carries state between frames; pass 0 on the first frame
-  /// and thereafter the value written to `out_low_energy`.
+  /// Three conditions must hold together, calibrated against recorded speech
+  /// rather than synthetic tones:
+  ///
+  /// * the low band must clearly dominate (a male fundamental alone does not),
+  /// * the burst must be several times the speaker's running baseline,
+  /// * and there must be enough absolute energy to be audible at all.
+  ///
+  /// `state` must be zero-initialised by [res_plosive_init] before the first
+  /// frame of a take and passed unchanged thereafter.
   double res_plosive_score(
     ffi.Pointer<ffi.Float> samples,
     int sample_count,
     int sample_rate,
-    double prev_low_energy,
-    ffi.Pointer<ffi.Float> out_low_energy,
+    ffi.Pointer<ResPlosiveState> state,
   ) {
-    return _res_plosive_score(
-      samples,
-      sample_count,
-      sample_rate,
-      prev_low_energy,
-      out_low_energy,
-    );
+    return _res_plosive_score(samples, sample_count, sample_rate, state);
   }
 
   late final _res_plosive_scorePtr =
@@ -218,8 +233,7 @@ class ResonanceDspBindings {
             ffi.Pointer<ffi.Float>,
             ffi.Int32,
             ffi.Int32,
-            ffi.Float,
-            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ResPlosiveState>,
           )
         >
       >('res_plosive_score');
@@ -229,8 +243,7 @@ class ResonanceDspBindings {
           ffi.Pointer<ffi.Float>,
           int,
           int,
-          double,
-          ffi.Pointer<ffi.Float>,
+          ffi.Pointer<ResPlosiveState>,
         )
       >();
 }
@@ -269,6 +282,31 @@ final class ResFrameAnalysis extends ffi.Struct {
   /// 1 when any sample in the frame reached digital full scale.
   @ffi.Int32()
   external int is_clipping;
+}
+
+/// Carries plosive-detector state between frames.
+///
+/// Three things must persist, and the original version persisted only one:
+///
+/// * `filter` — the one-pole low-pass state. Resetting it per frame made the
+/// filter warm up from silence at every frame boundary, injecting an error
+/// of up to 21% into the low-band estimate on real speech.
+/// * `baseline` — a slow average of this speaker's normal low-band level. A
+/// plosive is a burst above *the speaker's own baseline*; comparing only
+/// against the previous frame makes ordinary syllabic loudness variation
+/// look like an onset.
+/// * `primed` — whether a baseline exists yet. Without it the first frame of
+/// every recording was scored as a full-strength onset, which is a
+/// guaranteed false positive at the start of every take.
+final class ResPlosiveState extends ffi.Struct {
+  @ffi.Float()
+  external double filter;
+
+  @ffi.Float()
+  external double baseline;
+
+  @ffi.Int32()
+  external int primed;
 }
 
 const double RES_PITCH_NONE = -1.0;

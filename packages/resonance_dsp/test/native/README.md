@@ -9,8 +9,22 @@ against synthesised tones, octave and subharmonic rejection, and the frame
 budget are all properties of the C, and testing them here keeps the failure
 message pointed at the right layer.
 
+## Validating against real audio
+
+`validate_audio.sh` is the check that would have caught the plosive bug. Sine
+tones cannot tell you whether a detector fires on ordinary speech; only speech
+can. It synthesises real speech with `say`, measures the detector against it as
+a true-negative set, then injects pops at known times as a true-positive set.
+
+Not run by CI — it needs `say` and takes a few seconds — but **run it after any
+change to a detector**, and before believing a detection threshold.
+
 ```sh
-# Correctness — 27 checks. Run by CI.
+./packages/resonance_dsp/test/native/validate_audio.sh
+```
+
+```sh
+# Correctness — run by CI.
 cc -O2 -I../../src ../../src/resonance_dsp.c dsp_test.c -o /tmp/dsp_test -lm
 /tmp/dsp_test
 

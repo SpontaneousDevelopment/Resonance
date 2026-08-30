@@ -136,6 +136,8 @@ class VoiceAnalyser {
         'frameSize should be a power of two',
       ) {
     _samples = calloc<ffi.Float>(frameSize);
+    _plosiveState = calloc<ResPlosiveState>();
+    _bindings.res_plosive_init(_plosiveState);
     _scratch = calloc<ffi.Float>(frameSize ~/ 2);
     _result = calloc<ResFrameAnalysis>();
   }
@@ -151,6 +153,7 @@ class VoiceAnalyser {
   late final ffi.Pointer<ffi.Float> _samples;
   late final ffi.Pointer<ffi.Float> _scratch;
   late final ffi.Pointer<ResFrameAnalysis> _result;
+  late final ffi.Pointer<ResPlosiveState> _plosiveState;
 
   bool _disposed = false;
 
@@ -159,9 +162,6 @@ class VoiceAnalyser {
   /// Set from the pre-roll room check. Until that runs it stays at -100, which
   /// disables gating rather than guessing — a wrong floor is worse than none.
   double noiseFloorDb = -100;
-
-  /// Carries plosive onset state between frames.
-  double _previousLowEnergy = 0;
 
   /// Analyses one frame.
   ///
@@ -197,36 +197,32 @@ class VoiceAnalyser {
     );
   }
 
-  /// Plosive energy in this frame, 0..1.
+  /// Plosive energy in this frame.
   ///
-  /// Stateful across calls — it compares against the previous frame's low-band
-  /// energy, because a plosive is a sudden low burst and a sustained low note
-  /// is not.
+  /// Returns 0 when no plosive is present, and 0.55–1.0 when one is — that
+  /// lower bound matches the production threshold, so comparing against it
+  /// asks "did this qualify at all".
+  ///
+  /// Stateful across frames: the detector keeps a low-pass filter and a running
+  /// baseline of this speaker's normal low-band level, because a plosive is a
+  /// burst above the speaker's own level rather than above the previous frame.
+  /// Call [reset] between takes.
+  ///
+  /// The first frame of a take always returns 0 — it primes the baseline, and
+  /// there is nothing to compare it against.
   double plosiveScore(Float32List frame) {
     _assertUsable();
-    // Same guard as [analyse]. Without it a longer-than-frameSize buffer writes
-    // past the end of a native allocation sized for exactly [frameSize] floats
-    // — a heap overflow that corrupts whatever malloc placed after it, and
-    // which would typically crash somewhere unrelated and much later.
     if (frame.length != frameSize) {
       throw ArgumentError('Expected $frameSize samples, got ${frame.length}');
     }
     _samples.asTypedList(frameSize).setAll(0, frame);
 
-    final out = calloc<ffi.Float>();
-    try {
-      final score = _bindings.res_plosive_score(
-        _samples,
-        frameSize,
-        sampleRate,
-        _previousLowEnergy,
-        out,
-      );
-      _previousLowEnergy = out.value;
-      return score;
-    } finally {
-      calloc.free(out);
-    }
+    return _bindings.res_plosive_score(
+      _samples,
+      frameSize,
+      sampleRate,
+      _plosiveState,
+    );
   }
 
   /// Reduces a buffer to [bucketCount] min/max pairs for waveform drawing.
@@ -256,7 +252,7 @@ class VoiceAnalyser {
   /// Resets frame-to-frame state. Call between takes so the first frame of a
   /// new recording is not judged against the last frame of the previous one.
   void reset() {
-    _previousLowEnergy = 0;
+    _bindings.res_plosive_init(_plosiveState);
   }
 
   void dispose() {
@@ -265,6 +261,7 @@ class VoiceAnalyser {
     calloc.free(_samples);
     calloc.free(_scratch);
     calloc.free(_result);
+    calloc.free(_plosiveState);
   }
 
   void _assertUsable() {

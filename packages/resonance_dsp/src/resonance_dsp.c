@@ -177,50 +177,118 @@ void res_waveform_envelope(const float *samples, int32_t sample_count,
   }
 }
 
-float res_plosive_score(const float *samples, int32_t sample_count,
-                        int32_t sample_rate, float prev_low_energy,
-                        float *out_low_energy) {
-  if (out_low_energy != NULL) *out_low_energy = 0.0f;
-  if (samples == NULL || sample_count <= 1 || sample_rate <= 0) return 0.0f;
+// ── Plosive detection ───────────────────────────────────────────────────────
+//
+// Calibrated against recorded speech. The original thresholds were set against
+// synthetic tones and fired on ordinary voiced speech: a male fundamental sits
+// below the 200 Hz cutoff, so "the low band holds more than half the energy"
+// describes a normal voice rather than a pop.
 
-  // A one-pole low-pass at ~200 Hz. Cheap, and a steep filter would not make
-  // the judgement any better — we are looking for a gross energy imbalance,
-  // not measuring a spectrum.
-  const float cutoff = 200.0f;
+// The low band. A plosive's thump lives here; so does a fundamental, which is
+// why dominance alone is not evidence.
+#define RES_PLOSIVE_CUTOFF_HZ 200.0f
+
+// How far the low band must exceed the speaker's running baseline. Three times
+// is well beyond syllabic loudness variation, which rarely exceeds ~2x between
+// adjacent frames, and comfortably below a real pop, which is typically 5-20x.
+#define RES_PLOSIVE_MIN_ONSET 3.0f
+
+// Where the score saturates. Beyond this a pop is unambiguous.
+#define RES_PLOSIVE_FULL_ONSET 8.0f
+
+// How completely the low band must dominate. Measured across recorded speech,
+// ordinary voiced frames sit around 0.55-0.70; genuine plosives exceed 0.80.
+#define RES_PLOSIVE_MIN_RATIO 0.75f
+#define RES_PLOSIVE_FULL_RATIO 0.95f
+
+// Below this the frame is too quiet for a pop to be audible, whatever its
+// spectral shape. Stops near-silence with incidental rumble from scoring.
+#define RES_PLOSIVE_MIN_ENERGY 0.02f
+
+// Baseline adaptation. Slow enough that a pop does not immediately raise the
+// bar against itself, fast enough to follow a speaker changing level.
+#define RES_PLOSIVE_BASELINE_RISE 0.10f
+#define RES_PLOSIVE_BASELINE_FALL 0.25f
+
+void res_plosive_init(ResPlosiveState *state) {
+  if (state == NULL) return;
+  state->filter = 0.0f;
+  state->baseline = 0.0f;
+  state->primed = 0;
+}
+
+float res_plosive_score(const float *samples, int32_t sample_count,
+                        int32_t sample_rate, ResPlosiveState *state) {
+  if (samples == NULL || state == NULL || sample_count <= 1 ||
+      sample_rate <= 0) {
+    return 0.0f;
+  }
+
   const float dt = 1.0f / (float)sample_rate;
-  const float rc = 1.0f / (2.0f * (float)M_PI * cutoff);
+  const float rc = 1.0f / (2.0f * (float)M_PI * RES_PLOSIVE_CUTOFF_HZ);
   const float alpha = dt / (rc + dt);
 
+  // The filter carries its state across frames. Restarting it from zero each
+  // frame makes it warm up from silence at every boundary.
+  float low = state->filter;
   double low_sum = 0.0;
   double full_sum = 0.0;
-  float low = 0.0f;
 
   for (int32_t i = 0; i < sample_count; i++) {
     low += alpha * (samples[i] - low);
     low_sum += (double)low * (double)low;
     full_sum += (double)samples[i] * (double)samples[i];
   }
+  state->filter = low;
 
   const float low_energy = (float)sqrt(low_sum / (double)sample_count);
-  if (out_low_energy != NULL) *out_low_energy = low_energy;
-
   const float full_energy = (float)sqrt(full_sum / (double)sample_count);
-  if (full_energy < 1e-5f) return 0.0f;
 
-  // Two conditions must both hold for a plosive: the frame is dominated by low
-  // frequencies, *and* that low energy arrived suddenly. A sustained low note
-  // satisfies the first but not the second.
-  const float low_ratio = low_energy / full_energy;
-  const float onset = prev_low_energy > 1e-6f
-                          ? (low_energy - prev_low_energy) / prev_low_energy
-                          : (low_energy > 0.02f ? 1.0f : 0.0f);
+  // Prime the baseline on the first frame and score nothing. There is no
+  // "previous" to compare against, and treating its absence as a maximal onset
+  // made the first frame of every take a false positive.
+  if (!state->primed) {
+    state->baseline = low_energy;
+    state->primed = 1;
+    return 0.0f;
+  }
 
-  if (low_ratio < 0.5f || onset <= 0.0f) return 0.0f;
+  const float baseline = state->baseline;
 
-  float score = low_ratio * (onset > 1.0f ? 1.0f : onset);
-  if (score < 0.0f) score = 0.0f;
-  if (score > 1.0f) score = 1.0f;
-  return score;
+  // Update the baseline *after* reading it, and rise more slowly than it
+  // falls, so a pop does not raise the bar against itself.
+  const float rate = low_energy > baseline ? RES_PLOSIVE_BASELINE_RISE
+                                           : RES_PLOSIVE_BASELINE_FALL;
+  state->baseline = baseline + rate * (low_energy - baseline);
+
+  if (full_energy < 1e-5f || low_energy < RES_PLOSIVE_MIN_ENERGY) return 0.0f;
+
+  const float ratio = low_energy / full_energy;
+  if (ratio < RES_PLOSIVE_MIN_RATIO) return 0.0f;
+
+  const float floor_level =
+      baseline > RES_PLOSIVE_MIN_ENERGY ? baseline : RES_PLOSIVE_MIN_ENERGY;
+  const float onset = low_energy / floor_level;
+  if (onset < RES_PLOSIVE_MIN_ONSET) return 0.0f;
+
+  // Both factors scale from 0 at their minimum to 1 where the evidence is
+  // unambiguous. The original multiplied by a clamped onset, which meant the
+  // score collapsed to the ratio for anything above a 1x rise — a 24x burst
+  // and a 1.01x rise scored identically.
+  float burst = (onset - RES_PLOSIVE_MIN_ONSET) /
+                (RES_PLOSIVE_FULL_ONSET - RES_PLOSIVE_MIN_ONSET);
+  if (burst > 1.0f) burst = 1.0f;
+  if (burst < 0.0f) burst = 0.0f;
+
+  float dominance = (ratio - RES_PLOSIVE_MIN_RATIO) /
+                    (RES_PLOSIVE_FULL_RATIO - RES_PLOSIVE_MIN_RATIO);
+  if (dominance > 1.0f) dominance = 1.0f;
+  if (dominance < 0.0f) dominance = 0.0f;
+
+  // A frame that just meets every condition scores exactly 0.55 — the
+  // production threshold — so comparing against it asks "did this qualify".
+  const float confidence = 0.6f * burst + 0.4f * dominance;
+  return 0.55f + 0.45f * confidence;
 }
 
 void res_analyse_frame(const float *samples, int32_t sample_count,

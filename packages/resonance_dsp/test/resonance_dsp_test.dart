@@ -131,30 +131,90 @@ void main() {
   });
 
   group('plosive detection', () {
-    test('a sudden low burst scores higher than a bright sound', () {
+    test('the priming frame scores zero', () {
+      // There is nothing to compare a first frame against. Treating a zero
+      // previous energy as a maximal onset made the first frame of every take
+      // a false positive.
       analyser.reset();
-      final bright = analyser.plosiveScore(sine(3000, amplitude: 0.3));
-
-      analyser.reset();
-      final thump = analyser.plosiveScore(sine(80, amplitude: 0.9));
-
-      expect(thump, greaterThan(bright));
-      expect(thump, greaterThan(0.3));
+      expect(analyser.plosiveScore(sine(80, amplitude: 0.9)), 0.0);
     });
 
-    test('state carries between frames, and reset clears it', () {
+    test('sustained speech-like content never reaches the threshold', () {
+      // The bug that shipped: a low fundamental sits under the 200 Hz cutoff,
+      // so "the low band dominates" describes an ordinary voice rather than a
+      // pop. This asserts an absolute value against the production threshold,
+      // which the original tests never did.
       analyser.reset();
-      final first = analyser.plosiveScore(sine(80, amplitude: 0.9));
-      final sustained = analyser.plosiveScore(sine(80, amplitude: 0.9));
+      var worst = 0.0;
+      for (var f = 0; f < 30; f++) {
+        final level = 0.25 + 0.2 * math.sin(f * 0.7);
+        final frame = Float32List(frameSize);
+        for (var i = 0; i < frameSize; i++) {
+          final t = (f * frameSize + i) / sampleRate;
+          frame[i] =
+              level *
+              (math.sin(2 * math.pi * 110 * t) +
+                  0.8 * math.sin(2 * math.pi * 330 * t) +
+                  0.5 * math.sin(2 * math.pi * 700 * t));
+        }
+        final score = analyser.plosiveScore(frame);
+        if (score > worst) worst = score;
+      }
+      expect(worst, lessThan(0.55), reason: 'worst frame scored $worst');
+    });
 
-      // Second identical frame is a continuation, not a new onset.
-      expect(sustained, lessThan(first));
-
+    test('a sustained low note stays below the threshold', () {
       analyser.reset();
-      expect(
-        analyser.plosiveScore(sine(80, amplitude: 0.9)),
-        closeTo(first, 0.01),
-      );
+      var worst = 0.0;
+      for (var f = 0; f < 15; f++) {
+        final score = analyser.plosiveScore(sine(80, amplitude: 0.9));
+        if (score > worst) worst = score;
+      }
+      expect(worst, lessThan(0.55));
+    });
+
+    test('a bright sound never scores', () {
+      analyser.reset();
+      var worst = 0.0;
+      for (var f = 0; f < 6; f++) {
+        final score = analyser.plosiveScore(sine(3000, amplitude: 0.4));
+        if (score > worst) worst = score;
+      }
+      expect(worst, 0.0);
+    });
+
+    test('a burst above the running baseline is detected', () {
+      analyser.reset();
+      for (var f = 0; f < 4; f++) {
+        analyser.plosiveScore(sine(75, amplitude: 0.04));
+      }
+      final burst = analyser.plosiveScore(sine(75, amplitude: 0.85));
+
+      expect(burst, greaterThanOrEqualTo(0.55));
+    });
+
+    test('the score carries information above its minimum', () {
+      // The original collapsed to the low-band ratio for any onset above 1x,
+      // so a 24x burst and a 1.01x rise scored identically.
+      double burstOf(double amplitude) {
+        analyser.reset();
+        for (var f = 0; f < 4; f++) {
+          analyser.plosiveScore(sine(75, amplitude: 0.04));
+        }
+        return analyser.plosiveScore(sine(75, amplitude: amplitude));
+      }
+
+      expect(burstOf(0.85), greaterThan(burstOf(0.14)));
+    });
+
+    test('reset clears the baseline between takes', () {
+      analyser.reset();
+      for (var f = 0; f < 6; f++) {
+        analyser.plosiveScore(sine(75, amplitude: 0.7));
+      }
+      analyser.reset();
+      // First frame after a reset primes again, so it scores nothing.
+      expect(analyser.plosiveScore(sine(75, amplitude: 0.7)), 0.0);
     });
   });
 

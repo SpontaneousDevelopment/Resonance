@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../app/router.dart';
+import '../debug/sound_audition_screen.dart';
 
 import '../../core/progress/progress_repository.dart';
 import '../../domain/progress/vocal_energy.dart';
@@ -41,6 +45,16 @@ class ProgressHeader extends ConsumerWidget {
           tone: xp > 0 ? colors.accent : colors.inkFaint,
         ),
         _EnergyMeter(energy: energy ?? const VocalEnergy.full()),
+        // Debug builds only. The placeholder palette still needs a listening
+        // pass on a real device, and there is no other way in on desktop.
+        if (soundAuditionAvailable) ...[
+          const Spacer(),
+          IconButton(
+            tooltip: 'Audition sounds',
+            icon: const Icon(Icons.music_note_outlined, size: 18),
+            onPressed: () => context.push(Routes.soundAudition),
+          ),
+        ],
       ],
     );
   }

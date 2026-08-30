@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/curriculum_repository.dart';
+import '../features/debug/sound_audition_screen.dart';
 import '../features/lesson/lesson_screen.dart';
 import '../features/skill_tree/skill_tree_screen.dart';
 import '../ui/tokens/spacing.dart';
@@ -20,6 +21,9 @@ class Routes {
   static const tree = '/';
 
   static String lessonPath(String lessonId) => '/lesson/$lessonId';
+
+  /// Debug builds only — see [soundAuditionAvailable].
+  static const soundAudition = '/debug/sounds';
 }
 
 /// Builds a router.
@@ -44,6 +48,11 @@ final List<RouteBase> _routes = [
     path: Routes.tree,
     builder: (context, state) => const SkillTreeScreen(),
     routes: [
+      if (soundAuditionAvailable)
+        GoRoute(
+          path: 'debug/sounds',
+          builder: (context, state) => const SoundAuditionScreen(),
+        ),
       GoRoute(
         path: 'lesson/:lessonId',
         builder: (context, state) =>

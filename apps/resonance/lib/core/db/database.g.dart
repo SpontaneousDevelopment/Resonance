@@ -2559,6 +2559,392 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
   }
 }
 
+class $EnergyStateTable extends EnergyState
+    with TableInfo<$EnergyStateTable, EnergyRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EnergyStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _barsMeta = const VerificationMeta('bars');
+  @override
+  late final GeneratedColumn<int> bars = GeneratedColumn<int>(
+    'bars',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(5),
+  );
+  static const VerificationMeta _lastSpentAtMeta = const VerificationMeta(
+    'lastSpentAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSpentAt = GeneratedColumn<DateTime>(
+    'last_spent_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _consecutiveLowLessonIdMeta =
+      const VerificationMeta('consecutiveLowLessonId');
+  @override
+  late final GeneratedColumn<String> consecutiveLowLessonId =
+      GeneratedColumn<String>(
+        'consecutive_low_lesson_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _consecutiveLowCountMeta =
+      const VerificationMeta('consecutiveLowCount');
+  @override
+  late final GeneratedColumn<int> consecutiveLowCount = GeneratedColumn<int>(
+    'consecutive_low_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bars,
+    lastSpentAt,
+    consecutiveLowLessonId,
+    consecutiveLowCount,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'energy_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EnergyRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('bars')) {
+      context.handle(
+        _barsMeta,
+        bars.isAcceptableOrUnknown(data['bars']!, _barsMeta),
+      );
+    }
+    if (data.containsKey('last_spent_at')) {
+      context.handle(
+        _lastSpentAtMeta,
+        lastSpentAt.isAcceptableOrUnknown(
+          data['last_spent_at']!,
+          _lastSpentAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('consecutive_low_lesson_id')) {
+      context.handle(
+        _consecutiveLowLessonIdMeta,
+        consecutiveLowLessonId.isAcceptableOrUnknown(
+          data['consecutive_low_lesson_id']!,
+          _consecutiveLowLessonIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('consecutive_low_count')) {
+      context.handle(
+        _consecutiveLowCountMeta,
+        consecutiveLowCount.isAcceptableOrUnknown(
+          data['consecutive_low_count']!,
+          _consecutiveLowCountMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EnergyRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EnergyRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      bars: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bars'],
+      )!,
+      lastSpentAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_spent_at'],
+      ),
+      consecutiveLowLessonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}consecutive_low_lesson_id'],
+      ),
+      consecutiveLowCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}consecutive_low_count'],
+      )!,
+    );
+  }
+
+  @override
+  $EnergyStateTable createAlias(String alias) {
+    return $EnergyStateTable(attachedDatabase, alias);
+  }
+}
+
+class EnergyRow extends DataClass implements Insertable<EnergyRow> {
+  final int id;
+  final int bars;
+
+  /// When a bar was last spent. Null when the meter is full.
+  final DateTime? lastSpentAt;
+
+  /// The lesson currently being struggled with, and how many consecutive low
+  /// scores it has taken. Drives the double cost on a repeat.
+  final String? consecutiveLowLessonId;
+  final int consecutiveLowCount;
+  const EnergyRow({
+    required this.id,
+    required this.bars,
+    this.lastSpentAt,
+    this.consecutiveLowLessonId,
+    required this.consecutiveLowCount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['bars'] = Variable<int>(bars);
+    if (!nullToAbsent || lastSpentAt != null) {
+      map['last_spent_at'] = Variable<DateTime>(lastSpentAt);
+    }
+    if (!nullToAbsent || consecutiveLowLessonId != null) {
+      map['consecutive_low_lesson_id'] = Variable<String>(
+        consecutiveLowLessonId,
+      );
+    }
+    map['consecutive_low_count'] = Variable<int>(consecutiveLowCount);
+    return map;
+  }
+
+  EnergyStateCompanion toCompanion(bool nullToAbsent) {
+    return EnergyStateCompanion(
+      id: Value(id),
+      bars: Value(bars),
+      lastSpentAt: lastSpentAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSpentAt),
+      consecutiveLowLessonId: consecutiveLowLessonId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(consecutiveLowLessonId),
+      consecutiveLowCount: Value(consecutiveLowCount),
+    );
+  }
+
+  factory EnergyRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EnergyRow(
+      id: serializer.fromJson<int>(json['id']),
+      bars: serializer.fromJson<int>(json['bars']),
+      lastSpentAt: serializer.fromJson<DateTime?>(json['lastSpentAt']),
+      consecutiveLowLessonId: serializer.fromJson<String?>(
+        json['consecutiveLowLessonId'],
+      ),
+      consecutiveLowCount: serializer.fromJson<int>(
+        json['consecutiveLowCount'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'bars': serializer.toJson<int>(bars),
+      'lastSpentAt': serializer.toJson<DateTime?>(lastSpentAt),
+      'consecutiveLowLessonId': serializer.toJson<String?>(
+        consecutiveLowLessonId,
+      ),
+      'consecutiveLowCount': serializer.toJson<int>(consecutiveLowCount),
+    };
+  }
+
+  EnergyRow copyWith({
+    int? id,
+    int? bars,
+    Value<DateTime?> lastSpentAt = const Value.absent(),
+    Value<String?> consecutiveLowLessonId = const Value.absent(),
+    int? consecutiveLowCount,
+  }) => EnergyRow(
+    id: id ?? this.id,
+    bars: bars ?? this.bars,
+    lastSpentAt: lastSpentAt.present ? lastSpentAt.value : this.lastSpentAt,
+    consecutiveLowLessonId: consecutiveLowLessonId.present
+        ? consecutiveLowLessonId.value
+        : this.consecutiveLowLessonId,
+    consecutiveLowCount: consecutiveLowCount ?? this.consecutiveLowCount,
+  );
+  EnergyRow copyWithCompanion(EnergyStateCompanion data) {
+    return EnergyRow(
+      id: data.id.present ? data.id.value : this.id,
+      bars: data.bars.present ? data.bars.value : this.bars,
+      lastSpentAt: data.lastSpentAt.present
+          ? data.lastSpentAt.value
+          : this.lastSpentAt,
+      consecutiveLowLessonId: data.consecutiveLowLessonId.present
+          ? data.consecutiveLowLessonId.value
+          : this.consecutiveLowLessonId,
+      consecutiveLowCount: data.consecutiveLowCount.present
+          ? data.consecutiveLowCount.value
+          : this.consecutiveLowCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EnergyRow(')
+          ..write('id: $id, ')
+          ..write('bars: $bars, ')
+          ..write('lastSpentAt: $lastSpentAt, ')
+          ..write('consecutiveLowLessonId: $consecutiveLowLessonId, ')
+          ..write('consecutiveLowCount: $consecutiveLowCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    bars,
+    lastSpentAt,
+    consecutiveLowLessonId,
+    consecutiveLowCount,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EnergyRow &&
+          other.id == this.id &&
+          other.bars == this.bars &&
+          other.lastSpentAt == this.lastSpentAt &&
+          other.consecutiveLowLessonId == this.consecutiveLowLessonId &&
+          other.consecutiveLowCount == this.consecutiveLowCount);
+}
+
+class EnergyStateCompanion extends UpdateCompanion<EnergyRow> {
+  final Value<int> id;
+  final Value<int> bars;
+  final Value<DateTime?> lastSpentAt;
+  final Value<String?> consecutiveLowLessonId;
+  final Value<int> consecutiveLowCount;
+  const EnergyStateCompanion({
+    this.id = const Value.absent(),
+    this.bars = const Value.absent(),
+    this.lastSpentAt = const Value.absent(),
+    this.consecutiveLowLessonId = const Value.absent(),
+    this.consecutiveLowCount = const Value.absent(),
+  });
+  EnergyStateCompanion.insert({
+    this.id = const Value.absent(),
+    this.bars = const Value.absent(),
+    this.lastSpentAt = const Value.absent(),
+    this.consecutiveLowLessonId = const Value.absent(),
+    this.consecutiveLowCount = const Value.absent(),
+  });
+  static Insertable<EnergyRow> custom({
+    Expression<int>? id,
+    Expression<int>? bars,
+    Expression<DateTime>? lastSpentAt,
+    Expression<String>? consecutiveLowLessonId,
+    Expression<int>? consecutiveLowCount,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bars != null) 'bars': bars,
+      if (lastSpentAt != null) 'last_spent_at': lastSpentAt,
+      if (consecutiveLowLessonId != null)
+        'consecutive_low_lesson_id': consecutiveLowLessonId,
+      if (consecutiveLowCount != null)
+        'consecutive_low_count': consecutiveLowCount,
+    });
+  }
+
+  EnergyStateCompanion copyWith({
+    Value<int>? id,
+    Value<int>? bars,
+    Value<DateTime?>? lastSpentAt,
+    Value<String?>? consecutiveLowLessonId,
+    Value<int>? consecutiveLowCount,
+  }) {
+    return EnergyStateCompanion(
+      id: id ?? this.id,
+      bars: bars ?? this.bars,
+      lastSpentAt: lastSpentAt ?? this.lastSpentAt,
+      consecutiveLowLessonId:
+          consecutiveLowLessonId ?? this.consecutiveLowLessonId,
+      consecutiveLowCount: consecutiveLowCount ?? this.consecutiveLowCount,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (bars.present) {
+      map['bars'] = Variable<int>(bars.value);
+    }
+    if (lastSpentAt.present) {
+      map['last_spent_at'] = Variable<DateTime>(lastSpentAt.value);
+    }
+    if (consecutiveLowLessonId.present) {
+      map['consecutive_low_lesson_id'] = Variable<String>(
+        consecutiveLowLessonId.value,
+      );
+    }
+    if (consecutiveLowCount.present) {
+      map['consecutive_low_count'] = Variable<int>(consecutiveLowCount.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EnergyStateCompanion(')
+          ..write('id: $id, ')
+          ..write('bars: $bars, ')
+          ..write('lastSpentAt: $lastSpentAt, ')
+          ..write('consecutiveLowLessonId: $consecutiveLowLessonId, ')
+          ..write('consecutiveLowCount: $consecutiveLowCount')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ResonanceDatabase extends GeneratedDatabase {
   _$ResonanceDatabase(QueryExecutor e) : super(e);
   $ResonanceDatabaseManager get managers => $ResonanceDatabaseManager(this);
@@ -2567,6 +2953,7 @@ abstract class _$ResonanceDatabase extends GeneratedDatabase {
   late final $StreakStateTable streakState = $StreakStateTable(this);
   late final $DailyXpTable dailyXp = $DailyXpTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
+  late final $EnergyStateTable energyState = $EnergyStateTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2577,6 +2964,7 @@ abstract class _$ResonanceDatabase extends GeneratedDatabase {
     streakState,
     dailyXp,
     outbox,
+    energyState,
   ];
 }
 
@@ -3860,6 +4248,208 @@ typedef $$OutboxTableProcessedTableManager =
       OutboxRow,
       PrefetchHooks Function()
     >;
+typedef $$EnergyStateTableCreateCompanionBuilder =
+    EnergyStateCompanion Function({
+      Value<int> id,
+      Value<int> bars,
+      Value<DateTime?> lastSpentAt,
+      Value<String?> consecutiveLowLessonId,
+      Value<int> consecutiveLowCount,
+    });
+typedef $$EnergyStateTableUpdateCompanionBuilder =
+    EnergyStateCompanion Function({
+      Value<int> id,
+      Value<int> bars,
+      Value<DateTime?> lastSpentAt,
+      Value<String?> consecutiveLowLessonId,
+      Value<int> consecutiveLowCount,
+    });
+
+class $$EnergyStateTableFilterComposer
+    extends Composer<_$ResonanceDatabase, $EnergyStateTable> {
+  $$EnergyStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bars => $composableBuilder(
+    column: $table.bars,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSpentAt => $composableBuilder(
+    column: $table.lastSpentAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get consecutiveLowLessonId => $composableBuilder(
+    column: $table.consecutiveLowLessonId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get consecutiveLowCount => $composableBuilder(
+    column: $table.consecutiveLowCount,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EnergyStateTableOrderingComposer
+    extends Composer<_$ResonanceDatabase, $EnergyStateTable> {
+  $$EnergyStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bars => $composableBuilder(
+    column: $table.bars,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSpentAt => $composableBuilder(
+    column: $table.lastSpentAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get consecutiveLowLessonId => $composableBuilder(
+    column: $table.consecutiveLowLessonId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get consecutiveLowCount => $composableBuilder(
+    column: $table.consecutiveLowCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EnergyStateTableAnnotationComposer
+    extends Composer<_$ResonanceDatabase, $EnergyStateTable> {
+  $$EnergyStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get bars =>
+      $composableBuilder(column: $table.bars, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSpentAt => $composableBuilder(
+    column: $table.lastSpentAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get consecutiveLowLessonId => $composableBuilder(
+    column: $table.consecutiveLowLessonId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get consecutiveLowCount => $composableBuilder(
+    column: $table.consecutiveLowCount,
+    builder: (column) => column,
+  );
+}
+
+class $$EnergyStateTableTableManager
+    extends
+        RootTableManager<
+          _$ResonanceDatabase,
+          $EnergyStateTable,
+          EnergyRow,
+          $$EnergyStateTableFilterComposer,
+          $$EnergyStateTableOrderingComposer,
+          $$EnergyStateTableAnnotationComposer,
+          $$EnergyStateTableCreateCompanionBuilder,
+          $$EnergyStateTableUpdateCompanionBuilder,
+          (
+            EnergyRow,
+            BaseReferences<_$ResonanceDatabase, $EnergyStateTable, EnergyRow>,
+          ),
+          EnergyRow,
+          PrefetchHooks Function()
+        > {
+  $$EnergyStateTableTableManager(
+    _$ResonanceDatabase db,
+    $EnergyStateTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EnergyStateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EnergyStateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EnergyStateTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> bars = const Value.absent(),
+                Value<DateTime?> lastSpentAt = const Value.absent(),
+                Value<String?> consecutiveLowLessonId = const Value.absent(),
+                Value<int> consecutiveLowCount = const Value.absent(),
+              }) => EnergyStateCompanion(
+                id: id,
+                bars: bars,
+                lastSpentAt: lastSpentAt,
+                consecutiveLowLessonId: consecutiveLowLessonId,
+                consecutiveLowCount: consecutiveLowCount,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> bars = const Value.absent(),
+                Value<DateTime?> lastSpentAt = const Value.absent(),
+                Value<String?> consecutiveLowLessonId = const Value.absent(),
+                Value<int> consecutiveLowCount = const Value.absent(),
+              }) => EnergyStateCompanion.insert(
+                id: id,
+                bars: bars,
+                lastSpentAt: lastSpentAt,
+                consecutiveLowLessonId: consecutiveLowLessonId,
+                consecutiveLowCount: consecutiveLowCount,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EnergyStateTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ResonanceDatabase,
+      $EnergyStateTable,
+      EnergyRow,
+      $$EnergyStateTableFilterComposer,
+      $$EnergyStateTableOrderingComposer,
+      $$EnergyStateTableAnnotationComposer,
+      $$EnergyStateTableCreateCompanionBuilder,
+      $$EnergyStateTableUpdateCompanionBuilder,
+      (
+        EnergyRow,
+        BaseReferences<_$ResonanceDatabase, $EnergyStateTable, EnergyRow>,
+      ),
+      EnergyRow,
+      PrefetchHooks Function()
+    >;
 
 class $ResonanceDatabaseManager {
   final _$ResonanceDatabase _db;
@@ -3874,4 +4464,6 @@ class $ResonanceDatabaseManager {
       $$DailyXpTableTableManager(_db, _db.dailyXp);
   $$OutboxTableTableManager get outbox =>
       $$OutboxTableTableManager(_db, _db.outbox);
+  $$EnergyStateTableTableManager get energyState =>
+      $$EnergyStateTableTableManager(_db, _db.energyState);
 }

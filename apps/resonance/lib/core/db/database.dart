@@ -3,38 +3,55 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/curriculum/mastery.dart';
+import '../../domain/progress/vocal_energy.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [LessonProgress, Attempts, StreakState, DailyXp, Outbox])
+@DriftDatabase(
+  tables: [LessonProgress, Attempts, StreakState, DailyXp, Outbox, EnergyState],
+)
 class ResonanceDatabase extends _$ResonanceDatabase {
   ResonanceDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'resonance'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      // The streak row must always exist so reads never have to handle a
-      // null singleton.
-      await into(streakState).insert(
-        const StreakStateCompanion(id: Value(0)),
-        mode: InsertMode.insertOrIgnore,
-      );
+      await _seedSingletons();
+    },
+    onUpgrade: (m, from, to) async {
+      // v1 → v2 adds the Vocal Energy meter. Additive only — no existing
+      // column changes — so a user's progress survives untouched. The new row
+      // is seeded full: an upgrade must never hand someone a depleted meter.
+      if (from < 2) {
+        await m.createTable(energyState);
+      }
+      await _seedSingletons();
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      if (details.wasCreated) return;
-      await into(streakState).insert(
-        const StreakStateCompanion(id: Value(0)),
-        mode: InsertMode.insertOrIgnore,
-      );
+      // Cheap, and it is the only thing standing between a missing singleton
+      // and a `getSingle` that throws on every read for the life of the app.
+      await _seedSingletons();
     },
   );
+
+  /// Ensures every singleton row exists. Idempotent.
+  Future<void> _seedSingletons() async {
+    await into(streakState).insert(
+      const StreakStateCompanion(id: Value(0)),
+      mode: InsertMode.insertOrIgnore,
+    );
+    await into(energyState).insert(
+      const EnergyStateCompanion(id: Value(0)),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
 
   // ── Mastery ─────────────────────────────────────────────────────────────
 
@@ -56,6 +73,18 @@ class ResonanceDatabase extends _$ResonanceDatabase {
     )..where((t) => t.unitId.equals(unitId))).get();
     return {for (final row in rows) row.lessonId: _toMastery(row)};
   }
+
+  /// Every lesson's mastery, for evaluating the whole tree at once.
+  Future<Map<String, Mastery>> allMastery() async {
+    final rows = await select(lessonProgress).get();
+    return {for (final row in rows) row.lessonId: _toMastery(row)};
+  }
+
+  /// Watches every lesson's mastery. Backs the skill tree, which needs the
+  /// whole map to evaluate gating rather than one unit at a time.
+  Stream<Map<String, Mastery>> watchAllMastery() => select(lessonProgress)
+      .watch()
+      .map((rows) => {for (final row in rows) row.lessonId: _toMastery(row)});
 
   /// Watches a unit's mastery so the tree updates the moment an attempt lands,
   /// with no manual invalidation.
@@ -146,6 +175,17 @@ class ResonanceDatabase extends _$ResonanceDatabase {
     return row?.xp ?? 0;
   }
 
+  // ── Vocal Energy ────────────────────────────────────────────────────────
+
+  Future<EnergyRow> energy() =>
+      (select(energyState)..where((t) => t.id.equals(0))).getSingle();
+
+  Stream<EnergyRow> watchEnergy() =>
+      (select(energyState)..where((t) => t.id.equals(0))).watchSingle();
+
+  Future<void> saveEnergy(EnergyStateCompanion energy) =>
+      (update(energyState)..where((t) => t.id.equals(0))).write(energy);
+
   // ── Outbox ──────────────────────────────────────────────────────────────
 
   Future<void> enqueue({
@@ -199,6 +239,14 @@ class ResonanceDatabase extends _$ResonanceDatabase {
       await delete(lessonProgress).go();
       await delete(dailyXp).go();
       await delete(outbox).go();
+      await (update(energyState)..where((t) => t.id.equals(0))).write(
+        const EnergyStateCompanion(
+          bars: Value(VocalEnergy.maxBars),
+          lastSpentAt: Value(null),
+          consecutiveLowLessonId: Value(null),
+          consecutiveLowCount: Value(0),
+        ),
+      );
       await (update(streakState)..where((t) => t.id.equals(0))).write(
         const StreakStateCompanion(
           currentStreak: Value(0),

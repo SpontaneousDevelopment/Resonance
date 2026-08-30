@@ -143,3 +143,28 @@ class Outbox extends Table {
   IntColumn get attemptCount => integer().withDefault(const Constant(0))();
   TextColumn get lastError => text().nullable()();
 }
+
+/// The Vocal Energy meter. A single row, id 0.
+///
+/// Separate from [StreakState] because they answer different questions and
+/// change on different cadences — the streak moves once a day, energy moves
+/// several times a session — and folding them together would make every
+/// attempt rewrite the streak row for no reason.
+@DataClassName('EnergyRow')
+class EnergyState extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))();
+
+  IntColumn get bars => integer().withDefault(const Constant(5))();
+
+  /// When a bar was last spent. Null when the meter is full.
+  DateTimeColumn get lastSpentAt => dateTime().nullable()();
+
+  /// The lesson currently being struggled with, and how many consecutive low
+  /// scores it has taken. Drives the double cost on a repeat.
+  TextColumn get consecutiveLowLessonId => text().nullable()();
+  IntColumn get consecutiveLowCount =>
+      integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

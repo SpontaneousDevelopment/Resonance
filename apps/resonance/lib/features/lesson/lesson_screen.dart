@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/progress/progress_repository.dart';
+import '../../core/sensory/sensory_director.dart';
 import '../../core/speech/platform_speech_recogniser.dart';
 import '../../domain/curriculum/curriculum.dart';
 import '../../ui/tokens/spacing.dart';
@@ -33,16 +34,40 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
     lesson: widget.lesson,
     recogniser: PlatformSpeechRecogniser(),
     progress: ref.read(progressRepositoryProvider),
+    sensory: ref.read(sensoryDirectorProvider),
   );
 
   /// True while the rest exercise is showing. Not a phase on the controller:
   /// resting is something the user is doing, not something the attempt is.
   bool _resting = false;
 
+  /// Guards against replaying the celebration on every rebuild — the screen
+  /// rebuilds as the coach note arrives, and a level-up fanfare twice would be
+  /// worse than none.
+  bool _playedOutcome = false;
+
   @override
   void initState() {
     super.initState();
     _controller.load();
+  }
+
+  void _playOutcomeOnce() {
+    if (_playedOutcome) return;
+    final outcome = _controller.outcome;
+    final score = _controller.score;
+    if (outcome == null || score == null) return;
+
+    _playedOutcome = true;
+    final sensory = ref.read(sensoryDirectorProvider)..syncWith(context);
+    sensory.play(
+      sensory.choreography.forAttempt(
+        score: score.composite,
+        promotion: outcome.promotion,
+        energyEvent: outcome.energyEvent,
+        streakEvent: outcome.streak.event,
+      ),
+    );
   }
 
   @override
@@ -67,18 +92,30 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
       listenable: _controller,
       builder: (context, _) {
         return switch (_controller.phase) {
-          LessonPhase.scored => FeedbackScreen(
-            lessonTitle: widget.lesson.title,
-            script: widget.lesson.script ?? '',
-            score: _controller.score!,
-            promotion: _controller.promotion!,
-            coachNote: _controller.coachNote,
-            coachNotePending: _controller.coachNotePending,
-            clarityUnavailable: _controller.clarityUnavailable,
-            outcome: _controller.outcome,
-            onTakeFive: () => setState(() => _resting = true),
-            onRetry: _controller.reset,
-            onContinue: () => Navigator.of(context).pop(),
+          LessonPhase.scored => Builder(
+            builder: (context) {
+              // After the frame, so the schedule starts alongside the ring fill
+              // rather than before the screen exists.
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _playOutcomeOnce(),
+              );
+              return FeedbackScreen(
+                lessonTitle: widget.lesson.title,
+                script: widget.lesson.script ?? '',
+                score: _controller.score!,
+                promotion: _controller.promotion!,
+                coachNote: _controller.coachNote,
+                coachNotePending: _controller.coachNotePending,
+                clarityUnavailable: _controller.clarityUnavailable,
+                outcome: _controller.outcome,
+                onTakeFive: () => setState(() => _resting = true),
+                onRetry: () {
+                  _playedOutcome = false;
+                  _controller.reset();
+                },
+                onContinue: () => Navigator.of(context).pop(),
+              );
+            },
           ),
           LessonPhase.scoring => const _Scoring(),
           LessonPhase.failed => _Failed(

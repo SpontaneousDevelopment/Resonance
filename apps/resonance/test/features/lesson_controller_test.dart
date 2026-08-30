@@ -2,7 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:resonance/core/db/database.dart';
 import 'package:resonance/core/net/coach_note_client.dart';
+import 'package:resonance/core/haptics/haptic_engine.dart';
 import 'package:resonance/core/progress/progress_repository.dart';
+import 'package:resonance/core/sensory/sensory_director.dart';
+import 'package:resonance/core/sfx/sound_palette.dart';
+import 'package:resonance/domain/sensory/sensory_cue.dart';
 import 'package:resonance/core/speech/speech_recogniser.dart';
 import 'package:resonance/domain/curriculum/curriculum.dart';
 import 'package:resonance/domain/scoring/rubric.dart';
@@ -45,10 +49,20 @@ class RecordingCoachNoteClient implements CoachNoteClient {
 void main() {
   late ResonanceDatabase db;
   late ProgressRepository progress;
+  late RecordingSoundPlayer soundPlayer;
+  late SoundPalette palette;
+  late SensoryDirector sensory;
 
   setUp(() {
     db = ResonanceDatabase(NativeDatabase.memory());
     progress = ProgressRepository(db);
+    soundPlayer = RecordingSoundPlayer();
+    palette = SoundPalette(player: soundPlayer);
+    sensory = SensoryDirector(
+      haptics: RecordingHaptics(),
+      sounds: palette,
+      scheduler: (_) async {},
+    );
   });
 
   tearDown(() async => db.close());
@@ -59,6 +73,7 @@ void main() {
         lesson: lesson,
         recogniser: FakeSpeechRecogniser(transcript: '', available: false),
         progress: progress,
+        sensory: sensory,
       );
       addTearDown(controller.dispose);
 
@@ -81,6 +96,7 @@ void main() {
           lesson: lesson,
           recogniser: recogniser,
           progress: progress,
+          sensory: sensory,
         );
         addTearDown(controller.dispose);
 
@@ -156,12 +172,15 @@ void main() {
     });
   });
 
+  duckingAcrossCaptureTests();
+
   group('phases', () {
     test('starts ready and notifies on change', () async {
       final controller = LessonController(
         lesson: lesson,
         recogniser: FakeSpeechRecogniser(transcript: ''),
         progress: progress,
+        sensory: sensory,
       );
       addTearDown(controller.dispose);
 
@@ -173,5 +192,81 @@ void main() {
       expect(controller.promotion, isNull);
       expect(notifications, 0);
     });
+  });
+}
+
+/// Ducking across a real capture cycle.
+///
+/// The unit tests prove the palette silences itself when ducked. These prove
+/// the controller actually *holds* a duck for the duration of capture — the
+/// bug this guards is a duck taken and released around the wrong span, which
+/// every unit test would still pass.
+void duckingAcrossCaptureTests() {
+  group('the bus is ducked for the whole capture', () {
+    late ResonanceDatabase db;
+    late RecordingSoundPlayer soundPlayer;
+    late SoundPalette palette;
+    late SensoryDirector sensory;
+    late LessonController controller;
+
+    setUp(() {
+      db = ResonanceDatabase(NativeDatabase.memory());
+      soundPlayer = RecordingSoundPlayer();
+      palette = SoundPalette(player: soundPlayer);
+      sensory = SensoryDirector(
+        haptics: RecordingHaptics(),
+        sounds: palette,
+        scheduler: (_) async {},
+      );
+      controller = LessonController(
+        lesson: lesson,
+        recogniser: FakeSpeechRecogniser(transcript: ''),
+        progress: ProgressRepository(db),
+        sensory: sensory,
+      );
+    });
+
+    tearDown(() async {
+      controller.dispose();
+      await db.close();
+    });
+
+    // Note: these deliberately never start a recording. The app's test suite
+    // does not link the DSP — `DynamicLibrary.process()` has no `res_*` symbols
+    // outside the plugin's own tests — so constructing a RecordingSession here
+    // would fail on a missing symbol rather than on anything under test.
+
+    test('cancel releases every outstanding duck', () async {
+      // A leaked duck leaves the app permanently silent, which presents as
+      // "the sounds stopped working" long after the take that caused it.
+      palette.duckForCapture();
+      palette.duckForCapture();
+
+      await controller.cancel();
+
+      expect(palette.isDucked, isFalse);
+      expect(palette.isAudible, isTrue);
+
+      await sensory.sounds.play(SoundCue.correct);
+      expect(soundPlayer.played, isNotEmpty);
+    });
+
+    test(
+      'a duck held during capture silences a cue that fires mid-take',
+      () async {
+        // The scenario that matters: something tries to play *while* recording.
+        palette.duckForCapture();
+
+        await sensory.play(const [
+          SensoryCue(at: Duration.zero, sound: SoundCue.levelUp),
+        ]);
+
+        expect(
+          soundPlayer.played,
+          isEmpty,
+          reason: 'a cue during capture would be recorded by the microphone',
+        );
+      },
+    );
   });
 }

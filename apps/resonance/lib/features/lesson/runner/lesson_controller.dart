@@ -8,6 +8,7 @@ import 'package:resonance_dsp/resonance_dsp.dart';
 import '../../../core/audio/recording_session.dart';
 import '../../../core/net/coach_note_client.dart';
 import '../../../core/progress/progress_repository.dart';
+import '../../../core/sensory/sensory_director.dart';
 import '../../../core/scoring/attempt_scorer.dart';
 import '../../../core/speech/speech_recogniser.dart';
 import '../../../domain/curriculum/curriculum.dart';
@@ -44,6 +45,7 @@ class LessonController extends ChangeNotifier {
     this.scorer = const AttemptScorer(),
     this.coachNotes = const NullCoachNoteClient(),
     required this.progress,
+    required this.sensory,
   }) : _injectedSession = session;
 
   final Lesson lesson;
@@ -81,6 +83,9 @@ class LessonController extends ChangeNotifier {
 
   /// Persisted progress. Read on [load], written by [stopAndScore].
   final ProgressRepository progress;
+
+  /// Haptics and sound. Owns the duck that keeps UI cues out of the recording.
+  final SensoryDirector sensory;
 
   Mastery _mastery = const Mastery.fresh();
   Mastery get mastery => _mastery;
@@ -135,7 +140,12 @@ class LessonController extends ChangeNotifier {
       return;
     }
 
-    _room = await _session.checkRoom();
+    sensory.sounds.duckForCapture();
+    try {
+      _room = await _session.checkRoom();
+    } finally {
+      sensory.sounds.unduck();
+    }
 
     // Probe speech recognition here rather than at the moment of recording.
     //
@@ -190,6 +200,11 @@ class LessonController extends ChangeNotifier {
       }
     }
 
+    // Ducked for the whole take. A chime landing mid-read is captured by the
+    // microphone and scored as part of the performance.
+    sensory.sounds.duckForCapture();
+    await sensory.play(sensory.choreography.forRecordingStart());
+
     await _session.start(path: path);
     _setPhase(LessonPhase.recording);
   }
@@ -198,6 +213,8 @@ class LessonController extends ChangeNotifier {
     _setPhase(LessonPhase.scoring);
 
     final take = await _session.stop();
+    await sensory.play(sensory.choreography.forRecordingStop());
+    sensory.sounds.unduck();
 
     Transcript transcript = const Transcript.empty();
     if (!_clarityUnavailable) {
@@ -272,8 +289,12 @@ class LessonController extends ChangeNotifier {
   }
 
   Future<void> cancel() async {
+    sensory.sounds.clearDucks();
     await recogniser.cancel();
-    await _session.cancel();
+    // Only tear down a session that was actually opened. Touching the getter
+    // would construct the whole mic and DSP stack purely in order to cancel
+    // something that never started — the same guard `dispose` already uses.
+    await _lazySession?.cancel();
     _setPhase(LessonPhase.ready);
   }
 

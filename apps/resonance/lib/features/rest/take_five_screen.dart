@@ -1,23 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+
+import '../../domain/sensory/breath_cycle.dart';
 
 import '../../ui/tokens/spacing.dart';
 import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
-
-/// One phase of the rest cycle.
-class _Phase {
-  const _Phase(this.label, this.seconds, this.detail);
-
-  final String label;
-  final int seconds;
-
-  /// Why this phase exists. Shown quietly beneath the count — a user who
-  /// understands what a phase is for will actually do it, and this is a
-  /// technique they should end up using in a booth without the app.
-  final String detail;
-}
 
 /// Offered when Vocal Energy runs out.
 ///
@@ -45,88 +33,141 @@ class TakeFiveScreen extends StatefulWidget {
   State<TakeFiveScreen> createState() => _TakeFiveScreenState();
 }
 
-class _TakeFiveScreenState extends State<TakeFiveScreen> {
+class _TakeFiveScreenState extends State<TakeFiveScreen>
+    with SingleTickerProviderStateMixin {
   /// Four rounds of box breathing, then a hum, then a swallow-and-rest.
   ///
   /// Roughly ninety seconds. Long enough for the larynx to actually settle and
   /// short enough that someone mid-session will do it rather than skip.
-  static const _cycle = <_Phase>[
-    _Phase(
-      'Breathe in',
-      4,
-      'Through the nose. Let the belly move, not the chest.',
+  /// Four rounds of box breathing, a hum, then a swallow and rest.
+  ///
+  /// Each phase declares what the circle does. Previously that was inferred by
+  /// string-matching the label, which had no case for *hold* — so hold shrank.
+  static const _cycle = BreathCycle([
+    BreathPhase(
+      label: 'Breathe in',
+      seconds: 4,
+      shape: BreathShape.expand,
+      detail: 'Through the nose. Let the belly move, not the chest.',
     ),
-    _Phase('Hold', 4, 'Stay relaxed. No squeezing in the throat.'),
-    _Phase('Breathe out', 6, 'Slow and even, as if through a straw.'),
-    _Phase('Rest', 2, 'Do nothing at all.'),
-    _Phase('Breathe in', 4, 'Softer this time.'),
-    _Phase('Hold', 4, 'Jaw loose. Tongue heavy.'),
-    _Phase('Breathe out', 6, 'Longer than the breath in.'),
-    _Phase('Rest', 2, ''),
-    _Phase(
-      'Hum, quietly',
-      10,
-      'Lips lightly closed, the gentlest sound you can make. This takes the '
-          'pressure off your vocal folds while keeping them moving.',
+    BreathPhase(
+      label: 'Hold',
+      seconds: 4,
+      shape: BreathShape.hold,
+      detail: 'Stay relaxed. No squeezing in the throat.',
     ),
-    _Phase('Rest', 4, 'Let the hum fade. Do not clear your throat.'),
-    _Phase('Hum, quietly', 10, 'A little higher. Still gentle.'),
-    _Phase(
-      'Swallow, then rest',
-      8,
-      'A swallow resets the muscles around the larynx better than a cough, '
+    BreathPhase(
+      label: 'Breathe out',
+      seconds: 6,
+      shape: BreathShape.contract,
+      detail: 'Slow and even, as if through a straw.',
+    ),
+    BreathPhase(
+      label: 'Rest',
+      seconds: 2,
+      shape: BreathShape.rest,
+      detail: 'Do nothing at all.',
+    ),
+    BreathPhase(
+      label: 'Breathe in',
+      seconds: 4,
+      shape: BreathShape.expand,
+      detail: 'Softer this time.',
+    ),
+    BreathPhase(
+      label: 'Hold',
+      seconds: 4,
+      shape: BreathShape.hold,
+      detail: 'Jaw loose. Tongue heavy.',
+    ),
+    BreathPhase(
+      label: 'Breathe out',
+      seconds: 6,
+      shape: BreathShape.contract,
+      detail: 'Longer than the breath in.',
+    ),
+    BreathPhase(label: 'Rest', seconds: 2, shape: BreathShape.rest),
+    BreathPhase(
+      label: 'Hum, quietly',
+      seconds: 10,
+      shape: BreathShape.hold,
+      detail:
+          'Lips lightly closed, the gentlest sound you can make. This takes '
+          'the pressure off your vocal folds while keeping them moving.',
+    ),
+    BreathPhase(
+      label: 'Rest',
+      seconds: 4,
+      shape: BreathShape.rest,
+      detail: 'Let the hum fade. Do not clear your throat.',
+    ),
+    BreathPhase(
+      label: 'Hum, quietly',
+      seconds: 10,
+      shape: BreathShape.hold,
+      detail: 'A little higher. Still gentle.',
+    ),
+    BreathPhase(
+      label: 'Swallow, then rest',
+      seconds: 8,
+      shape: BreathShape.rest,
+      detail:
+          'A swallow resets the muscles around the larynx better than a cough, '
           'which only irritates them further.',
     ),
-    _Phase('Breathe in', 4, 'Last round.'),
-    _Phase('Breathe out', 6, 'All the way to the end of the breath.'),
-  ];
+    BreathPhase(
+      label: 'Breathe in',
+      seconds: 4,
+      shape: BreathShape.expand,
+      detail: 'Last round.',
+    ),
+    BreathPhase(
+      label: 'Breathe out',
+      seconds: 6,
+      shape: BreathShape.contract,
+      detail: 'All the way to the end of the breath.',
+    ),
+  ]);
 
-  int _index = 0;
-  int _remaining = _cycle.first.seconds;
-  Timer? _timer;
+  /// Elapsed time, advanced by a ticker.
+  ///
+  /// The single source of truth. Everything visible is derived from it, so a
+  /// rebuild — from a coach note, a theme change, anything — recomputes the
+  /// same state rather than restarting an animation mid-cycle.
+  Duration _elapsed = Duration.zero;
+  Ticker? _ticker;
+  bool _finished = false;
+
+  BreathState get _state => _cycle.stateAt(_elapsed);
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _ticker = createTicker(_onTick)..start();
   }
 
-  void _tick() {
-    if (!mounted) return;
-    setState(() {
-      if (_remaining > 1) {
-        _remaining--;
-        return;
-      }
-      if (_index >= _cycle.length - 1) {
-        _timer?.cancel();
-        widget.onComplete();
-        return;
-      }
-      _index++;
-      _remaining = _cycle[_index].seconds;
-    });
+  void _onTick(Duration elapsed) {
+    if (!mounted || _finished) return;
+    setState(() => _elapsed = elapsed);
+
+    if (_elapsed >= _cycle.total) {
+      _finished = true;
+      _ticker?.stop();
+      widget.onComplete();
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _ticker?.dispose();
     super.dispose();
-  }
-
-  double get _progress {
-    final done = _cycle.take(_index).fold<int>(0, (s, p) => s + p.seconds);
-    final total = _cycle.fold<int>(0, (s, p) => s + p.seconds);
-    final elapsed = done + (_cycle[_index].seconds - _remaining);
-    return elapsed / total;
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final phase = _cycle[_index];
-    final isBreathIn = phase.label.startsWith('Breathe in');
-    final isHum = phase.label.startsWith('Hum');
+    final state = _state;
+    final phase = state.phase;
 
     return Scaffold(
       backgroundColor: colors.paper,
@@ -159,10 +200,13 @@ class _TakeFiveScreenState extends State<TakeFiveScreen> {
               Expanded(
                 child: Center(
                   child: _BreathCircle(
-                    expanded: isBreathIn || isHum,
-                    seconds: phase.seconds,
-                    color: isHum ? colors.tier2 : colors.accent,
-                    label: '$_remaining',
+                    // Size is a value, not a tween target — the widget draws
+                    // exactly what the model says for this instant.
+                    scale: state.scale,
+                    color: phase.shape == BreathShape.hold
+                        ? colors.tier2
+                        : colors.accent,
+                    label: '${state.secondsRemaining}',
                   ),
                 ),
               ),
@@ -186,7 +230,7 @@ class _TakeFiveScreenState extends State<TakeFiveScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(2),
                 child: LinearProgressIndicator(
-                  value: _progress,
+                  value: state.cycleProgress,
                   minHeight: 3,
                   backgroundColor: colors.ruleSoft,
                   valueColor: AlwaysStoppedAnimation(colors.accent),
@@ -214,40 +258,47 @@ class _TakeFiveScreenState extends State<TakeFiveScreen> {
 /// The animation *is* the instruction — people follow a moving shape more
 /// reliably than a number, and it means the exercise works with the phone at
 /// arm's length or in peripheral vision.
+/// Draws the circle at a given scale.
+///
+/// No implicit animation. The previous version used an [AnimatedContainer]
+/// whose target was a boolean and whose duration was the phase length, which
+/// meant "hold" animated *towards the small size* for four seconds. Size is now
+/// whatever the model says for this instant, and smoothness comes from the
+/// ticker rebuilding every frame.
 class _BreathCircle extends StatelessWidget {
   const _BreathCircle({
-    required this.expanded,
-    required this.seconds,
+    required this.scale,
     required this.color,
     required this.label,
   });
 
-  final bool expanded;
-  final int seconds;
+  /// 0 at rest, 1 fully expanded.
+  final double scale;
   final Color color;
   final String label;
+
+  static const _minSize = 130.0;
+  static const _maxSize = 240.0;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final size = _minSize + (_maxSize - _minSize) * scale.clamp(0.0, 1.0);
 
-    return AnimatedContainer(
-      // Matches the phase length so the circle finishes moving exactly as the
-      // phase ends. With reduced motion it snaps and the number carries it.
-      duration: reduceMotion ? Duration.zero : Duration(seconds: seconds),
-      curve: Curves.easeInOut,
-      width: expanded ? 240 : 130,
-      height: expanded ? 240 : 130,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.10),
-        border: Border.all(color: color, width: 2),
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: ResType.metricLarge.copyWith(color: colors.ink),
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: 0.10),
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: ResType.metricLarge.copyWith(color: colors.ink),
+          ),
         ),
       ),
     );

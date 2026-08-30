@@ -103,6 +103,20 @@ class FeedbackChoreography {
   /// level-up it always follows.
   static const unlockBeat = Duration(milliseconds: 260);
 
+  /// A button press.
+  ///
+  /// Kept here rather than played ad hoc at each call site so every cue in the
+  /// palette is reachable from one place — `tap` shipped with an asset, an
+  /// entry in both registries and no caller at all, which nothing detected
+  /// because nothing asserted that a declared cue is reachable.
+  ///
+  /// Taps go through the normal duck gate, so one during a take is silent. That
+  /// is correct rather than incidental: the microphone is open, and the only
+  /// button on screen mid-take is Stop.
+  List<SensoryCue> forTap() => const [
+    SensoryCue(at: Duration.zero, haptic: HapticCue.tap, sound: SoundCue.tap),
+  ];
+
   List<SensoryCue> forRecordingStart() => const [
     SensoryCue(
       at: Duration.zero,

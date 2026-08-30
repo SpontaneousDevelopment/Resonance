@@ -41,6 +41,9 @@ class SensoryDirector {
 
   Timer? _running;
 
+  /// A button press. The most common cue in the app, so it gets a shorthand.
+  Future<void> tap() => play(choreography.forTap());
+
   /// Plays a sequence. Cancels anything already in flight, so a user tapping
   /// through two results quickly does not hear them overlap.
   Future<void> play(List<SensoryCue> cues) async {

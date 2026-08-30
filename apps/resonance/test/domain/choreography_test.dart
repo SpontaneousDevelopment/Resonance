@@ -171,6 +171,61 @@ void main() {
     });
   });
 
+  group('every declared cue is reachable', () {
+    // The test that would have caught the silent tap. `tap` shipped with an
+    // asset, an entry in both registries and a documented character — and no
+    // caller anywhere. Nothing detected it because nothing asserted that a cue
+    // the palette declares can actually be produced.
+    //
+    // Collects everything the choreography can emit across all its paths and
+    // requires the enums to be fully covered.
+    List<SensoryCue> allPaths() => [
+      ...choreo.forTap(),
+      ...choreo.forRecordingStart(),
+      ...choreo.forRecordingStop(),
+      ...attempt(score: 80),
+      ...attempt(score: 30),
+      ...attempt(promotion: promoted),
+      ...attempt(promotion: promoted, unlocked: true),
+      ...attempt(promotion: promoted, streak: StreakEvent.savedByFreeze),
+    ];
+
+    test('no SoundCue is declared but unreachable', () {
+      final emitted = allPaths().map((c) => c.sound).whereType<SoundCue>();
+      final orphans = SoundCue.values.toSet().difference(emitted.toSet());
+
+      expect(
+        orphans,
+        isEmpty,
+        reason:
+            'declared with an asset but never played: '
+            '${orphans.map((c) => c.name).join(", ")}',
+      );
+    });
+
+    test('no HapticCue is declared but unreachable', () {
+      final emitted = allPaths().map((c) => c.haptic).whereType<HapticCue>();
+      final orphans = HapticCue.values.toSet().difference(emitted.toSet());
+
+      expect(
+        orphans,
+        isEmpty,
+        reason:
+            'mapped in the engine but never played: '
+            '${orphans.map((c) => c.name).join(", ")}',
+      );
+    });
+  });
+
+  group('the tap cue', () {
+    test('carries both a sound and a haptic', () {
+      final cue = choreo.forTap().single;
+      expect(cue.sound, SoundCue.tap);
+      expect(cue.haptic, HapticCue.tap);
+      expect(cue.at, Duration.zero);
+    });
+  });
+
   group('recording boundaries', () {
     test('start and stop are immediate and distinct', () {
       expect(choreo.forRecordingStart().single.at, Duration.zero);

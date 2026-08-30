@@ -276,6 +276,49 @@ void main() {
     });
   });
 
+  group('the tap cue', () {
+    test('is audible outside a take', () async {
+      final t = build();
+      await t.director.tap();
+
+      expect(t.player.played.map((e) => e.$2), [
+        SoundPalette.assets[SoundCue.tap],
+      ]);
+      expect(t.haptics.played.map((e) => e.$2), [HapticCue.tap]);
+    });
+
+    test('is silent during a take, but still felt', () async {
+      // A tap can happen mid-recording — Stop is on screen. The microphone is
+      // open, so the sound must not play; the haptic is not heard by a
+      // microphone and stays, which is the same rule the other cues follow.
+      final t = build();
+      t.palette.duckForCapture();
+
+      await t.director.tap();
+
+      expect(t.player.played, isEmpty);
+      expect(t.haptics.played.map((e) => e.$2), [HapticCue.tap]);
+    });
+
+    test('returns after the take ends', () async {
+      final t = build();
+      final duck = t.palette.duckForCapture();
+      await t.director.tap();
+      expect(t.player.played, isEmpty);
+
+      duck.release();
+      await t.director.tap();
+      expect(t.player.played, isNotEmpty);
+    });
+
+    test('fires immediately — a delayed tap reads as lag', () async {
+      final t = build();
+      await t.director.tap();
+
+      expect(t.clock.now, Duration.zero);
+    });
+  });
+
   group('overlapping sequences', () {
     test('an empty schedule is a no-op', () async {
       final t = build();

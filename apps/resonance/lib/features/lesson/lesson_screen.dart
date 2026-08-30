@@ -84,7 +84,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
           await ref.read(progressRepositoryProvider).completeRest();
           if (mounted) setState(() => _resting = false);
         },
-        onSkip: () => setState(() => _resting = false),
+        onSkip: () {
+          ref.read(sensoryDirectorProvider).tap();
+          setState(() => _resting = false);
+        },
       );
     }
 
@@ -108,12 +111,19 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
                 coachNotePending: _controller.coachNotePending,
                 clarityUnavailable: _controller.clarityUnavailable,
                 outcome: _controller.outcome,
-                onTakeFive: () => setState(() => _resting = true),
+                onTakeFive: () {
+                  ref.read(sensoryDirectorProvider).tap();
+                  setState(() => _resting = true);
+                },
                 onRetry: () {
+                  ref.read(sensoryDirectorProvider).tap();
                   _playedOutcome = false;
                   _controller.reset();
                 },
-                onContinue: () => Navigator.of(context).pop(),
+                onContinue: () {
+                  ref.read(sensoryDirectorProvider).tap();
+                  Navigator.of(context).pop();
+                },
               );
             },
           ),

@@ -74,14 +74,27 @@ class RecordView extends StatelessWidget {
                 width: double.infinity,
                 child: room == null
                     ? FilledButton(
-                        onPressed: busy ? null : controller.checkRoom,
+                        onPressed: busy
+                            ? null
+                            : () {
+                                controller.sensory.tap();
+                                controller.checkRoom();
+                              },
                         child: Text(busy ? 'Listening…' : 'Check my room'),
                       )
                     : FilledButton(
                         onPressed: room.isAcceptable
-                            ? (recording
-                                  ? controller.stopAndScore
-                                  : controller.startRecording)
+                            ? () {
+                                // A tap while recording is silent — the duck is
+                                // held and the microphone is open. Deliberate:
+                                // Stop is the only button on screen mid-take.
+                                controller.sensory.tap();
+                                if (recording) {
+                                  controller.stopAndScore();
+                                } else {
+                                  controller.startRecording();
+                                }
+                              }
                             : null,
                         style: FilledButton.styleFrom(
                           backgroundColor: recording

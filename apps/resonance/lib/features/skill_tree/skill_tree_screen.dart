@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/curriculum_repository.dart';
 import '../../core/progress/progress_repository.dart';
+import '../../core/sensory/sensory_director.dart';
 import '../../domain/curriculum/unlock.dart';
 import 'progress_header.dart';
 import '../../domain/curriculum/curriculum.dart';
@@ -44,7 +45,7 @@ class SkillTreeScreen extends ConsumerWidget {
   }
 }
 
-class _Tree extends StatelessWidget {
+class _Tree extends ConsumerWidget {
   const _Tree({required this.curriculum, required this.mastery});
 
   final Curriculum curriculum;
@@ -53,7 +54,7 @@ class _Tree extends StatelessWidget {
   static const _evaluator = UnlockEvaluator();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
     final gutter = context.gutter;
     final unlockStates = _evaluator.evaluate(
@@ -127,9 +128,12 @@ class _Tree extends StatelessWidget {
                   mastery: unitMastery,
                   isUnlocked: unlock?.isOpen ?? false,
                   onTap: (unlock?.isOpen ?? false)
-                      ? () => context.push(
-                          Routes.lessonPath(unit.lessons.first.id),
-                        )
+                      ? () {
+                          ref.read(sensoryDirectorProvider).tap();
+                          context.push(
+                            Routes.lessonPath(unit.lessons.first.id),
+                          );
+                        }
                       : null,
                 );
               },

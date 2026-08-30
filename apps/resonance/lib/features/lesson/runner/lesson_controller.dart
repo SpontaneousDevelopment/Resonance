@@ -9,6 +9,7 @@ import '../../../core/audio/recording_session.dart';
 import '../../../core/net/coach_note_client.dart';
 import '../../../core/progress/progress_repository.dart';
 import '../../../core/sensory/sensory_director.dart';
+import '../../../core/sfx/sound_palette.dart';
 import '../../../core/scoring/attempt_scorer.dart';
 import '../../../core/speech/speech_recogniser.dart';
 import '../../../domain/curriculum/curriculum.dart';
@@ -87,6 +88,19 @@ class LessonController extends ChangeNotifier {
   /// Haptics and sound. Owns the duck that keeps UI cues out of the recording.
   final SensoryDirector sensory;
 
+  /// The duck held for the current capture, if any.
+  ///
+  /// One field, released from every exit — start failure, stop, cancel, reset
+  /// and dispose. Bare duck/unduck pairs leaked whenever an exit skipped the
+  /// second half, and the palette outlives the lesson, so the leak was
+  /// permanent.
+  DuckHandle? _captureDuck;
+
+  void _releaseCaptureDuck() {
+    _captureDuck?.release();
+    _captureDuck = null;
+  }
+
   Mastery _mastery = const Mastery.fresh();
   Mastery get mastery => _mastery;
 
@@ -140,11 +154,11 @@ class LessonController extends ChangeNotifier {
       return;
     }
 
-    sensory.sounds.duckForCapture();
+    final duck = sensory.sounds.duckForCapture();
     try {
       _room = await _session.checkRoom();
     } finally {
-      sensory.sounds.unduck();
+      duck.release();
     }
 
     // Probe speech recognition here rather than at the moment of recording.
@@ -200,12 +214,22 @@ class LessonController extends ChangeNotifier {
       }
     }
 
-    // Ducked for the whole take. A chime landing mid-read is captured by the
-    // microphone and scored as part of the performance.
-    sensory.sounds.duckForCapture();
+    // The start cue plays *before* the bus is ducked. Ducking exists to keep
+    // sound out of the microphone, and the microphone is not open yet — playing
+    // it after the duck meant the cue announcing that recording had begun could
+    // never be heard.
     await sensory.play(sensory.choreography.forRecordingStart());
 
-    await _session.start(path: path);
+    _releaseCaptureDuck();
+    _captureDuck = sensory.sounds.duckForCapture();
+    try {
+      await _session.start(path: path);
+    } catch (_) {
+      // Permission revoked, device busy, another app holding the mic. The duck
+      // must not outlive the take that failed to begin.
+      _releaseCaptureDuck();
+      rethrow;
+    }
     _setPhase(LessonPhase.recording);
   }
 
@@ -213,8 +237,10 @@ class LessonController extends ChangeNotifier {
     _setPhase(LessonPhase.scoring);
 
     final take = await _session.stop();
+    // Released before the stop cue, which would otherwise be swallowed by the
+    // duck it is announcing the end of.
+    _releaseCaptureDuck();
     await sensory.play(sensory.choreography.forRecordingStop());
-    sensory.sounds.unduck();
 
     Transcript transcript = const Transcript.empty();
     if (!_clarityUnavailable) {
@@ -278,6 +304,8 @@ class LessonController extends ChangeNotifier {
   /// room check. Backs the "Again" button on the feedback screen — re-checking
   /// the room between takes would be pointless ceremony.
   void reset() {
+    // "Again" can be pressed from a take that never reached stopAndScore.
+    _releaseCaptureDuck();
     _frames.clear();
     _score = null;
     _promotion = null;
@@ -289,7 +317,7 @@ class LessonController extends ChangeNotifier {
   }
 
   Future<void> cancel() async {
-    sensory.sounds.clearDucks();
+    _releaseCaptureDuck();
     await recogniser.cancel();
     // Only tear down a session that was actually opened. Touching the getter
     // would construct the whole mic and DSP stack purely in order to cancel
@@ -305,6 +333,9 @@ class LessonController extends ChangeNotifier {
 
   @override
   void dispose() {
+    // Backing out mid-take. Without this the bus stays muted for the rest of
+    // the app's life, presenting as "the sounds stopped working" long after.
+    _releaseCaptureDuck();
     _analysisSubscription?.cancel();
     recogniser.dispose();
     // Only tear down a session that was actually created — touching the getter

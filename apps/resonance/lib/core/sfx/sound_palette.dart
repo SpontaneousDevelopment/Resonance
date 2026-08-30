@@ -66,9 +66,17 @@ class SoundPalette {
 
   /// Silences the bus while audio is being captured or a reference is playing.
   ///
-  /// Every call must be paired with [unduck].
-  void duckForCapture() => _duckDepth++;
+  /// Returns a handle whose [DuckHandle.release] is idempotent. Callers should
+  /// hold the handle and release it from every exit path rather than pairing
+  /// bare `duck`/`unduck` calls: a pair separated by an early return, a throw,
+  /// or a widget disposal leaks a duck, and because the palette outlives any
+  /// one lesson the bus then stays muted for the rest of the app's life.
+  DuckHandle duckForCapture() {
+    _duckDepth++;
+    return DuckHandle._(this);
+  }
 
+  /// Releases one duck. Prefer the handle returned by [duckForCapture].
   void unduck() {
     if (_duckDepth > 0) _duckDepth--;
   }
@@ -102,6 +110,26 @@ class SoundPalette {
   final Set<SoundCue> _warned = {};
 
   Future<void> dispose() => _player.dispose();
+}
+
+/// One outstanding duck.
+///
+/// Releasing twice is a no-op rather than an error: an exit path that fires
+/// both on failure and again on teardown is normal, and a double release that
+/// silently opened the bus mid-take would be far worse than one ignored.
+class DuckHandle {
+  DuckHandle._(this._palette);
+
+  final SoundPalette _palette;
+  bool _released = false;
+
+  bool get isReleased => _released;
+
+  void release() {
+    if (_released) return;
+    _released = true;
+    _palette.unduck();
+  }
 }
 
 /// Real playback.

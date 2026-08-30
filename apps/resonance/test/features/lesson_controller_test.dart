@@ -236,17 +236,21 @@ void duckingAcrossCaptureTests() {
     // outside the plugin's own tests — so constructing a RecordingSession here
     // would fail on a missing symbol rather than on anything under test.
 
-    test('cancel releases every outstanding duck', () async {
-      // A leaked duck leaves the app permanently silent, which presents as
-      // "the sounds stopped working" long after the take that caused it.
-      palette.duckForCapture();
-      palette.duckForCapture();
+    test('cancel releases its own duck, not everyone\'s', () async {
+      // Previously cancel called clearDucks(), nuking global duck state — a
+      // controller tearing down its own take would unmute the bus for a
+      // reference clip that was still playing. It now releases only the handle
+      // it owns, which is why a duck held elsewhere must survive.
+      final other = palette.duckForCapture();
 
       await controller.cancel();
 
-      expect(palette.isDucked, isFalse);
-      expect(palette.isAudible, isTrue);
+      expect(palette.isDucked, isTrue, reason: 'someone else still holds one');
+      await sensory.sounds.play(SoundCue.correct);
+      expect(soundPlayer.played, isEmpty);
 
+      other.release();
+      expect(palette.isDucked, isFalse);
       await sensory.sounds.play(SoundCue.correct);
       expect(soundPlayer.played, isNotEmpty);
     });

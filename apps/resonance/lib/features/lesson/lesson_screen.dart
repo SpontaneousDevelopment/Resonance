@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/progress/progress_repository.dart';
 import '../../core/speech/platform_speech_recogniser.dart';
 import '../../domain/curriculum/curriculum.dart';
 import '../../ui/tokens/spacing.dart';
@@ -8,6 +9,7 @@ import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
 import 'feedback/feedback_screen.dart';
 import 'runner/lesson_controller.dart';
+import '../rest/take_five_screen.dart';
 import 'runner/record_view.dart';
 
 /// One lesson attempt, start to finish.
@@ -30,7 +32,18 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
   late final LessonController _controller = LessonController(
     lesson: widget.lesson,
     recogniser: PlatformSpeechRecogniser(),
+    progress: ref.read(progressRepositoryProvider),
   );
+
+  /// True while the rest exercise is showing. Not a phase on the controller:
+  /// resting is something the user is doing, not something the attempt is.
+  bool _resting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.load();
+  }
 
   @override
   void dispose() {
@@ -40,6 +53,16 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_resting) {
+      return TakeFiveScreen(
+        onComplete: () async {
+          await ref.read(progressRepositoryProvider).completeRest();
+          if (mounted) setState(() => _resting = false);
+        },
+        onSkip: () => setState(() => _resting = false),
+      );
+    }
+
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -52,6 +75,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
             coachNote: _controller.coachNote,
             coachNotePending: _controller.coachNotePending,
             clarityUnavailable: _controller.clarityUnavailable,
+            outcome: _controller.outcome,
+            onTakeFive: () => setState(() => _resting = true),
             onRetry: _controller.reset,
             onContinue: () => Navigator.of(context).pop(),
           ),

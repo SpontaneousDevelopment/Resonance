@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/progress/progress_repository.dart';
 import '../../../domain/curriculum/mastery.dart';
+import '../../../domain/progress/streak.dart';
+import '../../../domain/progress/vocal_energy.dart';
 import '../../../domain/scoring/rubric.dart';
 import '../../../domain/scoring/transcript_alignment.dart';
 import '../../../ui/tokens/motion.dart';
@@ -30,8 +33,10 @@ class FeedbackScreen extends StatelessWidget {
     this.coachNote,
     this.coachNotePending = false,
     this.clarityUnavailable = false,
+    this.outcome,
     this.onRetry,
     this.onContinue,
+    this.onTakeFive,
   });
 
   final String lessonTitle;
@@ -51,8 +56,14 @@ class FeedbackScreen extends StatelessWidget {
   /// user assume the number means what it usually means.
   final bool clarityUnavailable;
 
+  /// What this attempt changed — streak, XP, energy. Null before it persists.
+  final SessionOutcome? outcome;
+
   final VoidCallback? onRetry;
   final VoidCallback? onContinue;
+
+  /// Opens the rest exercise. Offered, never forced.
+  final VoidCallback? onTakeFive;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +86,14 @@ class FeedbackScreen extends StatelessWidget {
                       _ClarityUnavailableNotice(),
                     ],
                     const SizedBox(height: ResSpace.loose),
+                    if (outcome != null) ...[
+                      _OutcomeStrip(outcome: outcome!),
+                      const SizedBox(height: ResSpace.base),
+                    ],
+                    if (outcome?.energy.isEmpty ?? false) ...[
+                      _RestOffer(onTakeFive: onTakeFive),
+                      const SizedBox(height: ResSpace.base),
+                    ],
                     _CoachNote(note: coachNote, pending: coachNotePending),
                     const SizedBox(height: ResSpace.loose),
                     for (final component in score.components)
@@ -183,6 +202,128 @@ class _Headline extends StatelessWidget {
               'Have another go.',
         PromotionBlock.atCeiling => 'Still at Master. Keeping it sharp.',
       };
+}
+
+/// Streak, XP and energy in one line.
+class _OutcomeStrip extends StatelessWidget {
+  const _OutcomeStrip({required this.outcome});
+
+  final SessionOutcome outcome;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final streak = outcome.streak;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          spacing: ResSpace.loose,
+          children: [
+            _Stat(
+              label: 'STREAK',
+              value: '${streak.currentStreak}',
+              tone: colors.tier3,
+            ),
+            _Stat(
+              label: 'XP',
+              value: '+${outcome.xpAwarded}',
+              tone: colors.accent,
+            ),
+            _Stat(
+              label: 'ENERGY',
+              value: '${outcome.energy.bars}/${VocalEnergy.maxBars}',
+              tone: outcome.energy.isEmpty ? colors.caution : colors.inkMuted,
+            ),
+          ],
+        ),
+        // A freeze is spent silently at the time; this is where the user finds
+        // out it happened. Saying nothing would make the streak look like it
+        // survived a missed day by accident.
+        if (streak.event == StreakEvent.savedByFreeze) ...[
+          const SizedBox(height: ResSpace.tight),
+          Text(
+            'You missed yesterday — a streak freeze covered it. '
+            '${streak.freezesRemaining} left.',
+            style: ResType.caption.copyWith(color: colors.tier3),
+          ),
+        ],
+        if (streak.event == StreakEvent.reset) ...[
+          const SizedBox(height: ResSpace.tight),
+          Text(
+            'Your streak restarted. Longest so far: ${streak.longestStreak} days.',
+            style: ResType.caption.copyWith(color: colors.inkMuted),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.label, required this.value, required this.tone});
+
+  final String label;
+  final String value;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: ResType.label.copyWith(color: colors.inkFaint)),
+        const SizedBox(height: 2),
+        Text(value, style: ResType.metric.copyWith(color: tone, fontSize: 18)),
+      ],
+    );
+  }
+}
+
+/// Shown when energy runs out. An offer — the Continue button is still right
+/// there, and nothing about this screen prevents another attempt.
+class _RestOffer extends StatelessWidget {
+  const _RestOffer({required this.onTakeFive});
+
+  final VoidCallback? onTakeFive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(ResSpace.base),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(ResRadius.medium),
+        border: Border.all(color: colors.caution.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your voice has been working hard',
+            style: ResType.bodyStrong.copyWith(color: colors.ink),
+          ),
+          const SizedBox(height: ResSpace.hair),
+          Text(
+            'Ninety seconds of breathing and a quiet hum will do more for your '
+            'next take than another attempt would. You can carry on if you '
+            'would rather.',
+            style: ResType.caption.copyWith(color: colors.inkMuted),
+          ),
+          const SizedBox(height: ResSpace.snug),
+          FilledButton(
+            onPressed: onTakeFive,
+            style: FilledButton.styleFrom(backgroundColor: colors.caution),
+            child: const Text('Take five'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ClarityUnavailableNotice extends StatelessWidget {

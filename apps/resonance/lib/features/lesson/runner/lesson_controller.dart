@@ -7,6 +7,7 @@ import 'package:resonance_dsp/resonance_dsp.dart';
 
 import '../../../core/audio/recording_session.dart';
 import '../../../core/net/coach_note_client.dart';
+import '../../../core/progress/progress_repository.dart';
 import '../../../core/scoring/attempt_scorer.dart';
 import '../../../core/speech/speech_recogniser.dart';
 import '../../../domain/curriculum/curriculum.dart';
@@ -42,13 +43,8 @@ class LessonController extends ChangeNotifier {
     RecordingSession? session,
     this.scorer = const AttemptScorer(),
     this.coachNotes = const NullCoachNoteClient(),
-    Mastery mastery = const Mastery.fresh(),
-  }) : // `_mastery` is mutable state behind a read-only getter, and a named
-       // parameter cannot be written `this._mastery` — Dart forbids named
-       // parameters beginning with an underscore.
-       // ignore: prefer_initializing_formals
-       _mastery = mastery,
-       _injectedSession = session;
+    required this.progress,
+  }) : _injectedSession = session;
 
   final Lesson lesson;
   final SpeechRecogniser recogniser;
@@ -83,8 +79,15 @@ class LessonController extends ChangeNotifier {
   FrameAnalysis _latestFrame = const FrameAnalysis.silent();
   FrameAnalysis get latestFrame => _latestFrame;
 
-  Mastery _mastery;
+  /// Persisted progress. Read on [load], written by [stopAndScore].
+  final ProgressRepository progress;
+
+  Mastery _mastery = const Mastery.fresh();
   Mastery get mastery => _mastery;
+
+  /// Everything the last attempt changed — promotion, streak, XP, energy.
+  SessionOutcome? _outcome;
+  SessionOutcome? get outcome => _outcome;
 
   AttemptScore? _score;
   AttemptScore? get score => _score;
@@ -114,6 +117,12 @@ class LessonController extends ChangeNotifier {
   void _onFrame(FrameAnalysis frame) {
     _frames.add(frame);
     _latestFrame = frame;
+    notifyListeners();
+  }
+
+  /// Reads persisted state for this lesson. Call once, when the screen opens.
+  Future<void> load() async {
+    _mastery = await progress.masteryFor(lesson.id);
     notifyListeners();
   }
 
@@ -210,13 +219,22 @@ class LessonController extends ChangeNotifier {
       plosiveScores: take.plosiveScores,
     );
 
-    final (updatedMastery, promotion) = _mastery.applyAttempt(
-      score: score.composite,
-      at: now ?? DateTime.now(),
+    final at = now ?? DateTime.now();
+    final outcome = await progress.recordAttempt(
+      lesson: lesson,
+      score: score,
+      attemptId: '${lesson.id}-${at.microsecondsSinceEpoch}',
+      durationMs: (take.durationSeconds * 1000).round(),
+      transcript: transcript.text.isEmpty ? null : transcript.text,
+      audioPath: take.path,
+      now: at,
     );
 
+    final promotion = outcome.promotion;
+
     _score = score;
-    _mastery = updatedMastery;
+    _outcome = outcome;
+    _mastery = await progress.masteryFor(lesson.id);
     _promotion = promotion;
     _setPhase(LessonPhase.scored);
 

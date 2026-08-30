@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/native.dart';
+import 'package:resonance/core/db/database.dart';
 import 'package:resonance/core/net/coach_note_client.dart';
+import 'package:resonance/core/progress/progress_repository.dart';
 import 'package:resonance/core/speech/speech_recogniser.dart';
 import 'package:resonance/domain/curriculum/curriculum.dart';
 import 'package:resonance/domain/scoring/rubric.dart';
@@ -40,11 +43,22 @@ class RecordingCoachNoteClient implements CoachNoteClient {
 }
 
 void main() {
+  late ResonanceDatabase db;
+  late ProgressRepository progress;
+
+  setUp(() {
+    db = ResonanceDatabase(NativeDatabase.memory());
+    progress = ProgressRepository(db);
+  });
+
+  tearDown(() async => db.close());
+
   group('speech availability', () {
     test('an unavailable recogniser does not stop the attempt', () async {
       final controller = LessonController(
         lesson: lesson,
         recogniser: FakeSpeechRecogniser(transcript: '', available: false),
+        progress: progress,
       );
       addTearDown(controller.dispose);
 
@@ -66,6 +80,7 @@ void main() {
         final controller = LessonController(
           lesson: lesson,
           recogniser: recogniser,
+          progress: progress,
         );
         addTearDown(controller.dispose);
 
@@ -146,6 +161,7 @@ void main() {
       final controller = LessonController(
         lesson: lesson,
         recogniser: FakeSpeechRecogniser(transcript: ''),
+        progress: progress,
       );
       addTearDown(controller.dispose);
 

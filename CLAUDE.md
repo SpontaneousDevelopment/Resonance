@@ -74,11 +74,19 @@ Scoped as M0–M6 for the MVP. See the blueprint for the full plan.
   controller, and the `coach-note` edge function. **Outstanding:** `tools/ingest`
   (licence-checked reference audio) and the coach-rated calibration set that
   tunes the rubric weights.
-- **M3–M6.** Progression and persistence, the sensory layer, embed and sync,
-  hardening.
+- **M3 — Progression.** Complete. Progress persists: one transaction commits
+  the attempt, mastery, XP, streak and energy together, with a rollback test.
+  Unit gating requires Silver across 80% of a unit — Bronze is one lucky take,
+  Silver is evidence of retention. Vocal Energy never blocks; running out offers
+  a real ninety-second breathing and humming exercise, always skippable. The
+  outbox is written but deliberately not drained — no sync consumer until there
+  is a backend to sync to.
+- **M4–M6.** The sensory layer, embed and sync, hardening.
 
-Post-MVP (community recordings, leagues, Tier 3 specializations, demo-reel
-export, monetization) is deliberately out of scope and unstarted.
+Post-MVP (community recordings, leagues, daily quests, Tier 3 specializations,
+demo-reel export, monetization) is deliberately out of scope and unstarted —
+`features/quests`, `features/streaks`, `features/profile` and
+`features/onboarding` are empty directories, not partial work.
 
 ### Environment quirks — do not re-investigate
 

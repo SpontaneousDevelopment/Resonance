@@ -357,7 +357,7 @@
     <h1>Resonance: a two-year path from <em>first take</em> to booked work.</h1>
     <p class="lede">A gamified voice-acting curriculum for iOS, Android and macOS — 254 lessons, mastery-gated, scored on-device in under 300&nbsp;ms. The curriculum, architecture, codebase shape and MVP plan below are signed off; construction has started on M0.</p>
     <div class="statline">
-      <span class="chip live">M2 in progress</span>
+      <span class="chip live">M3 complete · M4 next</span>
       <span class="chip">Flutter 3.47.2 + Supabase</span>
       <span class="chip">macOS ✓ · iOS ✓ · Android pending SDK</span>
       <span class="chip">MVP ≈ 23 weeks @ 10h/wk</span>
@@ -831,9 +831,10 @@
         <p class="mproves"><b>Left:</b> <code>tools/ingest</code>, the coach-rated calibration set, persisting attempts through to the database, and an integration test covering the full record-to-feedback path on a real device.</p>
       </li>
       <li>
-        <div class="mhead"><span class="mid">M3</span><span class="mtitle">Progression</span><span class="mwk">weeks 14–16</span></div>
-        <p class="mbody">Mastery Bronze→Gold wired to persisted progress, unit gate, XP, streak plus freeze, Vocal Energy. The ladder logic is already written and tested; this milestone is persistence and UI.</p>
-        <p class="mproves"><b>Proves:</b> gating creates anticipation rather than frustration.</p>
+        <div class="mhead"><span class="mid">M3</span><span class="mtitle">Progression</span><span class="mwk">weeks 14–16 · complete</span></div>
+        <p class="mbody">Progress now persists. One transaction commits the attempt, mastery, XP, streak and energy together — a promotion whose attempt did not land is an orphan the user cannot explain, and the outbox’s ordering guarantee only holds if they commit as a unit. A test forces a mid-transaction failure and asserts nothing survives it. The outbox is written but not yet drained: recording from the start means the sync consumer arrives to real history rather than a gap where the first weeks of use should be.</p>
+        <p class="mproves"><b>Gating:</b> Silver across 80% of a unit’s lessons. Bronze means passed once, which can be a single lucky take; Silver requires passing again on a later day, which is the first evidence of retention. 80% rather than 100% so one stubborn lesson cannot wall off the curriculum. Unwritten units cannot gate anything — unauthored content blocking progress is indistinguishable from a bug.</p>
+        <p class="mproves"><b>Vocal Energy never blocks.</b> Duolingo’s hearts exist to sell refills; a voice app charging for rest would be a monetisation hook wearing a health costume, and a user who works that out stops believing the vocal-health advice too. Running out offers a real ninety-second exercise — guided box breathing plus straw-phonation humming, a technique that works in a booth without the app — always skippable, restoring two bars rather than five so resting cannot be farmed. A second consecutive low score on one lesson costs double, because repeating a lesson that is not improving is usually fatigue.</p>
       </li>
       <li>
         <div class="mhead"><span class="mid">M4</span><span class="mtitle">Sensory layer</span><span class="mwk">weeks 17–19</span></div>
@@ -957,10 +958,11 @@
         <li><strong>CI:</strong> analyze, format, test, curriculum compile, a stale-seed guard, a stale-codegen guard, the native DSP harness, and builds for all three platforms.</li>
         <li><strong>Audio (M1):</strong> the DSP plugin with 27 native algorithm checks and 21 FFI binding tests; PCM re-chunking that provably loses no sample across ragged callbacks; the semitone-axis visualiser that gaps across breaths rather than drawing a line to zero; and a room check that runs <em>before</em> the take.</li>
         <li><strong>Scoring (M2):</strong> word alignment that reports a dropped word as one omission rather than cascading into a false near-total failure; a rubric whose most important test is simply that a better read always outranks a worse one; and a feedback screen that marks the script where words were lost, because “Clarity 78” teaches nothing and a struck-through “batch” teaches immediately.</li>
-        <li><strong>Streak rules (M3, brought forward):</strong> the freeze is spent automatically, because at the moment the decision would need making the user is by definition not in the app. One missed day is covered; two are not — a freeze is for a bad night, not a lapsed habit, and papering over more would make the number mean nothing.</li>
+        <li><strong>Streak rules:</strong> the freeze is spent automatically, because at the moment the decision would need making the user is by definition not in the app. One missed day is covered; two are not — a freeze is for a bad night, not a lapsed habit, and papering over more would make the number mean nothing.</li>
+        <li><strong>Progression (M3):</strong> persistence in one transaction with a rollback test; unit gating that requires evidence of retention rather than a single good take; and an energy meter with no way to express a refusal — the type has no method that can block an attempt.</li>
         <li><strong>Privacy boundary, enforced in the type system:</strong> the coach-note client’s signature accepts a transcript and numbers and has no parameter through which audio could be passed. The edge function additionally rejects any request body carrying an audio field, so widening the boundary later takes a deliberate change in two places.</li>
       </ul>
-      <p style="margin-bottom:0;"><strong>198 checks across six suites</strong> — 145 app, 21 FFI, 27 native C, 5 integration tests against the real binary, plus a Deno type-check of the edge functions and a privacy-key verifier. M0 and M1 are complete bar the Android SDK; M2 is nearly there.</p>
+      <p style="margin-bottom:0;"><strong>240 checks across six suites</strong> — 187 app, 21 FFI, 27 native C, 5 integration tests against the real binary, plus a Deno type-check of the edge functions and a privacy-key verifier. M0, M1 and M3 are complete; M2 needs only <code>tools/ingest</code> and the coach-rated calibration set, neither of which blocks anything. <strong>M4 — the sensory layer — is next.</strong></p>
     </div>
   </section>
 

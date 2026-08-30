@@ -104,6 +104,30 @@ export, monetization) is deliberately out of scope and unstarted.
   access raises a modal permission dialog; with nobody to click it the run blocks
   and takes every later test down with it.
 
+### Testing detection code
+
+Learned the expensive way. Plosive detection shipped reporting **284 pops a
+minute** on real takes while passing every test it had — three synthetic sine
+tones that only compared scores against *each other*, never against the
+production threshold, and never against anything resembling speech.
+
+Three rules follow from that:
+
+1. **A detector is not tested until it has seen real signal.** Sine tones tell
+   you a function computes; they cannot tell you whether it fires on ordinary
+   input. `packages/resonance_dsp/test/native/validate_audio.sh` synthesises
+   real speech with `say` and measures against it — clean speech as a
+   true-negative set, then pops injected at known times as a true-positive set.
+   Run it after touching any detector.
+2. **Assert absolute values against the real threshold**, not relative
+   comparisons. "A pop scores higher than a hum" passes happily while both sit
+   above the threshold and everything triggers.
+3. **Newly-wired code has never run, whatever its test count.** `plosiveScores`
+   was populated for the first time in M3; before that the score silently
+   defaulted to 100 and the whole path was dead. When wiring up a dormant path,
+   treat it as unproven regardless of the coverage it appears to have — the
+   tests were written against an implementation nothing had exercised.
+
 ### Testing
 
 Six suites: app unit/widget tests, the DSP package's FFI binding tests, a

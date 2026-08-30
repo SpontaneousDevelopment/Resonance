@@ -236,6 +236,38 @@ void main() {
     });
   });
 
+  group('the mastery stream', () {
+    // The tree binds to this stream. Widget tests cannot exercise it — their
+    // fake clock never advances drift's async work — so it is asserted here,
+    // where real async applies.
+    test('emits the current state on subscribe', () async {
+      await record(good: true, at: day(1));
+
+      final first = await repo.watchAllMastery().first;
+      expect(first[lesson.id]?.level, MasteryLevel.bronze);
+    });
+
+    test('emits again when an attempt lands', () async {
+      final seen = <int>[];
+      final sub = repo.watchAllMastery().listen(
+        (m) => seen.add(m[lesson.id]?.level.rank ?? 0),
+      );
+
+      await record(good: true, at: day(1));
+      await record(good: true, at: day(2));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await sub.cancel();
+
+      // Without re-emission the tree would show stale rings until relaunch.
+      expect(seen.last, greaterThan(seen.first));
+      expect(seen.last, MasteryLevel.silver.rank);
+    });
+
+    test('starts empty for a fresh user', () async {
+      expect(await repo.watchAllMastery().first, isEmpty);
+    });
+  });
+
   group('schema migration', () {
     test('the energy row exists on a fresh database', () async {
       final energy = await repo.energy();

@@ -55,6 +55,7 @@ class BreathState {
     required this.phase,
     required this.progress,
     required this.scale,
+    required this.settledScale,
     required this.secondsRemaining,
     required this.cycleProgress,
     required this.isComplete,
@@ -68,6 +69,16 @@ class BreathState {
 
   /// 0..1, where 0 is the resting size and 1 is fully expanded.
   final double scale;
+
+  /// Where this phase is heading, reached immediately rather than over time.
+  ///
+  /// For reduced motion. The circle is the instruction, so removing it would
+  /// break the exercise — but a continuously breathing shape is exactly the
+  /// motion someone with vestibular sensitivity has asked not to see. Snapping
+  /// to the phase's destination keeps the shape meaningful and the countdown
+  /// carries the timing, which is the same trade the rest of the app makes:
+  /// reduced motion removes pacing, not information.
+  final double settledScale;
 
   /// Counts down, and reaches 0 only as the phase ends.
   final int secondsRemaining;
@@ -103,6 +114,7 @@ class BreathCycle {
         phase: last,
         progress: 1,
         scale: _scaleFor(last.shape, 1),
+        settledScale: _scaleFor(last.shape, 1),
         secondsRemaining: 0,
         cycleProgress: 1,
         isComplete: true,
@@ -124,6 +136,7 @@ class BreathCycle {
           phase: phase,
           progress: progress,
           scale: _scaleFor(phase.shape, progress),
+          settledScale: _scaleFor(phase.shape, 1),
           // Ceil so a phase reads "4" for its first instant and only hits 0 as
           // it ends — a floor would show "3" immediately and skip the count.
           secondsRemaining: ((phase.duration - within).inMilliseconds / 1000)

@@ -20,7 +20,10 @@ double circleWidth(WidgetTester tester) {
   fail('circle not found');
 }
 
-Future<void> pumpBreather(WidgetTester tester) async {
+Future<void> pumpBreather(
+  WidgetTester tester, {
+  bool reduceMotion = false,
+}) async {
   tester.view
     ..physicalSize = const Size(900, 1800)
     ..devicePixelRatio = 1.0;
@@ -29,7 +32,10 @@ Future<void> pumpBreather(WidgetTester tester) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ResTheme.light(),
-      home: TakeFiveScreen(onComplete: () {}, onSkip: () {}),
+      home: MediaQuery(
+        data: MediaQueryData(disableAnimations: reduceMotion),
+        child: TakeFiveScreen(onComplete: () {}, onSkip: () {}),
+      ),
     ),
   );
   await tester.pump();
@@ -119,6 +125,120 @@ void main() {
       await tester.pump(Duration.zero);
 
       expect(find.text('Hold'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('rebuild scope', () {
+    testWidgets('the static chrome is not rebuilt every frame', (tester) async {
+      // The exercise ticks for up to seventy seconds. Before this, setState
+      // rebuilt the whole screen each frame — scaffold, headings, the intro
+      // paragraph, the skip button — when only the circle, the phase text and
+      // the progress bar change.
+      //
+      // Measured by element identity: a widget that is rebuilt gets a new
+      // Widget instance, so holding the same instance across frames proves it
+      // was not rebuilt.
+      await pumpBreather(tester);
+
+      Widget staticHeadline() =>
+          tester.widget(find.text('Your voice has been working hard.'));
+      Widget skipButton() => tester.widget(find.byType(TextButton));
+
+      final headlineBefore = staticHeadline();
+      final skipBefore = skipButton();
+
+      // Thirty frames of animation.
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      expect(
+        identical(staticHeadline(), headlineBefore),
+        isTrue,
+        reason: 'the headline was rebuilt during the animation',
+      );
+      expect(
+        identical(skipButton(), skipBefore),
+        isTrue,
+        reason: 'the skip button was rebuilt during the animation',
+      );
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the circle does still update every frame', (tester) async {
+      // The other half: scoping the rebuild must not stop the thing that is
+      // supposed to move.
+      await pumpBreather(tester);
+
+      final sizes = <double>{};
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        sizes.add(circleWidth(tester));
+      }
+
+      expect(
+        sizes.length,
+        greaterThan(5),
+        reason: 'the circle stopped animating',
+      );
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('reduced motion', () {
+    // The rewrite from AnimatedContainer to a ticker dropped reduced-motion
+    // support silently — the old circle collapsed its tween to zero, the new
+    // one had no reference to the setting at all. These pin it to the new
+    // mechanism specifically.
+    testWidgets('the circle snaps rather than travelling', (tester) async {
+      await pumpBreather(tester, reduceMotion: true);
+
+      // A fifth of the way into the inhale, an animating circle is partway
+      // between sizes; a snapped one is already at its destination.
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(circleWidth(tester), 240.0);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('it still holds through the hold', (tester) async {
+      await pumpBreather(tester, reduceMotion: true);
+      await tester.pump(const Duration(milliseconds: 4500));
+
+      expect(circleWidth(tester), 240.0);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('it still reaches the small size on the exhale', (
+      tester,
+    ) async {
+      // Snapping must not mean "stuck expanded" — the phases still read.
+      await pumpBreather(tester, reduceMotion: true);
+      await tester.pump(const Duration(milliseconds: 8500));
+
+      expect(circleWidth(tester), 130.0);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the countdown still carries the timing', (tester) async {
+      // Reduced motion removes pacing, not information. With the movement gone
+      // the number is the only thing left saying how long a phase has to run.
+      await pumpBreather(tester, reduceMotion: true);
+      expect(find.text('4'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 1100));
+      expect(find.text('3'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('normal motion still animates smoothly', (tester) async {
+      // The control: without the setting, the circle travels.
+      await pumpBreather(tester);
+      await tester.pump(const Duration(milliseconds: 800));
+
+      final width = circleWidth(tester);
+      expect(width, greaterThan(130.0));
+      expect(width, lessThan(240.0), reason: 'it snapped when it should glide');
       await tester.pumpWidget(const SizedBox());
     });
   });

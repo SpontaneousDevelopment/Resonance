@@ -134,11 +134,17 @@ class _TakeFiveScreenState extends State<TakeFiveScreen>
   /// The single source of truth. Everything visible is derived from it, so a
   /// rebuild — from a coach note, a theme change, anything — recomputes the
   /// same state rather than restarting an animation mid-cycle.
-  Duration _elapsed = Duration.zero;
+  ///
+  /// A [ValueNotifier] rather than `setState`: this ticks every frame for up to
+  /// seventy seconds, and `setState` rebuilt the whole screen each time —
+  /// scaffold, headings, the intro paragraph, the skip button — when only the
+  /// circle, the phase text and the progress bar actually change. The listeners
+  /// below scope the rebuild to those.
+  final ValueNotifier<Duration> _elapsed = ValueNotifier(Duration.zero);
   Ticker? _ticker;
   bool _finished = false;
 
-  BreathState get _state => _cycle.stateAt(_elapsed);
+  BreathState _stateAt(Duration elapsed) => _cycle.stateAt(elapsed);
 
   @override
   void initState() {
@@ -148,9 +154,9 @@ class _TakeFiveScreenState extends State<TakeFiveScreen>
 
   void _onTick(Duration elapsed) {
     if (!mounted || _finished) return;
-    setState(() => _elapsed = elapsed);
+    _elapsed.value = elapsed;
 
-    if (_elapsed >= _cycle.total) {
+    if (elapsed >= _cycle.total) {
       _finished = true;
       _ticker?.stop();
       widget.onComplete();
@@ -160,14 +166,13 @@ class _TakeFiveScreenState extends State<TakeFiveScreen>
   @override
   void dispose() {
     _ticker?.dispose();
+    _elapsed.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final state = _state;
-    final phase = state.phase;
 
     return Scaffold(
       backgroundColor: colors.paper,
@@ -199,41 +204,68 @@ class _TakeFiveScreenState extends State<TakeFiveScreen>
 
               Expanded(
                 child: Center(
-                  child: _BreathCircle(
-                    // Size is a value, not a tween target — the widget draws
-                    // exactly what the model says for this instant.
-                    scale: state.scale,
-                    color: phase.shape == BreathShape.hold
-                        ? colors.tier2
-                        : colors.accent,
-                    label: '${state.secondsRemaining}',
+                  child: ValueListenableBuilder<Duration>(
+                    valueListenable: _elapsed,
+                    builder: (context, elapsed, _) {
+                      final state = _stateAt(elapsed);
+                      // Reduced motion snaps to where the phase is heading
+                      // rather than travelling there. The shape still says
+                      // which phase this is; only the movement goes.
+                      final reduceMotion = MediaQuery.disableAnimationsOf(
+                        context,
+                      );
+                      return _BreathCircle(
+                        // Size is a value, not a tween target — the widget
+                        // draws exactly what the model says for this instant.
+                        scale: reduceMotion ? state.settledScale : state.scale,
+                        color: state.phase.shape == BreathShape.hold
+                            ? colors.tier2
+                            : colors.accent,
+                        label: '${state.secondsRemaining}',
+                      );
+                    },
                   ),
                 ),
               ),
 
-              Text(
-                phase.label,
-                textAlign: TextAlign.center,
-                style: ResType.heading.copyWith(color: colors.ink),
-              ),
-              const SizedBox(height: ResSpace.tight),
-              SizedBox(
-                height: 56,
-                child: Text(
-                  phase.detail,
-                  textAlign: TextAlign.center,
-                  style: ResType.caption.copyWith(color: colors.inkMuted),
-                ),
+              ValueListenableBuilder<Duration>(
+                valueListenable: _elapsed,
+                builder: (context, elapsed, _) {
+                  final phase = _stateAt(elapsed).phase;
+                  return Column(
+                    children: [
+                      Text(
+                        phase.label,
+                        textAlign: TextAlign.center,
+                        style: ResType.heading.copyWith(color: colors.ink),
+                      ),
+                      const SizedBox(height: ResSpace.tight),
+                      SizedBox(
+                        height: 56,
+                        child: Text(
+                          phase.detail,
+                          textAlign: TextAlign.center,
+                          style: ResType.caption.copyWith(
+                            color: colors.inkMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: ResSpace.base),
               ClipRRect(
                 borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: state.cycleProgress,
-                  minHeight: 3,
-                  backgroundColor: colors.ruleSoft,
-                  valueColor: AlwaysStoppedAnimation(colors.accent),
+                child: ValueListenableBuilder<Duration>(
+                  valueListenable: _elapsed,
+                  builder: (context, elapsed, _) => LinearProgressIndicator(
+                    value: _stateAt(elapsed).cycleProgress,
+                    minHeight: 3,
+                    backgroundColor: colors.ruleSoft,
+                    valueColor: AlwaysStoppedAnimation(colors.accent),
+                  ),
                 ),
               ),
               const SizedBox(height: ResSpace.base),

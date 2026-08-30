@@ -81,7 +81,8 @@ Scoped as M0–M6 for the MVP. See the blueprint for the full plan.
   a real ninety-second breathing and humming exercise, always skippable. The
   outbox is written but deliberately not drained — no sync consumer until there
   is a backend to sync to.
-- **M4 — Sensory layer.** Complete. Haptics (macOS is a genuine no-op with no
+- **M4 — Sensory layer.** Complete, including the CC0 placeholder palette and
+  both post-ship regressions. Haptics (macOS is a genuine no-op with no
   substitute, and a test asserts the sound timeline is identical with and
   without haptics so nobody "fixes" it later), a CC0 placeholder sound palette,
   and a choreography kept as pure data so its *timing* is assertable rather than
@@ -144,12 +145,18 @@ Three rules follow from that:
    inferred by string-matching a phase label that had no case for it. Where a
    value can be `f(elapsed)` or `f(phase)`, make it that — it is immune to
    rebuilds and testable against a virtual clock.
-4. **Paired acquire/release calls leak.** `duck()`/`unduck()` written as a pair
+4. **A rewrite silently drops behaviour the old code had.** Replacing the
+   breather's `AnimatedContainer` with a ticker lost reduced-motion support —
+   the old widget read `disableAnimationsOf`, the new one had no reference to
+   it, and the audit item that covered it had passed against the *old*
+   mechanism. When a mechanism is replaced, re-test the cross-cutting concerns
+   against the new one specifically rather than assuming they carried.
+5. **Paired acquire/release calls leak.** `duck()`/`unduck()` written as a pair
    leaked on every exit that skipped the second half — dispose, reset, and a
    throw between them. A handle whose release is idempotent, held in one field
    and released from every exit, makes balance structural instead of something
    each new code path must remember.
-5. **Newly-wired code has never run, whatever its test count.** `plosiveScores`
+6. **Newly-wired code has never run, whatever its test count.** `plosiveScores`
    was populated for the first time in M3; before that the score silently
    defaulted to 100 and the whole path was dead. When wiring up a dormant path,
    treat it as unproven regardless of the coverage it appears to have — the

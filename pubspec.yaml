@@ -18,3 +18,4 @@ workspace:
   - packages/resonance_dsp
   - packages/resonance_models
   - tools/curriculum_build
+  - tools/ingest

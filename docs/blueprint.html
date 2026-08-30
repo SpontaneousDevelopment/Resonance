@@ -357,7 +357,7 @@
     <h1>Resonance: a two-year path from <em>first take</em> to booked work.</h1>
     <p class="lede">A gamified voice-acting curriculum for iOS, Android and macOS — 254 lessons, mastery-gated, scored on-device in under 300&nbsp;ms. The curriculum, architecture, codebase shape and MVP plan below are signed off; construction has started on M0.</p>
     <div class="statline">
-      <span class="chip live">M3 verified · M4 next</span>
+      <span class="chip live">M4 complete · M5 next</span>
       <span class="chip">Flutter 3.47.2 + Supabase</span>
       <span class="chip">macOS ✓ · iOS ✓ · Android pending SDK</span>
       <span class="chip">MVP ≈ 23 weeks @ 10h/wk</span>
@@ -962,7 +962,7 @@
         <li><strong>Progression (M3):</strong> persistence in one transaction with a rollback test; unit gating that requires evidence of retention rather than a single good take; and an energy meter with no way to express a refusal — the type has no method that can block an attempt.</li>
         <li><strong>Privacy boundary, enforced in the type system:</strong> the coach-note client’s signature accepts a transcript and numbers and has no parameter through which audio could be passed. The edge function additionally rejects any request body carrying an audio field, so widening the boundary later takes a deliberate change in two places.</li>
       </ul>
-      <p style="margin-bottom:0;"><strong>All seven M3 items audited against the codebase, not against the notes</strong> — six held; the widget test asserting the tree reflects <em>persisted</em> mastery had never been written, and the test standing in for it asserted only that eight rings exist. Closed with a case that pumps two different persisted states and requires the output to differ. <strong>253 checks across six suites</strong> — 187 app, 21 FFI, 27 native C, 5 integration tests against the real binary, plus a Deno type-check of the edge functions and a privacy-key verifier. M0, M1 and M3 are complete; M2 needs only <code>tools/ingest</code> and the coach-rated calibration set, neither of which blocks anything. <strong>M4 — the sensory layer — is next.</strong></p>
+      <p style="margin-bottom:0;"><strong>M4 shipped, then two regressions found in manual use and fixed</strong> — a duck that leaked on every exit that skipped its unduck, permanently muting an app-scoped bus; and a breather circle whose size was inferred by string-matching a phase label with no case for <em>hold</em>, so it shrank through the phase it was meant to hold. Neither matched the first hypothesis; both were found by reading the paths rather than by patching the symptom. <strong>All seven M3 items were audited against the codebase, not against the notes</strong> — six held; the widget test asserting the tree reflects <em>persisted</em> mastery had never been written, and the test standing in for it asserted only that eight rings exist. Closed with a case that pumps two different persisted states and requires the output to differ. <strong>300 checks across six suites</strong> — 187 app, 21 FFI, 27 native C, 5 integration tests against the real binary, plus a Deno type-check of the edge functions and a privacy-key verifier. M0, M1 and M3 are complete; M2 needs only <code>tools/ingest</code> and the coach-rated calibration set, neither of which blocks anything. <strong>M4 — the sensory layer — is next.</strong></p>
     </div>
   </section>
 

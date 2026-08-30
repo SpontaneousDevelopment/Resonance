@@ -207,3 +207,23 @@ class ProgressRepository {
 final progressRepositoryProvider = Provider<ProgressRepository>(
   (ref) => ProgressRepository(ref.watch(databaseProvider)),
 );
+
+/// Every lesson's mastery, as a live stream. Backs the skill tree.
+final masteryProvider = StreamProvider<Map<String, Mastery>>(
+  (ref) => ref.watch(progressRepositoryProvider).watchAllMastery(),
+);
+
+final streakProvider = StreamProvider<StreakRow>(
+  (ref) => ref.watch(progressRepositoryProvider).watchStreak(),
+);
+
+final energyProvider = StreamProvider<VocalEnergy>(
+  (ref) => ref.watch(progressRepositoryProvider).watchEnergy(),
+);
+
+/// XP earned today. Recomputed whenever mastery changes, which is the same
+/// moment XP could have changed — both are written in one transaction.
+final xpTodayProvider = FutureProvider<int>((ref) async {
+  ref.watch(masteryProvider);
+  return ref.watch(progressRepositoryProvider).xpToday(DateTime.now());
+});

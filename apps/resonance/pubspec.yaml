@@ -48,6 +48,9 @@ flutter:
     # Compiled by tools/curriculum_build. Bundled rather than fetched so the
     # skill tree renders on first launch with no network.
     - assets/seed/
+    # The UI sound palette. Declared before the files exist so dropping a pack
+    # in needs no pubspec change — see assets/sfx/CREDITS.md.
+    - assets/sfx/
 
   # Variable fonts, bundled rather than fetched at runtime — the app must look
   # right offline on first launch. Weights are selected via FontVariation in

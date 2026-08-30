@@ -11,11 +11,11 @@ const evaluator = UnlockEvaluator();
 late Curriculum seed;
 
 Mastery atLevel(MasteryLevel level) => Mastery(
-      level: level,
-      attempts: level.rank,
-      bestScore: level.threshold ?? 0,
-      lastPromotedOn: DateTime(2026, 9, 1),
-    );
+  level: level,
+  attempts: level.rank,
+  bestScore: level.threshold ?? 0,
+  lastPromotedOn: DateTime(2026, 9, 1),
+);
 
 void main() {
   // Loading the seed goes through rootBundle, which needs the binding.
@@ -74,14 +74,18 @@ void main() {
     test('80% at Silver opens the next unit', () {
       final unit = seed.unitById('t1u3-articulation')!;
       final mastery = <String, Mastery>{};
-      final needed = (unit.lessons.length * UnlockEvaluator.requiredProportion).ceil();
+      final needed = (unit.lessons.length * UnlockEvaluator.requiredProportion)
+          .ceil();
       for (var i = 0; i < needed; i++) {
         mastery[unit.lessons[i].id] = atLevel(MasteryLevel.silver);
       }
 
       final states = evaluator.evaluate(curriculum: seed, mastery: mastery);
-      expect(states['t1u4-pitch-resonance']!.isOpen, isFalse,
-          reason: '1.4 is unauthored, so it cannot be "open"');
+      expect(
+        states['t1u4-pitch-resonance']!.isOpen,
+        isFalse,
+        reason: '1.4 is unauthored, so it cannot be "open"',
+      );
       expect(
         states['t1u4-pitch-resonance']!.reason,
         LockReason.notYetAuthored,
@@ -132,8 +136,9 @@ void main() {
 
       // Only the authored one can actually block it today.
       final states = evaluator.evaluate(curriculum: seed, mastery: {});
-      expect(states['t1u8-foundations-check']!.blockingUnitIds,
-          ['t1u3-articulation']);
+      expect(states['t1u8-foundations-check']!.blockingUnitIds, [
+        't1u3-articulation',
+      ]);
     });
   });
 }

@@ -8,8 +8,11 @@ void main() {
   group('passing attempts', () {
     test('cost nothing', () {
       const energy = VocalEnergy.full();
-      final (next, event) =
-          energy.applyAttempt(lessonId: 'a', score: 75, at: at(10));
+      final (next, event) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 75,
+        at: at(10),
+      );
 
       expect(event, EnergyEvent.unchanged);
       expect(next.bars, VocalEnergy.maxBars);
@@ -36,8 +39,11 @@ void main() {
         consecutiveLowCount: 2,
       );
 
-      final (next, _) =
-          energy.applyAttempt(lessonId: 'a', score: 80, at: at(10));
+      final (next, _) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 80,
+        at: at(10),
+      );
 
       expect(next.consecutiveLowCount, 0);
       expect(next.consecutiveLowLessonId, isNull);
@@ -47,8 +53,11 @@ void main() {
   group('low-scoring attempts', () {
     test('cost one bar', () {
       const energy = VocalEnergy.full();
-      final (next, event) =
-          energy.applyAttempt(lessonId: 'a', score: 40, at: at(10));
+      final (next, event) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 40,
+        at: at(10),
+      );
 
       expect(event, EnergyEvent.spent);
       expect(next.bars, 4);
@@ -58,10 +67,16 @@ void main() {
       // Repeating a lesson that is not improving is usually fatigue. That is
       // the specific pattern worth interrupting.
       const energy = VocalEnergy.full();
-      final (once, _) =
-          energy.applyAttempt(lessonId: 'a', score: 40, at: at(10));
-      final (twice, event) =
-          once.applyAttempt(lessonId: 'a', score: 38, at: at(10, minute: 2));
+      final (once, _) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 40,
+        at: at(10),
+      );
+      final (twice, event) = once.applyAttempt(
+        lessonId: 'a',
+        score: 38,
+        at: at(10, minute: 2),
+      );
 
       expect(event, EnergyEvent.spentOnRepeat);
       expect(twice.bars, 2);
@@ -69,10 +84,16 @@ void main() {
 
     test('switching lesson resets the repeat counter', () {
       const energy = VocalEnergy.full();
-      final (first, _) =
-          energy.applyAttempt(lessonId: 'a', score: 40, at: at(10));
-      final (second, event) =
-          first.applyAttempt(lessonId: 'b', score: 40, at: at(10, minute: 2));
+      final (first, _) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 40,
+        at: at(10),
+      );
+      final (second, event) = first.applyAttempt(
+        lessonId: 'b',
+        score: 40,
+        at: at(10, minute: 2),
+      );
 
       expect(event, EnergyEvent.spent);
       expect(second.bars, 3);
@@ -80,8 +101,11 @@ void main() {
 
     test('reaching zero reports depletion', () {
       var energy = const VocalEnergy(bars: 1);
-      final (next, event) =
-          energy.applyAttempt(lessonId: 'a', score: 20, at: at(10));
+      final (next, event) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 20,
+        at: at(10),
+      );
 
       expect(event, EnergyEvent.depleted);
       expect(next.bars, 0);
@@ -89,9 +113,16 @@ void main() {
     });
 
     test('never goes below zero', () {
-      const energy = VocalEnergy(bars: 1, consecutiveLowLessonId: 'a', consecutiveLowCount: 1);
-      final (next, _) =
-          energy.applyAttempt(lessonId: 'a', score: 10, at: at(10));
+      const energy = VocalEnergy(
+        bars: 1,
+        consecutiveLowLessonId: 'a',
+        consecutiveLowCount: 1,
+      );
+      final (next, _) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 10,
+        at: at(10),
+      );
 
       expect(next.bars, 0);
     });
@@ -171,8 +202,11 @@ void main() {
       // it does not stop them practising, and no method here can express a
       // refusal.
       const energy = VocalEnergy(bars: 0);
-      final (next, event) =
-          energy.applyAttempt(lessonId: 'a', score: 30, at: at(10));
+      final (next, event) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 30,
+        at: at(10),
+      );
 
       expect(next.bars, 0);
       expect(event, EnergyEvent.depleted);
@@ -180,8 +214,11 @@ void main() {
 
     test('a good attempt while empty is still free', () {
       const energy = VocalEnergy(bars: 0);
-      final (_, event) =
-          energy.applyAttempt(lessonId: 'a', score: 90, at: at(10));
+      final (_, event) = energy.applyAttempt(
+        lessonId: 'a',
+        score: 90,
+        at: at(10),
+      );
 
       expect(event, EnergyEvent.unchanged);
     });

@@ -111,7 +111,10 @@ class UnlockEvaluator {
 
     final needed = (unit.lessons.length * requiredProportion).ceil();
     final reached = unit.lessons
-        .where((l) => (mastery[l.id] ?? const Mastery.fresh()).level >= requiredLevel)
+        .where(
+          (l) =>
+              (mastery[l.id] ?? const Mastery.fresh()).level >= requiredLevel,
+        )
         .length;
 
     final short = needed - reached;

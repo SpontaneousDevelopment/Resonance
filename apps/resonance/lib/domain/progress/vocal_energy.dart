@@ -41,10 +41,10 @@ class VocalEnergy {
   });
 
   const VocalEnergy.full()
-      : bars = maxBars,
-        lastSpentAt = null,
-        consecutiveLowLessonId = null,
-        consecutiveLowCount = 0;
+    : bars = maxBars,
+      lastSpentAt = null,
+      consecutiveLowLessonId = null,
+      consecutiveLowCount = 0;
 
   static const maxBars = 5;
 
@@ -109,10 +109,7 @@ class VocalEnergy {
       // A passing attempt clears the struggle counter as well as costing
       // nothing — the user just demonstrated the lesson is not the problem.
       return (
-        VocalEnergy(
-          bars: current.bars,
-          lastSpentAt: current.lastSpentAt,
-        ),
+        VocalEnergy(bars: current.bars, lastSpentAt: current.lastSpentAt),
         EnergyEvent.unchanged,
       );
     }
@@ -139,10 +136,8 @@ class VocalEnergy {
   /// Two bars, not five: enough to continue, not enough to make resting a
   /// mechanical way to farm energy. Skipping the exercise restores nothing —
   /// but skipping is always allowed, and practice is never blocked either way.
-  VocalEnergy afterRest(DateTime now) => VocalEnergy(
-        bars: bars < 2 ? 2 : bars,
-        lastSpentAt: now,
-      );
+  VocalEnergy afterRest(DateTime now) =>
+      VocalEnergy(bars: bars < 2 ? 2 : bars, lastSpentAt: now);
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -157,11 +152,11 @@ class VocalEnergy {
 
   @override
   int get hashCode => Object.hash(
-        bars,
-        lastSpentAt,
-        consecutiveLowLessonId,
-        consecutiveLowCount,
-      );
+    bars,
+    lastSpentAt,
+    consecutiveLowLessonId,
+    consecutiveLowCount,
+  );
 
   @override
   String toString() => 'VocalEnergy($bars/$maxBars)';

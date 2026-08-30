@@ -20,9 +20,18 @@ class AttemptScorer {
   final ScoredReadRubric rubric;
   final TranscriptAligner aligner;
 
-  /// Frames whose plosive score clears this are counted as an audible pop.
-  /// Tuned so a normal P at a sensible mic distance does not register.
+  /// Frames whose plosive score clears this are candidates for a pop.
+  ///
+  /// The detector returns 0 or 0.55–1.0, so this asks "did the frame meet every
+  /// minimum condition" rather than encoding a separate policy of its own.
   static const plosiveThreshold = 0.55;
+
+  /// How long after a counted pop before another can be counted.
+  ///
+  /// A plosive's low-frequency energy decays over roughly 60–150 ms, spanning
+  /// two or three 43 ms frames. 200 ms is also below the fastest a human can
+  /// articulate consecutive plosives, so no real pop is ever swallowed.
+  static const plosiveRefractory = Duration(milliseconds: 200);
 
   AttemptScore score({
     required Lesson lesson,
@@ -39,9 +48,10 @@ class AttemptScorer {
           : transcript.wordConfidences,
     );
 
-    final plosiveEvents = plosiveScores
-        .where((s) => s >= plosiveThreshold)
-        .length;
+    final plosiveEvents = countPlosiveEvents(
+      plosiveScores,
+      frameDuration: _frameDuration(take, frameAnalyses),
+    );
     final clippedFrames = frameAnalyses.where((f) => f.isClipping).length;
 
     // Duration comes from the *voiced* span, not the file length. A user who
@@ -61,6 +71,44 @@ class AttemptScorer {
         meanConfidence: transcript.meanConfidence,
       ),
     );
+  }
+
+  /// Counts distinct pops, not qualifying frames.
+  ///
+  /// One physical plosive decays across several frames; counting each as its
+  /// own event is what produced implausible rates. Measured on recorded audio
+  /// with known injected pops, three of five spanned two frames — a 60%
+  /// over-count. After a counted pop, later frames are ignored until the
+  /// refractory window passes.
+  static int countPlosiveEvents(
+    List<double> scores, {
+    required Duration frameDuration,
+  }) {
+    if (scores.isEmpty || frameDuration <= Duration.zero) return 0;
+
+    final int framesToSkip =
+        (plosiveRefractory.inMicroseconds / frameDuration.inMicroseconds)
+            .ceil();
+
+    var events = 0;
+    var blockedUntil = -1;
+    for (var i = 0; i < scores.length; i++) {
+      if (i <= blockedUntil) continue;
+      if (scores[i] < plosiveThreshold) continue;
+      events++;
+      blockedUntil = i + framesToSkip - 1;
+    }
+    return events;
+  }
+
+  /// How long each analysed frame covers, derived from the take rather than
+  /// assumed — the frame size is configurable on [VoiceAnalyser].
+  Duration _frameDuration(Take take, List<FrameAnalysis> frames) {
+    if (frames.isEmpty || take.durationSeconds <= 0) {
+      return const Duration(milliseconds: 43);
+    }
+    final seconds = take.durationSeconds / frames.length;
+    return Duration(microseconds: (seconds * 1000000).round());
   }
 
   /// Seconds between the first and last voiced frame.

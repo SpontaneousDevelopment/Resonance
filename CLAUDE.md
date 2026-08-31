@@ -105,11 +105,33 @@ Scoped as M0–M6 for the MVP. See the blueprint for the full plan.
   just its contents. Ducking uses an idempotent handle released from every exit
   — a bare duck/unduck pair leaked on any path that skipped the second half, and
   the palette outlives the lesson, so the leak was permanent.
-- **M5 — Embed & sync.** In progress. Live: the progress schema and RLS on the
-  linked Supabase project, the `delete-account` function, the outbox sync
-  consumer, the sign-in progress decision, and the embed lesson type (its clip
-  deliberately unchosen). Outstanding: sign-in UI, the delete-my-data UI entry,
-  the real sync transport, and the cellular-sync setting.
+- **M5 — Embed & sync.** Complete. Live on the linked Supabase project: the
+  progress schema, RLS, and the `delete-account` function. Sign-in is a magic
+  link, in settings rather than onboarding, and gates nothing — it is the one
+  deliberate moment a user chooses to let anything reach the server, which is
+  why anonymous auth stays off: no backend row exists for anyone who has not
+  asked for one. Delete-my-data removes server rows, the auth account, and the
+  local database, server first so a failure cannot strand someone with an
+  account holding data they were told was gone. The outbox now genuinely
+  drains — the engine and transport were both finished and both unreachable
+  until the scheduler wired `drain()` to reconnecting, signing in, and finishing
+  an attempt. Cellular sync is its own setting, defaulting on, covering progress
+  data only; a test guards against audio ever inheriting it. The embed lesson
+  type renders an awaiting-selection state because its clip is a product choice
+  that has not been made — not a placeholder standing in for one.
+
+  Verified against a real stack rather than assumed: attempts and progress
+  insert, read back, do not duplicate on retry, and are invisible to a second
+  user; deletion is proven end to end from a genuine magic-link session pulled
+  out of Mailpit, after which the rows are gone, the account is gone, and the
+  surviving token can neither read nor write. Live verification is what found
+  the transport's 403-on-retry bug, where a merging upsert needed an UPDATE
+  policy that `attempts` deliberately does not have.
+
+  Two things it does not claim. The scheduler's own triggers are tested against
+  a real database but a faked transport, so the full chain from a reconnect to a
+  live row has not been exercised in one run. And `integration_test/` cannot go
+  fully green from a VS Code shell — see the TCC note above.
 - **M6.** Hardening.
 
 Post-MVP (community recordings, leagues, daily quests, Tier 3 specializations,
@@ -145,7 +167,7 @@ demo-reel export, monetization) is deliberately out of scope and unstarted —
 
 **A check that reports success by the absence of an error proves nothing.**
 Verification has to assert the specific behaviour expected. This has cost real
-time four separate times in this project, in four disguises:
+time five separate times in this project, in five disguises:
 
 - The **plosive detector** passed three sine-tone tests that only compared
   scores against each other, never against the production threshold. It shipped
@@ -157,6 +179,11 @@ time four separate times in this project, in four disguises:
   different component that shared the concern's name. An audit item named after
   a concern is retired by any one passing test mentioning it — name them after
   the component.
+- The **outbox sync** had a finished engine and a finished, live-verified
+  transport, each with its own passing tests, and `drain()` had no caller
+  anywhere in the app. A signed-in user would have queued rows forever and
+  synced nothing. Correct components prove nothing about the connection between
+  them; test the connection.
 - The **RLS script** reported catastrophic failure against correct policies,
   because `SET LOCAL` outside a transaction is a no-op and the session stayed
   connected as a superuser that bypasses RLS. Had the run merely been
@@ -178,10 +205,18 @@ reading.
 
 ### Testing
 
-Six suites: app unit/widget tests, the DSP package's FFI binding tests, a
+Seven suites: app unit/widget tests, the DSP package's FFI binding tests, a
 standalone C harness under `packages/resonance_dsp/test/native` (run it under
 `-fsanitize=address,undefined`), integration tests against the real macOS
-binary, a Deno type-check of the edge functions, and the privacy-key verifier.
+binary, a Deno type-check of the edge functions, the privacy-key verifier, and
+`backend/supabase/tests/` — the RLS checks plus `verify_delete_account.sh`,
+which runs the whole deletion path against the local stack from a genuine
+magic-link session pulled out of Mailpit.
+
+Run the integration tests with `scripts/integration_test.sh`, not
+`flutter test integration_test`. The latter launches the files in parallel, and
+two instances of one macOS app bundle collide — the second fails with "Unable
+to start the app on the device". `--concurrency=1` does not prevent it.
 
 Widget tests cannot build the lesson screen — it constructs the speech
 recogniser, which blocks indefinitely with no platform behind it. That path is

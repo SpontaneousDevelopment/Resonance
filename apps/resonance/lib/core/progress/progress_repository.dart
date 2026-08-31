@@ -151,9 +151,10 @@ class ProgressRepository {
 
       await _saveEnergy(nextEnergy);
 
-      // Enqueue-only for now: nothing drains this yet. Writing the rows from
-      // the start means the sync consumer, when it arrives, has real history to
-      // replay rather than a gap where the first weeks of use should be.
+      // Enqueued unconditionally, signed in or not. The rows written before
+      // there was any account are the reason sign-in has months of history to
+      // send rather than a gap where the first weeks of use should be; the
+      // scheduler drains them the moment an account exists.
       await _db.enqueue(
         entityType: 'attempt',
         entityId: attemptId,

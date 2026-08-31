@@ -47,7 +47,16 @@ class LessonController extends ChangeNotifier {
     this.coachNotes = const NullCoachNoteClient(),
     required this.progress,
     required this.sensory,
+    this.onAttemptRecorded,
   }) : _injectedSession = session;
+
+  /// Called once an attempt is safely on disk.
+  ///
+  /// The controller deliberately knows nothing about syncing — it hands over a
+  /// fact ("an attempt was recorded") and the caller decides what that is worth.
+  /// Nothing here waits on it, so a slow or failing network cannot delay the
+  /// score the user is waiting to see.
+  final VoidCallback? onAttemptRecorded;
 
   final Lesson lesson;
   final SpeechRecogniser recogniser;
@@ -272,6 +281,8 @@ class LessonController extends ChangeNotifier {
       audioPath: take.path,
       now: at,
     );
+
+    onAttemptRecorded?.call();
 
     final promotion = outcome.promotion;
 

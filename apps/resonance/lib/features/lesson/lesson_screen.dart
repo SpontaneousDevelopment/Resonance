@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/progress/progress_repository.dart';
 import '../../core/sensory/sensory_director.dart';
 import '../../core/speech/platform_speech_recogniser.dart';
+import '../../core/sync/sync_scheduler.dart';
 import '../../domain/curriculum/curriculum.dart';
 import '../../ui/tokens/spacing.dart';
 import '../../ui/tokens/theme.dart';
@@ -35,6 +36,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
     recogniser: PlatformSpeechRecogniser(),
     progress: ref.read(progressRepositoryProvider),
     sensory: ref.read(sensoryDirectorProvider),
+    // Send it now rather than at next launch. Null whenever there is no
+    // backend, which is the anonymous-first default.
+    onAttemptRecorded: () => ref.read(syncSchedulerProvider)?.nudge(),
   );
 
   /// True while the rest exercise is showing. Not a phase on the controller:

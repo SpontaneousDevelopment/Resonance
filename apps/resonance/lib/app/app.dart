@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/sync/sync_scheduler.dart';
 import '../ui/tokens/theme.dart';
 import 'router.dart';
 
@@ -9,6 +10,11 @@ class ResonanceApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Nothing reads the result. Watching it is what keeps the outbox
+    // draining for the life of the app; without a watcher the provider is
+    // never constructed and the queue silently never leaves the device.
+    ref.watch(syncSchedulerProvider);
+
     return MaterialApp.router(
       title: 'Resonance',
       debugShowCheckedModeBanner: false,

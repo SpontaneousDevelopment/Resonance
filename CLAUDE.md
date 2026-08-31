@@ -34,6 +34,13 @@ fvm flutter pub get                                       # resolves the workspa
 fvm dart run tools/curriculum_build/bin/build.dart        # recompile curriculum
 fvm dart run tools/ingest/bin/ingest.dart verify          # audio vs manifest
 fvm dart run tools/ingest/bin/ingest.dart restore         # fetch audio on a fresh clone
+./scripts/run_with_env.sh -d macos                        # run with backend keys from .env
+
+# Backend. Credentials never live in this repo: linking needs only an access
+# token (supabase login), and functions read SUPABASE_SERVICE_ROLE_KEY from the
+# environment Supabase injects.
+cd backend && supabase db push                            # apply migrations
+cd backend && supabase functions deploy delete-account
 fvm flutter analyze && fvm flutter test                   # from apps/resonance
 fvm flutter test integration_test/lesson_flow_test.dart -d macos
 ./tools/verify_plists/verify.sh                           # privacy keys + entitlements
@@ -51,7 +58,7 @@ root, several packages beneath it.
 | `apps/resonance` | The Flutter app. iOS, Android, macOS. |
 | `packages/resonance_dsp` | FFI plugin: YIN pitch, RMS/dBFS, voicing, plosive onset, waveform envelope. C core plus Dart bindings. |
 | `packages/resonance_models` | **Still the `flutter create` scaffold.** Nothing imports it. Delete or fill it; do not assume it holds anything. |
-| `backend/supabase` | Migrations, RLS policies, and the `coach-note` edge function (Deno). |
+| `backend/supabase` | Migrations, RLS policies, tests, and two Deno edge functions (`coach-note`, `delete-account`). Applied to the live project; `supabase/tests/rls_test.sql` asserts what the policies actually do. |
 | `content/curriculum` | Authored curriculum YAML — the source of truth, compiled to a bundled JSON seed. |
 | `tools/` | Curriculum compiler, privacy-key verifier, licence-checked audio ingestion. |
 
@@ -98,7 +105,12 @@ Scoped as M0–M6 for the MVP. See the blueprint for the full plan.
   just its contents. Ducking uses an idempotent handle released from every exit
   — a bare duck/unduck pair leaked on any path that skipped the second half, and
   the palette outlives the lesson, so the leak was permanent.
-- **M5–M6.** Embed and sync, hardening.
+- **M5 — Embed & sync.** In progress. Live: the progress schema and RLS on the
+  linked Supabase project, the `delete-account` function, the outbox sync
+  consumer, the sign-in progress decision, and the embed lesson type (its clip
+  deliberately unchosen). Outstanding: sign-in UI, the delete-my-data UI entry,
+  the real sync transport, and the cellular-sync setting.
+- **M6.** Hardening.
 
 Post-MVP (community recordings, leagues, daily quests, Tier 3 specializations,
 demo-reel export, monetization) is deliberately out of scope and unstarted —
@@ -129,73 +141,40 @@ demo-reel export, monetization) is deliberately out of scope and unstarted —
   access raises a modal permission dialog; with nobody to click it the run blocks
   and takes every later test down with it.
 
-### Testing detection code
+### Verification
 
-Learned the expensive way. Plosive detection shipped reporting **284 pops a
-minute** on real takes while passing every test it had — three synthetic sine
-tones that only compared scores against *each other*, never against the
-production threshold, and never against anything resembling speech.
+**A check that reports success by the absence of an error proves nothing.**
+Verification has to assert the specific behaviour expected. This has cost real
+time four separate times in this project, in four disguises:
 
-Three rules follow from that:
+- The **plosive detector** passed three sine-tone tests that only compared
+  scores against each other, never against the production threshold. It shipped
+  reporting 284 pops a minute on speech.
+- The **tap cue** had an asset, entries in two registries and a documented
+  character. Nothing asserted a declared cue is *reachable*, so it had no
+  caller and was silent.
+- The **breather's reduced motion** was ticked green by a test covering a
+  different component that shared the concern's name. An audit item named after
+  a concern is retired by any one passing test mentioning it — name them after
+  the component.
+- The **RLS script** reported catastrophic failure against correct policies,
+  because `SET LOCAL` outside a transaction is a no-op and the session stayed
+  connected as a superuser that bypasses RLS. Had the run merely been
+  error-free it would have "passed" while proving nothing at all.
 
-1. **A detector is not tested until it has seen real signal.** Sine tones tell
-   you a function computes; they cannot tell you whether it fires on ordinary
-   input. `packages/resonance_dsp/test/native/validate_audio.sh` synthesises
-   real speech with `say` and measures against it — clean speech as a
-   true-negative set, then pops injected at known times as a true-positive set.
-   Run it after touching any detector.
-2. **Assert absolute values against the real threshold**, not relative
-   comparisons. "A pop scores higher than a hum" passes happily while both sit
-   above the threshold and everything triggers.
-3. **Prefer state that is a pure function of one input.** Two bugs came from
-   state re-derived on rebuild or inferred from something incidental: the
-   level-up fanfare replayed because it keyed off a rebuild rather than a
-   result, and the breather circle shrank through *hold* because its size was
-   inferred by string-matching a phase label that had no case for it. Where a
-   value can be `f(elapsed)` or `f(phase)`, make it that — it is immune to
-   rebuilds and testable against a virtual clock.
-4. **Declared is not wired.** The tap cue shipped with an asset, an entry in
-   both registries and a documented character — and no caller anywhere. Nothing
-   noticed because nothing asserted that a declared cue is *reachable*. Where a
-   registry enumerates capabilities, assert the enum is covered by something
-   that actually produces them; existence checks pass on dead entries.
-5. **A green suite proves "true when written", not "true now".** Replacing the
-   breather's `AnimatedContainer` with a ticker dropped reduced-motion support:
-   the old widget read `disableAnimationsOf`, the new one had no reference to
-   it, and nothing went red. When a mechanism is replaced, re-test the
-   cross-cutting concerns against the new one rather than assuming they carried.
+Reference this rather than restating the anecdotes. Concretely, for any check:
+assert the value, not that a call returned; assert against the real threshold,
+not a relative comparison; assert with two different inputs, so a constant
+cannot masquerade as a computation; and confirm the check *fails* when the
+behaviour is broken before trusting that it passes.
 
-   Two things make this hard to catch, and both are worth knowing:
-
-   *Coverage does not help.* The behaviour disappeared along with the lines that
-   implemented it, so there was no uncovered branch to report. The new code was
-   fully covered and simply did less.
-
-   *Audit items named after a concern get ticked by any test mentioning it.*
-   "Reduced motion works" was marked green by a test covering the **sensory
-   director** — a different component that happened to share the concern's name.
-   Checking the history (`git log -S reduceMotion -- test/`) shows the breather
-   never had such a test at all. Name audit items after the component
-   (`the breather honours reduced motion`), never after the concern, or one
-   passing test retires the whole question.
-
-   **No cheap mechanical guard exists for this.** Flagging source changes whose
-   test files did not also change is easy to write and mostly false positives,
-   so it gets ignored, which is worse than nothing. What does help is keeping
-   each cross-cutting concern's tests in one file that names every component
-   subject to it, so an absent component is visible while reading — the same
-   trick as the cue-reachability test, minus the enum that makes it enforceable.
-   Treat it as review discipline, not tooling.
-6. **Paired acquire/release calls leak.** `duck()`/`unduck()` written as a pair
-   leaked on every exit that skipped the second half — dispose, reset, and a
-   throw between them. A handle whose release is idempotent, held in one field
-   and released from every exit, makes balance structural instead of something
-   each new code path must remember.
-7. **Newly-wired code has never run, whatever its test count.** `plosiveScores`
-   was populated for the first time in M3; before that the score silently
-   defaulted to 100 and the whole path was dead. When wiring up a dormant path,
-   treat it as unproven regardless of the coverage it appears to have — the
-   tests were written against an implementation nothing had exercised.
+Coverage does not substitute for this. When the breather's reduced-motion
+branch was deleted it took its lines with it — nothing was uncovered, the code
+was simply doing less. And no cheap mechanical guard exists: flagging source
+changes whose tests did not change is easy to write and mostly false positives,
+so it gets ignored. Keeping each cross-cutting concern's tests in one file that
+names every component subject to it at least makes an absent one visible while
+reading.
 
 ### Testing
 

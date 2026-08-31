@@ -47,8 +47,13 @@ class ProgressHeader extends ConsumerWidget {
         _EnergyMeter(energy: energy ?? const VocalEnergy.full()),
         // Debug builds only. The placeholder palette still needs a listening
         // pass on a real device, and there is no other way in on desktop.
+        const Spacer(),
+        IconButton(
+          tooltip: 'Settings',
+          icon: const Icon(Icons.settings_outlined, size: 18),
+          onPressed: () => context.push(Routes.settings),
+        ),
         if (soundAuditionAvailable) ...[
-          const Spacer(),
           IconButton(
             tooltip: 'Audition sounds',
             icon: const Icon(Icons.music_note_outlined, size: 18),

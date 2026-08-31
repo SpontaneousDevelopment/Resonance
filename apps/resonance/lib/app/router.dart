@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/curriculum_repository.dart';
 import '../features/debug/sound_audition_screen.dart';
 import '../features/lesson/lesson_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/skill_tree/skill_tree_screen.dart';
 import '../ui/tokens/spacing.dart';
 import '../ui/tokens/theme.dart';
@@ -24,6 +25,7 @@ class Routes {
 
   /// Debug builds only — see [soundAuditionAvailable].
   static const soundAudition = '/debug/sounds';
+  static const settings = '/settings';
 }
 
 /// Builds a router.
@@ -53,6 +55,10 @@ final List<RouteBase> _routes = [
           path: 'debug/sounds',
           builder: (context, state) => const SoundAuditionScreen(),
         ),
+      GoRoute(
+        path: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
       GoRoute(
         path: 'lesson/:lessonId',
         builder: (context, state) =>

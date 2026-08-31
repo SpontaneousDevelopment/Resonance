@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../db/database.dart';
+import 'supabase_transport.dart';
 import 'sync_transport.dart';
 
 /// Drains the outbox.
@@ -97,8 +98,11 @@ class SyncEngine {
       (await _db.allOutboxRows()).where((row) => row.parked).toList();
 }
 
+/// Resolves to the live Supabase transport when a backend is configured and
+/// someone is signed in, and to the offline one otherwise — which is the
+/// anonymous-first default.
 final syncTransportProvider = Provider<SyncTransport>(
-  (ref) => const OfflineTransport(),
+  (ref) => ref.watch(liveSyncTransportProvider),
 );
 
 final syncEngineProvider = Provider<SyncEngine>(

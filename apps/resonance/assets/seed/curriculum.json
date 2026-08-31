@@ -57,7 +57,8 @@
                 "start_seconds": null,
                 "end_seconds": null,
                 "attribution": null,
-                "license_url": null
+                "license_url": null,
+                "awaiting_selection": false
               },
               "target_wpm_min": 130,
               "target_wpm_max": 165,
@@ -77,7 +78,8 @@
                 "start_seconds": null,
                 "end_seconds": null,
                 "attribution": null,
-                "license_url": null
+                "license_url": null,
+                "awaiting_selection": false
               },
               "target_wpm_min": 130,
               "target_wpm_max": 165,
@@ -97,7 +99,8 @@
                 "start_seconds": null,
                 "end_seconds": null,
                 "attribution": null,
-                "license_url": null
+                "license_url": null,
+                "awaiting_selection": false
               },
               "target_wpm_min": 120,
               "target_wpm_max": 155,
@@ -117,7 +120,8 @@
                 "start_seconds": null,
                 "end_seconds": null,
                 "attribution": null,
-                "license_url": null
+                "license_url": null,
+                "awaiting_selection": false
               },
               "target_wpm_min": 110,
               "target_wpm_max": 210,
@@ -137,10 +141,32 @@
                 "start_seconds": null,
                 "end_seconds": null,
                 "attribution": null,
-                "license_url": null
+                "license_url": null,
+                "awaiting_selection": false
               },
               "target_wpm_min": 140,
               "target_wpm_max": 180,
+              "estimated_seconds": 180
+            },
+            {
+              "id": "t1u3l6-listen-and-analyse",
+              "unit_id": "t1u3-articulation",
+              "title": "Hear It Done Well",
+              "type": "listenAndAnalyse",
+              "brief": "Listen for the consonants, not the performance. Notice how little effort the plosives take, and how the sound stops rather than trailing. Then answer the two prompts below.",
+              "script": "Listen twice. The first time, follow the meaning. The second time, ignore it entirely and listen only to the ends of words.",
+              "reference": {
+                "source": "embed",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null,
+                "awaiting_selection": true
+              },
+              "target_wpm_min": null,
+              "target_wpm_max": null,
               "estimated_seconds": 180
             }
           ]

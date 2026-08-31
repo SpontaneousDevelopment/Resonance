@@ -104,6 +104,7 @@ class LessonReference {
     this.endSeconds,
     this.attribution,
     this.licenseUrl,
+    this.awaitingSelection = false,
   });
 
   final ReferenceSource source;
@@ -120,6 +121,15 @@ class LessonReference {
   final String? attribution;
   final String? licenseUrl;
 
+  /// True when the lesson is written but its clip has not been chosen yet.
+  ///
+  /// Choosing a video is an editorial judgement — is this performance worth
+  /// studying — that no tool should make. Rather than let a placeholder id sit
+  /// in the curriculum looking like a decision, the reference declares that no
+  /// choice has been made, the compiler stops demanding an id, and the app
+  /// refuses to open the lesson. Nothing can ship having quietly defaulted.
+  final bool awaitingSelection;
+
   factory LessonReference.fromJson(Map<String, dynamic> json) {
     return LessonReference(
       source: ReferenceSource.fromId(json['source'] as String),
@@ -129,6 +139,7 @@ class LessonReference {
       endSeconds: json['end_seconds'] as int?,
       attribution: json['attribution'] as String?,
       licenseUrl: json['license_url'] as String?,
+      awaitingSelection: json['awaiting_selection'] as bool? ?? false,
     );
   }
 }
@@ -172,6 +183,11 @@ class Lesson {
 
   bool get requiresNetwork =>
       type.requiresNetwork || reference?.source == ReferenceSource.embed;
+
+  /// True when the lesson cannot be attempted because its reference clip has
+  /// not been chosen. Distinct from locked: the work is written, the editorial
+  /// decision is outstanding.
+  bool get isBlockedOnSelection => reference?.awaitingSelection ?? false;
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
     return Lesson(

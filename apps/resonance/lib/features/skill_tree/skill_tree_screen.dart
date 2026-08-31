@@ -130,9 +130,14 @@ class _Tree extends ConsumerWidget {
                   onTap: (unlock?.isOpen ?? false)
                       ? () {
                           ref.read(sensoryDirectorProvider).tap();
-                          context.push(
-                            Routes.lessonPath(unit.lessons.first.id),
+                          // Opens the first lesson that is actually playable —
+                          // a unit whose first entry is awaiting a clip should
+                          // not dead-end the user.
+                          final lesson = unit.lessons.firstWhere(
+                            (l) => !l.isBlockedOnSelection,
+                            orElse: () => unit.lessons.first,
                           );
+                          context.push(Routes.lessonPath(lesson.id));
                         }
                       : null,
                 );

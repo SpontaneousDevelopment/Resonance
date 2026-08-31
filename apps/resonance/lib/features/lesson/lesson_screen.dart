@@ -91,6 +91,16 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
       );
     }
 
+    // A lesson whose reference clip has not been chosen is written but not
+    // playable. Refusing here is what makes `awaiting_selection` more than a
+    // comment — nothing can ship having silently defaulted to some video.
+    if (widget.lesson.isBlockedOnSelection) {
+      return _AwaitingSelection(
+        lesson: widget.lesson,
+        onBack: () => Navigator.of(context).pop(),
+      );
+    }
+
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -135,6 +145,49 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
           _ => RecordView(controller: _controller),
         };
       },
+    );
+  }
+}
+
+/// Shown for a lesson whose reference clip has not been selected yet.
+class _AwaitingSelection extends StatelessWidget {
+  const _AwaitingSelection({required this.lesson, required this.onBack});
+
+  final Lesson lesson;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Scaffold(
+      appBar: AppBar(title: Text(lesson.title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(ResSpace.section),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'This lesson is not ready yet',
+                style: ResType.heading.copyWith(color: colors.ink),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: ResSpace.tight),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Text(
+                  'It needs a reference performance to study, and one has not '
+                  'been chosen. Everything else about the lesson is written.',
+                  textAlign: TextAlign.center,
+                  style: ResType.body.copyWith(color: colors.inkMuted),
+                ),
+              ),
+              const SizedBox(height: ResSpace.loose),
+              FilledButton(onPressed: onBack, child: const Text('Back')),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

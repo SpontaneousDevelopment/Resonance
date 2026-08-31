@@ -65,7 +65,9 @@ void main() {
 
       expect(unit, isNotNull);
       expect(unit!.title, 'Articulation & Diction');
-      expect(unit.lessons, hasLength(5));
+      // Five scored reads plus the listen-and-analyse lesson, which is
+      // written but awaiting a clip selection.
+      expect(unit.lessons, hasLength(6));
       expect(unit.isAuthored, isTrue);
       expect(unit.label, '1.3');
     });
@@ -83,13 +85,20 @@ void main() {
       }
     });
 
-    test('no authored lesson requires the network', () async {
-      // The MVP promise is that unit 1.3 works on a plane. This test is what
-      // keeps that true when someone later adds an embed lesson to it.
+    test('every recordable lesson works offline', () async {
+      // The MVP promise is that unit 1.3 works on a plane. The embed lesson is
+      // deliberately excluded: it studies a streamed performance, so needing a
+      // connection is the point rather than a regression. Scoped this way so
+      // the guarantee still bites on everything it should.
       final curriculum = await const CurriculumRepository().load();
       final unit = curriculum.unitById('t1u3-articulation')!;
 
-      for (final lesson in unit.lessons) {
+      final recordable = unit.lessons.where(
+        (l) => l.type != LessonType.listenAndAnalyse,
+      );
+      expect(recordable, hasLength(5));
+
+      for (final lesson in recordable) {
         expect(
           lesson.requiresNetwork,
           isFalse,

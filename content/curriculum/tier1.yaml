@@ -138,6 +138,33 @@ units:
           I told him I would be there at eight, and I meant it. It is not
           complicated. He just has to answer the phone.
 
+      # ── Blocked on an editorial decision ────────────────────────────────
+      #
+      # The lesson type is built and wired; the clip is not chosen. Choosing
+      # which performance is worth studying is a judgement, not something a
+      # tool should default. `awaiting_selection` makes that explicit: the
+      # compiler accepts it, warns on every build, and the app refuses to open
+      # the lesson — so nothing can ship having quietly picked one.
+      #
+      # To unblock: verify a candidate with
+      #   dart run tools/ingest/bin/ingest.dart add --youtube <id> --as <name>
+      # then replace `awaiting_selection` with the video_id and in/out points.
+      - id: t1u3l6-listen-and-analyse
+        unit_id: t1u3-articulation
+        title: Hear It Done Well
+        type: listenAndAnalyse
+        estimated_seconds: 180
+        brief: >-
+          Listen for the consonants, not the performance. Notice how little
+          effort the plosives take, and how the sound stops rather than
+          trailing. Then answer the two prompts below.
+        script: >-
+          Listen twice. The first time, follow the meaning. The second time,
+          ignore it entirely and listen only to the ends of words.
+        reference:
+          source: embed
+          awaiting_selection: true
+
   - id: t1u4-pitch-resonance
     tier: 1
     index: 4

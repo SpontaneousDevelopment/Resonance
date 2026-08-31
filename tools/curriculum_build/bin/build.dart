@@ -324,9 +324,25 @@ Map<String, dynamic> _convertReference(
       );
     }
   }
-  if (refSource == 'embed' && raw['video_id'] == null) {
+  final awaiting = raw['awaiting_selection'] == true;
+
+  if (refSource == 'embed' && raw['video_id'] == null && !awaiting) {
     _fail(
-      '$source: lesson $lessonId — "embed" reference requires a `video_id`',
+      '$source: lesson $lessonId — "embed" reference requires a `video_id`, '
+      'or `awaiting_selection: true` if the clip has not been chosen yet',
+    );
+  }
+  if (awaiting && raw['video_id'] != null) {
+    _fail(
+      '$source: lesson $lessonId — `awaiting_selection` is set but a '
+      '`video_id` is present. One of them is wrong, and shipping a clip '
+      'nobody chose is the worse outcome.',
+    );
+  }
+  if (awaiting) {
+    _warn(
+      '$source: lesson $lessonId — awaiting a clip selection; the lesson will '
+      'not open in the app until one is set.',
     );
   }
   if (refSource != 'embed' &&
@@ -346,6 +362,7 @@ Map<String, dynamic> _convertReference(
     'end_seconds': raw['end_seconds'],
     'attribution': raw['attribution'],
     'license_url': raw['license_url'],
+    'awaiting_selection': awaiting,
   };
 }
 

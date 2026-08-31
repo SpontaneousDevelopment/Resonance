@@ -61,3 +61,8 @@ packages/resonance_dsp/test/native/bench
 .idea/
 *.iml
 .vscode/
+
+# Supabase CLI local state. config.toml and migrations ARE committed; the
+# local stack's runtime files are not.
+backend/supabase/.temp/
+backend/supabase/.branches/

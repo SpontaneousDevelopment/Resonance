@@ -29,6 +29,7 @@ dependencies:
   youtube_player_iframe: ^6.0.2
   speech_to_text: ^7.4.0
   http: ^1.6.0
+  supabase_flutter: ^2.17.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

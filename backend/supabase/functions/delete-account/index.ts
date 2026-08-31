@@ -12,16 +12,17 @@
 //
 // Deploy:
 //   supabase functions deploy delete-account
-//   supabase secrets set SERVICE_ROLE_KEY=<the secret key>
 //
 // The service-role key is required — deleting an auth user is not something a
-// user's own token can do — and it lives only in function secrets, never in the
-// app or the repository.
+// user's own token can do — but it is never handled by hand. Supabase injects
+// SUPABASE_SERVICE_ROLE_KEY into every function's environment, so there is no
+// secret to paste, no file to leak it through, and it follows a rotation
+// automatically.
 
 import { createClient } from "npm:@supabase/supabase-js@^2.58.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 /// Tables to clear before removing the account, in dependency order.
 const TABLES = [

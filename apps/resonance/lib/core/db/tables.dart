@@ -142,6 +142,14 @@ class Outbox extends Table {
   DateTimeColumn get queuedAt => dateTime()();
   IntColumn get attemptCount => integer().withDefault(const Constant(0))();
   TextColumn get lastError => text().nullable()();
+
+  /// Set when the server has permanently rejected this row.
+  ///
+  /// Persisted rather than held in memory: a parked row sits at the head of the
+  /// queue, so anything that does not skip it blocks every row behind it — and
+  /// an in-memory set is lost on relaunch, which would re-block the queue every
+  /// session. Kept rather than deleted so a payload bug stays diagnosable.
+  BoolColumn get parked => boolean().withDefault(const Constant(false))();
 }
 
 /// The Vocal Energy meter. A single row, id 0.

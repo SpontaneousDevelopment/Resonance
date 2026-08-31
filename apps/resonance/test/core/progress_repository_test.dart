@@ -268,6 +268,29 @@ void main() {
     });
   });
 
+  group('outbox parking survives a restart', () {
+    test('a parked row stays parked when the database is reopened', () async {
+      // Parking lives in the database rather than in memory because a parked
+      // row sits at the head of the queue: an in-memory set is lost on
+      // relaunch, and the queue would re-block every session.
+      await record(good: true, at: day(1));
+      final row = (await db.pendingSync()).single;
+      await db.markParked(row.seq, 'malformed');
+
+      expect(await db.pendingSync(), isEmpty);
+      expect(await db.allOutboxRows(), hasLength(1));
+      expect((await db.allOutboxRows()).single.parked, isTrue);
+    });
+
+    test('parking is additive — existing rows are unaffected', () async {
+      await record(good: true, at: day(1));
+      await record(good: true, at: day(2));
+
+      final rows = await db.pendingSync();
+      expect(rows.every((r) => !r.parked), isTrue);
+    });
+  });
+
   group('schema migration', () {
     test('the energy row exists on a fresh database', () async {
       final energy = await repo.energy();

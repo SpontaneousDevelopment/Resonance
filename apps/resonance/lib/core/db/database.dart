@@ -16,7 +16,7 @@ class ResonanceDatabase extends _$ResonanceDatabase {
     : super(executor ?? driftDatabase(name: 'resonance'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -30,6 +30,11 @@ class ResonanceDatabase extends _$ResonanceDatabase {
       // is seeded full: an upgrade must never hand someone a depleted meter.
       if (from < 2) {
         await m.createTable(energyState);
+      }
+      if (from < 3) {
+        // Additive: existing queued rows default to un-parked, which is what
+        // they were.
+        await m.addColumn(outbox, outbox.parked);
       }
       await _seedSingletons();
     },
@@ -209,9 +214,21 @@ class ResonanceDatabase extends _$ResonanceDatabase {
   /// rejected by the server's own validation.
   Future<List<OutboxRow>> pendingSync({int limit = 50}) {
     return (select(outbox)
+          ..where((t) => t.parked.equals(false))
           ..orderBy([(t) => OrderingTerm.asc(t.seq)])
           ..limit(limit))
         .get();
+  }
+
+  /// Every row, including parked ones. For diagnostics.
+  Future<List<OutboxRow>> allOutboxRows() =>
+      (select(outbox)..orderBy([(t) => OrderingTerm.asc(t.seq)])).get();
+
+  /// Marks a row as permanently unsendable so it stops blocking the queue.
+  Future<void> markParked(int seq, String error) {
+    return (update(outbox)..where((t) => t.seq.equals(seq))).write(
+      OutboxCompanion(parked: const Value(true), lastError: Value(error)),
+    );
   }
 
   Future<void> markSent(List<int> seqs) =>

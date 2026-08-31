@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+
 import 'package:resonance/app/app.dart';
+
+import 'test_window.dart';
 
 /// Tests that touch the microphone and the speech recogniser.
 ///
@@ -18,6 +21,8 @@ import 'package:resonance/app/app.dart';
 /// this will hang on the dialog until someone answers it.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(keepTestWindowOnScreen);
 
   Future<void> openLesson(WidgetTester tester) async {
     tester.view

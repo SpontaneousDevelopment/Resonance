@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+
 import 'package:resonance/app/app.dart';
+
+import 'test_window.dart';
 
 /// End-to-end coverage of the path a user actually walks.
 ///
@@ -22,6 +25,8 @@ import 'package:resonance/app/app.dart';
 ///   fvm flutter test integration_test -d macos
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(keepTestWindowOnScreen);
 
   Future<void> launch(WidgetTester tester) async {
     // The real macOS window is whatever size it happens to be, and a short one

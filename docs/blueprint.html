@@ -357,7 +357,7 @@
     <h1>Resonance: a two-year path from <em>first take</em> to booked work.</h1>
     <p class="lede">A gamified voice-acting curriculum for iOS, Android and macOS — 254 lessons, mastery-gated, scored on-device in under 300&nbsp;ms. The curriculum, architecture, codebase shape and MVP plan below are signed off; construction has started on M0.</p>
     <div class="statline">
-      <span class="chip live">M5 complete · sync live</span>
+      <span class="chip live">Status: Requirements.md</span>
       <span class="chip">Flutter 3.47.2 + Supabase</span>
       <span class="chip">macOS ✓ · iOS ✓ · Android pending SDK</span>
       <span class="chip">MVP ≈ 23 weeks @ 10h/wk</span>
@@ -372,7 +372,7 @@
       <li><a href="#structure"><span class="n">04</span>Project structure</a></li>
       <li><a href="#mvp"><span class="n">05</span>MVP &amp; milestones</a></li>
       <li><a href="#risks"><span class="n">06</span>Risks</a></li>
-      <li><a href="#signoff"><span class="n">07</span>Status</a></li>
+      <li><a href="#signoff"><span class="n">07</span>Where this is settled</a></li>
     </ol>
   </nav>
 
@@ -403,14 +403,15 @@
       <table>
         <thead><tr><th>Mechanism</th><th>Rule</th></tr></thead>
         <tbody>
-          <tr><td><strong>Mastery levels</strong></td><td>Bronze&nbsp;60 → Silver&nbsp;70 → Gold&nbsp;78 → Diamond&nbsp;85 → Master&nbsp;90. A fresh attempt at or above the next threshold promotes the lesson one level.</td></tr>
+          <tr><td><strong>Mastery levels</strong></td><td>Five levels, each with its own score threshold — specified in <a href="Requirements.md"><code>Requirements.md</code></a>. A fresh attempt at or above the next threshold promotes the lesson one rung, never two, so a lucky take cannot vault past material the user has not internalised.</td></tr>
           <tr><td><strong>Anti-grind</strong></td><td>A given lesson can promote <em>at most once per calendar day</em>. You cannot brute-force a unit in an evening — vocal skill is a motor skill and needs sleep between reps.</td></tr>
-          <tr><td><strong>Unit gate</strong></td><td>The unit’s mastery check unlocks when 80% of its lessons sit at Silver or above. The check is a mixed, previously-unseen battery scored blind against the unit rubric; pass&nbsp;=&nbsp;75.</td></tr>
+          <tr><td><strong>Unit gate</strong></td><td>The unit’s mastery check unlocks on a supermajority of its lessons reaching the second level — high enough to demand retention rather than one lucky take, short of every lesson so a single stubborn item cannot wall off the curriculum. The check is a mixed, previously-unseen battery scored blind against the unit rubric; pass&nbsp;=&nbsp;75.</td></tr>
           <tr><td><strong>Decay</strong></td><td>Each lesson carries an SM-2-style stability value. When the interval lapses the lesson drops half a level and surfaces in <em>Refresh</em>. It never falls below Bronze once earned — decay nudges, it doesn’t punish.</td></tr>
           <tr><td><strong>Tier gate</strong></td><td>All units at Gold, plus a tier capstone: an unrehearsed multi-skill performance graded against the tier’s full rubric.</td></tr>
         </tbody>
       </table>
     </div>
+    <p style="margin-top:18px;"><strong>Vocal Energy never blocks.</strong> Duolingo’s hearts exist to sell refills; a voice app charging for rest would be a monetisation hook wearing a health costume, and a user who works that out stops believing the vocal-health advice too. Running out offers a real ninety-second exercise — guided box breathing plus straw-phonation humming, a technique that works in a booth without the app — always skippable, restoring two bars rather than five so resting cannot be farmed. A second consecutive low score on one lesson costs double, because repeating a lesson that is not improving is usually fatigue.</p>
 
     <!-- TIER 1 -->
     <div class="tier" data-t="1">
@@ -519,6 +520,7 @@
   <section id="arch">
     <div class="sechead"><span class="secnum">02</span><h2>System architecture</h2></div>
     <p class="secsub">The organising principle: <strong>the client is the product, the backend is a filing cabinet.</strong> Every scoring decision that gates progress happens on-device, so the app is fully usable on a plane and no voice recording leaves the phone unless the user asks it to. Third-party media is reached directly by the client and never proxied through our infrastructure.</p>
+    <p class="secsub"><strong>This is the target architecture, not today's.</strong> Live now: the whole on-device column, plus Postgres with Row-Level Security, Auth, and two Edge Functions — <code>coach-note</code> and <code>delete-account</code>. Storage, the forced aligner, analytics and IAP are drawn because they are where this is going; none of them exist yet. Leagues and the moderation queue are post-MVP by decision, not by backlog.</p>
 
     <div class="diagram" role="img" aria-label="Three-layer architecture: the Flutter client on device, Supabase as backend, and third-party services. The client talks directly to the YouTube IFrame API and to analytics; everything else routes through Supabase.">
       <svg viewBox="0 0 1000 710" xmlns="http://www.w3.org/2000/svg">
@@ -549,7 +551,7 @@
 
         <rect x="50" y="155" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
         <text x="66" y="178" class="svg-box-title">DSP + STT</text>
-        <text x="66" y="197" class="svg-box-sub">FFI: pYIN · RMS · VAD · whisper</text>
+        <text x="66" y="197" class="svg-box-sub">FFI: YIN · RMS · VAD · platform STT</text>
 
         <rect x="357" y="155" width="286" height="62" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
         <text x="373" y="178" class="svg-box-title">Local Store</text>
@@ -566,8 +568,8 @@
         <rect x="50" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
         <text x="66" y="365" class="svg-box-title">Edge Functions</text>
         <text x="66" y="384" class="svg-box-sub">coach-note</text>
-        <text x="66" y="399" class="svg-box-sub">align · moderate</text>
-        <text x="66" y="414" class="svg-box-sub">league-tick (cron)</text>
+        <text x="66" y="399" class="svg-box-sub">coach-note</text>
+        <text x="66" y="414" class="svg-box-sub">delete-account</text>
 
         <rect x="280" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
         <text x="296" y="365" class="svg-box-title">Postgres</text>
@@ -583,7 +585,7 @@
 
         <rect x="740" y="340" width="210" height="94" rx="7" fill="var(--surface)" stroke="var(--rule)"></rect>
         <text x="756" y="365" class="svg-box-title">Auth</text>
-        <text x="756" y="384" class="svg-box-sub">email · OAuth</text>
+        <text x="756" y="384" class="svg-box-sub">magic link</text>
         <text x="756" y="399" class="svg-box-sub">age gate</text>
         <text x="756" y="414" class="svg-box-sub">parental consent flow</text>
 
@@ -682,7 +684,7 @@
         <thead><tr><th>Signal</th><th>Method</th><th>Where</th><th>Why</th></tr></thead>
         <tbody>
           <tr><td><strong>Level, noise floor, clipping</strong></td><td>RMS + peak over the input buffer</td><td><span class="where dev">device</span></td><td>Needed live, during the take, to drive the visualiser and the pre-roll “your room is too loud” gate.</td></tr>
-          <tr><td><strong>Pitch contour</strong></td><td>pYIN via a Rust/C FFI plugin, VAD-gated</td><td><span class="where dev">device</span></td><td>Real-time overlay against the target curve. Round-tripping this to a server makes the feature impossible.</td></tr>
+          <tr><td><strong>Pitch contour</strong></td><td>YIN via a C FFI plugin, VAD-gated</td><td><span class="where dev">device</span></td><td>Real-time overlay against the target curve. Round-tripping this to a server makes the feature impossible.</td></tr>
           <tr><td><strong>Clarity / articulation</strong></td><td>Platform STT (<code>SFSpeechRecognizer</code> / Android <code>SpeechRecognizer</code>) → word-level match against the known script. Whisper <code>base.en</code> deferred past MVP.</td><td><span class="where dev">device</span></td><td>We already know the target text, so this is alignment, not open transcription. Platform recognisers are accurate enough for that, cost nothing, and save a 150&nbsp;MB post-install download — see the schedule note in §5.</td></tr>
           <tr><td><strong>Pacing</strong></td><td>WPM from STT timestamps vs. the lesson’s target band</td><td><span class="where dev">device</span></td><td>Free once STT has run.</td></tr>
           <tr><td><strong>Plosive / sibilance events</strong></td><td>Low-band transient detection, 60–200&nbsp;Hz energy spikes</td><td><span class="where dev">device</span></td><td>Deterministic DSP. No model required.</td></tr>
@@ -698,63 +700,9 @@
   </section>
 
   <!-- ═══════════ 04 STRUCTURE ═══════════ -->
-  <section id="structure">
+<section id="structure">
     <div class="sechead"><span class="secnum">04</span><h2>Project structure</h2></div>
-    <p class="secsub">A Melos monorepo. Feature-first inside the app, with three enforced import rules: <code>features/</code> may import <code>core/</code>, <code>domain/</code> and <code>ui/</code>; <code>core/</code> may import nothing from <code>features/</code>; and <code>domain/</code> imports neither — it is pure Dart, so the scoring rubrics and the review scheduler are unit-testable with no Flutter binding. Riverpod for state, <code>go_router</code> for navigation, <code>freezed</code> for models, <code>drift</code> for local persistence.</p>
-
-<pre><b>resonance/</b>
-├── <b>apps/resonance/</b>                    <i># the Flutter app — iOS · Android · macOS</i>
-│   ├── lib/
-│   │   ├── main.dart
-│   │   ├── <b>app/</b>                       <i># bootstrap, router, theme, DI overrides</i>
-│   │   ├── <b>core/</b>                      <i># cross-feature infrastructure</i>
-│   │   │   ├── audio/                <i># recorder, player, ring buffers</i>
-│   │   │   ├── dsp/                  <i># Dart API over the native DSP package</i>
-│   │   │   ├── scoring/              <i># metric → score rubrics (pure, calibrated)</i>
-│   │   │   ├── haptics/              <i># capability probe + pattern registry</i>
-│   │   │   ├── sfx/                  <i># UI sound palette, ducking during playback</i>
-│   │   │   ├── sync/                 <i># outbox queue, conflict policy</i>
-│   │   │   ├── db/                   <i># drift schema, DAOs, migrations</i>
-│   │   │   ├── net/                  <i># supabase client, typed edge-fn calls</i>
-│   │   │   └── telemetry/
-│   │   ├── <b>domain/</b>                    <i># entities + repository interfaces — pure Dart</i>
-│   │   │   ├── curriculum/           <i># Tier, Unit, Lesson, Prerequisite, MasteryLevel</i>
-│   │   │   ├── progress/             <i># Attempt, Score, StreakState, VocalEnergy</i>
-│   │   │   └── review/               <i># spaced-repetition scheduler + decay</i>
-│   │   ├── <b>features/</b>
-│   │   │   ├── onboarding/           <i># mic check, baseline take, goal setting</i>
-│   │   │   ├── skill_tree/           <i># the map</i>
-│   │   │   ├── lesson/
-│   │   │   │   ├── runner/           <i># one state machine, parameterised by type</i>
-│   │   │   │   ├── types/            <i># cold_read · pitch_match · shadow · emotion · mic</i>
-│   │   │   │   └── feedback/         <i># score breakdown + user-vs-reference overlay</i>
-│   │   │   ├── streaks/  quests/  leagues/  profile/
-│   │   │   └── <u>community/  paywall/  reel/</u>   <i># post-MVP, scaffolded empty</i>
-│   │   ├── <b>ui/</b>                        <i># the design system</i>
-│   │   │   ├── tokens/  components/  motion/
-│   │   │   └── charts/               <i># waveform + pitch contour CustomPainters</i>
-│   │   └── l10n/
-│   ├── assets/  <i>rive/ · sfx/ · fonts/ · seed/ (compiled curriculum JSON)</i>
-│   ├── macos/ ios/ android/          <i># entitlements: mic input, network client</i>
-│   └── test/  integration_test/
-├── <b>packages/</b>
-│   ├── resonance_dsp/                <i># FFI plugin: pYIN pitch, RMS, VAD, transients</i>
-│   ├── resonance_stt/                <i># whisper.cpp binding + model download manager</i>
-│   └── resonance_models/             <i># freezed models shared by app, tools, functions</i>
-├── <b>backend/supabase/</b>
-│   ├── migrations/                   <i># versioned SQL</i>
-│   ├── functions/                    <i># coach-note · align · moderate · league-tick</i>
-│   └── policies/                     <i># RLS policies + their tests</i>
-├── <b>content/</b>
-│   ├── curriculum/                   <i># tier/unit/lesson YAML — the authoring source</i>
-│   ├── scripts/                      <i># public-domain text + provenance.json per file</i>
-│   └── references/                   <i># video_id, in/out, approver, last_checked — IDs only</i>
-├── <b>tools/</b>
-│   ├── curator/                      <i># Flutter web admin: approve refs, run link checks</i>
-│   └── curriculum_build/             <i># YAML → validated seed JSON, fails CI on a bad DAG</i>
-└── docs/
-</pre>
-    <p>Two structural notes worth arguing about now rather than in month four. <strong>Curriculum is authored as YAML and compiled</strong>, not typed into a database — it gets code review, diffs readably, and ships in the bundle so the tree works offline on first launch. And <strong><code>content/references/</code> stores identifiers only</strong>; there is no code path in the repo that can write a media file into it, which is the structural version of the embed-only rule rather than a promise to remember.</p>
+    <p class="secsub">The repository layout, the layering rules, the key abstractions, and the local and server schema live in <a href="Design.md"><code>Design.md</code></a>, beside the code they describe. They are deliberately not duplicated here — a structure tree inside a narrative document is the first thing to go stale, and this one had already drifted several packages away from the repository before it was removed.</p>
   </section>
 
   <!-- ═══════════ 05 MVP ═══════════ -->
@@ -811,30 +759,21 @@
 
     <ol class="ms">
       <li>
-        <div class="mhead"><span class="mid">M0</span><span class="mtitle">Rails</span><span class="mwk">weeks 1–3 · complete</span></div>
+        <div class="mhead"><span class="mid">M0</span><span class="mtitle">Rails</span><span class="mwk">weeks 1–3</span></div>
         <p class="mbody">Pub workspace, app building on all targets with mic entitlements, design tokens and theme, router, the YAML→seed compiler, Drift schema, CI.</p>
-        <p class="mproves"><b>Done so far:</b> workspace and three package scaffolds; macOS and iOS both building; Flutter pinned at 3.47.2 via fvm; colour, type, spacing and motion tokens with full light/dark; the mastery ladder implemented and covered by 13 tests; the curriculum compiler with duplicate-id, dangling-prerequisite and cycle detection; Tier 1 authored with unit 1.3 complete; the skill tree rendering from the compiled seed, covered by 12 more tests.</p>
-        <p class="mproves"><b>Also done:</b> Drift schema with a sync outbox and a tested delete-my-data path; bundled variable fonts; mic entitlements and usage strings on both Apple targets; a CI workflow with stale-seed and stale-codegen guards; and the macOS WebView spike, which passed — see risks.</p>
-        <p class="mproves"><b>Left:</b> the Android SDK wizard and a JDK 21 downgrade, both local-machine setup.</p>
       </li>
       <li>
-        <div class="mhead"><span class="mid">M1</span><span class="mtitle">Audio spine</span><span class="mwk">weeks 4–8 · complete</span></div>
+        <div class="mhead"><span class="mid">M1</span><span class="mtitle">Audio spine</span><span class="mwk">weeks 4–8</span></div>
         <p class="mbody">The <code>resonance_dsp</code> FFI plugin (YIN pitch, RMS/dBFS, voicing, plosive onset, waveform envelope), PCM capture with frame re-chunking, the live visualiser, and the room-noise pre-roll gate.</p>
-        <p class="mproves"><b>Measured:</b> YIN tracks a tone to better than 0.05% across 80–440&nbsp;Hz and finds the fundamental of a harmonic-rich sawtooth without octave errors. A 2048-sample window costs 1.17&nbsp;ms — <b>7% of a 60&nbsp;fps frame budget</b>, which settled the window size and confirmed the FFI split was worth it.</p>
-        <p class="mproves"><b>Two bugs caught before they shipped:</b> a 1200&nbsp;Hz tone reported 400&nbsp;Hz, because restricting the YIN search to the vocal range makes it land on a genuine <em>multiple</em> of the true period; the search now runs to 2&nbsp;kHz and range-checks afterwards. And the plugin template’s podspec pointed at a Swift Package layout that does not exist, so the DSP would not have compiled into the app at all.</p>
       </li>
       <li>
         <div class="mhead"><span class="mid">M2</span><span class="mtitle">Score &amp; feedback</span><span class="mwk">weeks 9–13</span></div>
         <p class="mbody">Platform STT, alignment to the target script, clarity/pace/plosive rubrics tuned against the calibration set, the feedback screen, and the <code>coach-note</code> edge function. Plus <code>tools/ingest</code> for licence-checked reference audio.</p>
-        <p class="mproves"><b>Done:</b> Needleman–Wunsch word alignment with normalisation for contractions, numerals and punctuation; the scoring rubric with its weights and guards; the speech-recognition interface with platform and fake implementations; the feedback screen; the <code>coach-note</code> edge function on Claude Opus&nbsp;5; and the lesson controller that sequences the whole attempt.</p>
         <p class="mproves"><b>The ordering is the product:</b> the score is computed entirely on-device and rendered immediately, and only then is the note requested. Someone on a train sees their full breakdown at the same speed as someone on wifi — the only difference is whether a note appears underneath a moment later. Every failure path in the note returns null rather than throwing, and the endpoint answers <code>200</code> even on error, because a missing note is not worth retry logic around something already on screen.</p>
-        <p class="mproves"><b>Left:</b> <code>tools/ingest</code>, the coach-rated calibration set, persisting attempts through to the database, and an integration test covering the full record-to-feedback path on a real device.</p>
       </li>
       <li>
-        <div class="mhead"><span class="mid">M3</span><span class="mtitle">Progression</span><span class="mwk">weeks 14–16 · complete</span></div>
+        <div class="mhead"><span class="mid">M3</span><span class="mtitle">Progression</span><span class="mwk">weeks 14–16</span></div>
         <p class="mbody">Progress now persists. One transaction commits the attempt, mastery, XP, streak and energy together — a promotion whose attempt did not land is an orphan the user cannot explain, and the outbox’s ordering guarantee only holds if they commit as a unit. A test forces a mid-transaction failure and asserts nothing survives it. The outbox is written but not yet drained: recording from the start means the sync consumer arrives to real history rather than a gap where the first weeks of use should be.</p>
-        <p class="mproves"><b>Gating:</b> Silver across 80% of a unit’s lessons. Bronze means passed once, which can be a single lucky take; Silver requires passing again on a later day, which is the first evidence of retention. 80% rather than 100% so one stubborn lesson cannot wall off the curriculum. Unwritten units cannot gate anything — unauthored content blocking progress is indistinguishable from a bug.</p>
-        <p class="mproves"><b>Vocal Energy never blocks.</b> Duolingo’s hearts exist to sell refills; a voice app charging for rest would be a monetisation hook wearing a health costume, and a user who works that out stops believing the vocal-health advice too. Running out offers a real ninety-second exercise — guided box breathing plus straw-phonation humming, a technique that works in a booth without the app — always skippable, restoring two bars rather than five so resting cannot be farmed. A second consecutive low score on one lesson costs double, because repeating a lesson that is not improving is usually fatigue.</p>
       </li>
       <li>
         <div class="mhead"><span class="mid">M4</span><span class="mtitle">Sensory layer</span><span class="mwk">weeks 17–19</span></div>
@@ -904,7 +843,7 @@
           </tr>
           <tr>
             <td><strong>Pitch tracking on real rooms</strong></td>
-            <td>pYIN degrades badly with room noise and phone-mic AGC, and a wrong contour reads as the app being broken.</td>
+            <td>YIN degrades badly with room noise and phone-mic AGC, and a wrong contour reads as the app being broken.</td>
             <td>Hard-gate scoring behind the noise-floor check, VAD-gate the tracker, and show confidence in the overlay rather than drawing a confident wrong line.</td>
           </tr>
           <tr>
@@ -929,41 +868,10 @@
 
   <!-- ═══════════ 07 STATUS ═══════════ -->
   <section id="signoff">
-    <div class="sechead"><span class="secnum">07</span><h2>Decisions &amp; status</h2></div>
-    <p class="secsub">Everything below is settled. The open items are engineering unknowns, not product questions.</p>
-
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>Decision</th><th>Outcome</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Content sourcing</strong></td><td>Licence-checked ingestion — CC-BY and public domain downloaded and cached; embeds only for listen-and-analyse. No rehosting of copyrighted performances.</td></tr>
-          <tr><td><strong>Backend</strong></td><td>Supabase.</td></tr>
-          <tr><td><strong>Accounts</strong></td><td>Anonymous-first for MVP. No age gate, no consent flow, no PII until community features land.</td></tr>
-          <tr><td><strong>MVP unit</strong></td><td>Tier 1 Unit 3 — Articulation &amp; Diction. Five lessons authored.</td></tr>
-          <tr><td><strong>Art &amp; sound</strong></td><td>Ships with placeholders. M4 validates timing, not assets.</td></tr>
-          <tr><td><strong>Capacity</strong></td><td>Solo, ~10&nbsp;h/week. Schedule and scope trimmed to ~23 weeks.</td></tr>
-          <tr><td><strong>Toolchain</strong></td><td>Flutter 3.47.2, pinned per-project with fvm. Riverpod 3, drift, go_router, freezed.</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="signoff">
-      <h3>Where M0 stands</h3>
-      <ul class="plain">
-        <li><strong>Building:</strong> macOS and iOS compile, run, and register the WebView plugin. Android is scaffolded but still needs Studio’s SDK wizard and a JDK&nbsp;21 downgrade.</li>
-        <li><strong>Tested:</strong> 40 passing, analyzer clean, formatter clean. 13 on the mastery ladder (thresholds, the once-per-day rule, decay floors, a five-day climb, and a grind attempt that correctly gets nowhere); 15 on persistence (mastery round-trip, XP accumulation, outbox ordering, and a delete-my-data check that asserts the outbox is emptied too); 12 on the curriculum pipeline and skill tree.</li>
-        <li><strong>Content pipeline:</strong> authored YAML compiles to a validated seed. Duplicate ids, dangling prerequisites, cycles, unknown lesson types, inverted WPM bands and un-credited references all fail the build — verified by feeding it a deliberately broken tree.</li>
-        <li><strong>Rendering:</strong> the skill tree draws all eight Tier&nbsp;1 units from the compiled seed with segmented mastery rings, locked states, and unauthored units showing their planned size. Archivo, Newsreader and JetBrains Mono are bundled as variable fonts.</li>
-        <li><strong>Persistence:</strong> Drift schema covering mastery, attempts with separable score components, streak, daily XP and the sync outbox. Delete-my-data is implemented and tested.</li>
-        <li><strong>CI:</strong> analyze, format, test, curriculum compile, a stale-seed guard, a stale-codegen guard, the native DSP harness, and builds for all three platforms.</li>
-        <li><strong>Audio (M1):</strong> the DSP plugin with 27 native algorithm checks and 21 FFI binding tests; PCM re-chunking that provably loses no sample across ragged callbacks; the semitone-axis visualiser that gaps across breaths rather than drawing a line to zero; and a room check that runs <em>before</em> the take.</li>
-        <li><strong>Scoring (M2):</strong> word alignment that reports a dropped word as one omission rather than cascading into a false near-total failure; a rubric whose most important test is simply that a better read always outranks a worse one; and a feedback screen that marks the script where words were lost, because “Clarity 78” teaches nothing and a struck-through “batch” teaches immediately.</li>
-        <li><strong>Streak rules:</strong> the freeze is spent automatically, because at the moment the decision would need making the user is by definition not in the app. One missed day is covered; two are not — a freeze is for a bad night, not a lapsed habit, and papering over more would make the number mean nothing.</li>
-        <li><strong>Progression (M3):</strong> persistence in one transaction with a rollback test; unit gating that requires evidence of retention rather than a single good take; and an energy meter with no way to express a refusal — the type has no method that can block an attempt.</li>
-        <li><strong>Privacy boundary, enforced in the type system:</strong> the coach-note client’s signature accepts a transcript and numbers and has no parameter through which audio could be passed. The edge function additionally rejects any request body carrying an audio field, so widening the boundary later takes a deliberate change in two places.</li>
-      </ul>
-      <p style="margin-bottom:0;"><strong>M5 is complete and the sync path is live.</strong> Schema, Row-Level Security and <code>delete-account</code> are applied to the real Supabase project and verified against it — five tables answering, an anonymous insert refused with a <code>42501</code> policy violation specifically rather than merely a non-200. Sign-in is a magic link, lives in settings rather than onboarding, and gates nothing; anonymous auth stays deliberately off, so no server row exists for anyone who has not chosen to create one. Delete-my-data removes the server rows, the auth account and the local database, server first so a failure cannot strand someone with an account holding data they were told was gone. It is proven end to end from a genuine signed-in session rather than a hand-made token: rows gone, account gone, and the surviving token able to neither read nor write. <strong>Live verification earned its place twice more.</strong> It found a transport bug no unit test could — attempts were sent with a merging upsert, which needs an UPDATE policy that the immutable <code>attempts</code> table deliberately lacks, so every retry was refused with a 403. And the M5 audit found the outbox engine and its live-verified transport both finished, both passing their own tests, and connected to nothing: <code>drain()</code> had no caller in the app at all, so a signed-in user would have queued rows forever and synced none of them. It now runs on reconnecting, on signing in, and on finishing an attempt. <strong>M2 closed with <code>tools/ingest</code>; M4 shipped, then three defects found in manual use and closed</strong> — a duck that leaked on every exit that skipped its unduck, permanently muting an app-scoped bus; a breather circle whose size was inferred by string-matching a phase label with no case for <em>hold</em>, so it shrank through the phase it was meant to hold; and a tap cue that shipped with an asset, entries in both registries and no caller at all. None matched the first hypothesis offered; all were found by reading the paths rather than patching the symptom. <strong>All seven M3 items were audited against the codebase, not against the notes</strong> — six held; the widget test asserting the tree reflects <em>persisted</em> mastery had never been written, and the test standing in for it asserted only that eight rings exist. <strong>The suite stands at 337 app tests, 30 across the DSP package, 5 integration tests against the real macOS binary, 7 RLS checks and 9 deletion checks against a live stack</strong> — plus the native C harness, a Deno type-check of the edge functions and a privacy-key verifier. M0 through M5 are complete. Two gaps are open and deliberate: rubric weights are hand-set rather than coach-calibrated, since calibration needs a working coach to rate against and that relationship is deferred until the project is public; and the embed lesson renders an awaiting-selection state because its clip is a product choice not yet made, rather than a placeholder pretending to be one. <strong>M6 — hardening — is next.</strong></p>
-    </div>
+    <div class="sechead"><span class="secnum">07</span><h2>Where this is settled</h2></div>
+    <p class="secsub">The product questions are closed; what remain are engineering unknowns. The settled decisions are recorded where they are acted on rather than summarised here — a summary table is the cheapest place for a fact to go stale, and this one had drifted.</p>
+    <p>Product rules, curriculum structure, milestone scope and current status: <a href="Requirements.md"><code>Requirements.md</code></a>. How the system is built — layout, stack, abstractions, schema, auth and sync: <a href="Design.md"><code>Design.md</code></a>. Toolchain, environment quirks and the verification bar: <a href="../CLAUDE.md"><code>CLAUDE.md</code></a>.</p>
+    <p>The arguments behind those decisions — the pedagogy, the content-sourcing position, the platform choices and the risks — are the rest of this document, and stay here.</p>
   </section>
 
 </div>

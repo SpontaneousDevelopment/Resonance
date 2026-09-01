@@ -56,6 +56,7 @@ supabase start                                            # local stack; Mailpit
 
 fvm flutter analyze && fvm flutter test                   # from apps/resonance
 ./scripts/integration_test.sh                             # macOS integration tests
+./scripts/release.sh check                                # what distribution still needs
 ./backend/supabase/tests/verify_delete_account.sh         # deletion, end to end, live
 ./tools/verify_plists/verify.sh                           # privacy keys + entitlements
 ```

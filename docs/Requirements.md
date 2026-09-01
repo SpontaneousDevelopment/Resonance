@@ -148,7 +148,7 @@ defects were found lives in git history.
 | **M3** | Progression: one transaction committing attempt, mastery, XP, streak and energy together; unit gating; Vocal Energy and the rest exercise. | Complete |
 | **M4** | Sensory layer: haptics across three platforms, a CC0 sound palette, celebration choreography, a full reduced-motion path. | Complete, including three post-ship defects |
 | **M5** | Embed & sync: the listen-and-analyse lesson on the embedded player with in/out points, optional account, outbox sync on reconnect, delete-my-data. | Complete — see below |
-| **M6** | Hardening: performance pass, crash reporting, analytics, accessibility audit including VoiceOver on the lesson runner, TestFlight and internal track. | Not started |
+| **M6** | Hardening: performance pass, crash reporting, analytics, accessibility audit including VoiceOver on the lesson runner, TestFlight and internal track. | **Partly complete** — see below |
 
 ### M5 — what is live-verified
 
@@ -167,6 +167,37 @@ Two things M5 does **not** claim:
   transport. The full chain from a reconnect to a live row has not been
   exercised in one run.
 - `integration_test/` cannot go fully green from a VS Code shell.
+
+### M6 — what is done, and what is blocked
+
+| Component | Status |
+| --- | --- |
+| M6.1 Performance | Complete. Frame budget asserted in C; three wall-clock guards over the painted paths. |
+| M6.2 Crash reporting | Complete. Sentry, hard-configured, gated on informed consent. |
+| M6.3 Analytics | Complete as scoped — deferred to post-MVP; sign-in conversion counted locally only. |
+| M6.4 Accessibility | Complete. Found and fixed three real defects. |
+| M6.5 Distribution | **Blocked on account access.** Everything not requiring an account is wired. |
+
+**Blocked on the account holder** — none of these can be done from the
+codebase, and none has been guessed at or given a placeholder:
+
+- Apple Developer Program enrolment, and the Team ID it yields
+- `app.resonance` registered on the developer portal, with an App Store Connect
+  record
+- An App Store Connect API key: Issuer ID, Key ID, and the `.p8`, stored outside
+  this repository
+- Export compliance declaration and age rating
+- A Play Console account, an upload keystore created and held by the developer,
+  and a Play service-account JSON
+- Sentry project settings: **"Prevent Storing of IP Addresses"**, which is
+  server-side and cannot be enforced by the client
+
+`./scripts/release.sh check` reports exactly which of these are missing.
+
+**Also outstanding, and not account-blocked:** the `PrivacyInfo.xcprivacy`
+manifests exist for iOS and macOS but are not yet referenced by their Xcode
+targets, so they would not ship. Adding them to the Resources build phase is
+required before any store submission.
 
 ### Deliberate gaps, not outstanding work
 

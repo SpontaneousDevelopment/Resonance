@@ -154,6 +154,11 @@ jobs:
           flutter test integration_test/lesson_flow_test.dart -d macos
           flutter test integration_test/accessibility_test.dart -d macos
           flutter test integration_test/performance_test.dart -d macos
+          flutter test integration_test/telemetry_notice_test.dart -d macos
+          # Both halves of the notice matter: a store build must never show it,
+          # a test build must be gated by it.
+          flutter test integration_test/telemetry_notice_test.dart -d macos \
+            --dart-define=RESONANCE_INTERNAL_BUILD=true
 
   build-android:
     name: Build Android

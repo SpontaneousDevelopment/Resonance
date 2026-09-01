@@ -265,6 +265,57 @@ experience is the accepted tradeoff, and a test asserts the sound timeline is
 identical with and without haptics so that nobody later "fixes" it by
 compensating with extra sound.
 
+## Telemetry
+
+Crash reporting only. There is no analytics processor, and the one product
+signal worth having before launch — how long someone takes to sign in — is two
+dates in local storage that are never transmitted.
+
+**Sentry, with its defaults narrowed rather than accepted.** Session tracking is
+off: it is on by default and pings on every launch and close, which is an
+always-on usage beacon and exactly what this app refuses to do. Input and
+navigation breadcrumbs are off, because a trail of what someone tapped is
+behavioural analytics arriving under a crash-reporting banner. No screenshots,
+no view hierarchy, no PII.
+
+**Consent is two facts, not one.** `enabled` is what the user chose;
+`noticeSeen` is whether they were ever told. `maySend` requires both, so the
+tester default of "on" sends nothing until the notice has actually been put in
+front of someone. The notice is a screen that gates the app, not a line in
+release notes — a notice nobody has to acknowledge is the same shape as a cue
+that is declared and never reached.
+
+The build type is a compile-time constant, so a store build physically cannot
+ship with the tester default. Store builds are off until someone turns them on
+in settings.
+
+**Not tied to sign-in.** Sign-in means sync and nothing else. If it also
+switched telemetry on it would quietly mean two things, and someone who wanted
+their progress on a second device would have agreed to something they were never
+asked about.
+
+Sentry is pinned to 9.x: 8.14.2 does not compile against the current Sentry
+Cocoa SDK on macOS — `SentryBinaryImageCache has no member 'image'`.
+
+## Distribution
+
+Release builds carry `--split-debug-info` and `--obfuscate`. Without the former
+a release crash report is a list of hex addresses, which is a crash reporter
+that technically works and tells you nothing; the symbols are written per build
+and must be kept.
+
+The build number is `git rev-list --count HEAD` rather than a hand-maintained
+field. TestFlight rejects a reused build number, and a number derived from
+history cannot go backwards or be forgotten.
+
+**Nothing here invents an account-level value.** `ExportOptions.plist` is
+generated from `APPLE_TEAM_ID` at release time rather than committed, because a
+committed placeholder Team ID produces a build that fails confusingly much
+later. The Android signing config reads `key.properties` if it exists and falls
+back to debug keys with a loud warning if not — the keystore is never generated
+by tooling, since a signing key is the developer's to create, hold and back up,
+and one a script made is one that has to be rotated.
+
 ## Testability seams
 
 The recurring shape: anything that needs hardware, a network or a clock is an

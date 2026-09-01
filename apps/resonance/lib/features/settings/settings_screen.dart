@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/account/account_service.dart';
 import '../../core/net/supabase_config.dart';
 import '../../core/sync/sync_settings.dart';
+import '../../core/telemetry/telemetry_settings.dart';
 import '../../ui/tokens/spacing.dart';
 import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
@@ -69,6 +70,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.watch(authStateProvider);
     final account = ref.watch(accountServiceProvider);
     final settings = ref.watch(syncSettingsProvider);
+    final telemetry = ref.watch(telemetrySettingsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -131,6 +133,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: Text(
               'Scores, streaks and progress only — a few hundred bytes a '
               'session. Recordings are never uploaded.',
+              style: ResType.caption.copyWith(color: colors.inkMuted),
+            ),
+          ),
+
+          const SizedBox(height: ResSpace.section),
+          Text(
+            'CRASH REPORTS',
+            style: ResType.label.copyWith(color: colors.inkFaint),
+          ),
+          const SizedBox(height: ResSpace.tight),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: telemetry.enabled,
+            onChanged: (value) =>
+                ref.read(telemetrySettingsProvider.notifier).setEnabled(value),
+            title: Text(
+              'Send crash reports',
+              style: ResType.bodyStrong.copyWith(color: colors.ink),
+            ),
+            subtitle: Text(
+              'The error and where it happened, plus your device model and OS '
+              'version. Never recordings, transcripts, scores or your email, '
+              'and nothing at all unless something breaks.',
               style: ResType.caption.copyWith(color: colors.inkMuted),
             ),
           ),

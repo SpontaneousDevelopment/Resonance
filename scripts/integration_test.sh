@@ -29,6 +29,16 @@ for file in integration_test/*_test.dart; do
   pkill -f "Build/Products/Debug/resonance.app" 2>/dev/null || true
 done
 
+# The telemetry notice behaves differently by build type and both halves matter:
+# a test build must show it and be gated by it, a store build must never show it.
+# The loop above covers the store case; this covers the other one.
+echo "=== integration_test/telemetry_notice_test.dart (internal build) ==="
+if ! fvm flutter test integration_test/telemetry_notice_test.dart -d macos \
+     --dart-define=RESONANCE_INTERNAL_BUILD=true "$@"; then
+  failed=1
+fi
+pkill -f "Build/Products/Debug/resonance.app" 2>/dev/null || true
+
 if [ "$failed" -ne 0 ]; then
   echo
   echo "One or more files failed."

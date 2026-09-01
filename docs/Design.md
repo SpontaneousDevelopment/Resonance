@@ -87,6 +87,7 @@ where relevant, the shape it has to hold.
 | --- | --- |
 | `MasteryLevel` / `Mastery` | The ladder: thresholds, one-rung-at-a-time promotion, the daily promotion cap, decay that floors at Bronze. |
 | `UnlockEvaluator` | Which units are open, and *why* — returning a `LockReason` and the blocking units, so the UI can say "3 more lessons at Silver" rather than showing a bare padlock. |
+| `LessonUnlockEvaluator` | Which lessons inside a unit are open, and *why* — sequence, unit closed, or waiting on a clip. |
 | `ScoredReadRubric` | Metric → score. Pure; no audio types cross into it. |
 | `TranscriptAligner` | Word-level alignment of what was said against the script. |
 | `SignInDecision` | Adopt remote, adopt local, ask, or nothing to carry. Pure, because "never silently discard progress" is a product rule that deserves a test rather than an implementation detail. |
@@ -96,6 +97,13 @@ where relevant, the shape it has to hold.
 evaluating them — the tree opened whatever happened to have content.
 `UnlockEvaluator` is that rule made real, and it is pure so the gating can be
 tested without a database.
+
+**Why lesson unlocking reads `bestScore` rather than `level`.** Mastery decays,
+so the current level is not monotonic; the best score a lesson has ever earned
+is. Gating the next lesson on the high-water mark is what makes "never re-lock
+something already opened" true by construction rather than by a flag somebody
+has to remember to set — a lesson opened stays open through a decay, a restored
+backup, or a repair that comes back a rung short.
 
 **Why `BreathCycle` is a function of elapsed time.** The breather originally
 drove an `AnimatedContainer` whose target was a boolean and whose duration was

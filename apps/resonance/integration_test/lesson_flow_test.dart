@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:resonance/app/app.dart';
+import 'package:resonance/features/skill_tree/lesson_node.dart';
 
 import 'test_window.dart';
 
@@ -27,6 +28,18 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(keepTestWindowOnScreen);
+
+  /// Opens a unit and enters one of its lessons, which is now two taps rather
+  /// than one — a unit expands in place, and the lesson is chosen from the list.
+  Future<void> openLesson(WidgetTester tester, String lessonTitle) async {
+    await tester.tap(find.text('Articulation & Diction'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    await tester.tap(find.text(lessonTitle));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+  }
 
   Future<void> launch(WidgetTester tester) async {
     // The real macOS window is whatever size it happens to be, and a short one
@@ -59,7 +72,23 @@ void main() {
     // with no platform behind it. Here there is a platform.
     await launch(tester);
 
+    // Expanding first. The unit card used to jump straight into its first
+    // playable lesson; choosing a lesson is now a real step.
     await tester.tap(find.text('Articulation & Diction'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(
+      find.text('Plosive Precision'),
+      findsOneWidget,
+      reason: 'the unit should have expanded to list its lessons',
+    );
+    expect(
+      find.text('Check my room'),
+      findsNothing,
+      reason: 'expanding a unit must not enter a lesson',
+    );
+
+    await tester.tap(find.text('Plosive Precision'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
@@ -73,10 +102,7 @@ void main() {
   testWidgets('the script contains no coaching direction', (tester) async {
     // Regression guard for the content bug: direction belongs in the brief.
     await launch(tester);
-
-    await tester.tap(find.text('Articulation & Diction'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
+    await openLesson(tester, 'Plosive Precision');
 
     final script = tester
         .widgetList<Text>(find.byType(Text))
@@ -99,17 +125,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Still on the tree.
+    // Still on the tree, and it did not expand either — a locked unit does not
+    // reveal its lessons any more than it opens one.
     expect(find.text('Articulation & Diction'), findsOneWidget);
     expect(find.text('Check my room'), findsNothing);
+    expect(find.byType(LessonNode), findsNothing);
   });
 
   testWidgets('back returns to the tree', (tester) async {
     await launch(tester);
-
-    await tester.tap(find.text('Articulation & Diction'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
+    await openLesson(tester, 'Plosive Precision');
     expect(find.text('Check my room'), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));

@@ -7,13 +7,17 @@ import '../../app/router.dart';
 import '../../core/curriculum_repository.dart';
 import '../../core/progress/progress_repository.dart';
 import '../../core/sensory/sensory_director.dart';
+import '../../domain/sensory/sensory_cue.dart';
+import '../../domain/curriculum/lesson_unlock.dart';
 import '../../domain/curriculum/unlock.dart';
 import 'progress_header.dart';
 import '../../domain/curriculum/curriculum.dart';
 import '../../domain/curriculum/mastery.dart';
+import '../../ui/tokens/motion.dart';
 import '../../ui/tokens/spacing.dart';
 import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
+import 'lesson_node.dart';
 import 'unit_node.dart';
 
 /// The skill tree — the app's home.
@@ -45,16 +49,47 @@ class SkillTreeScreen extends ConsumerWidget {
   }
 }
 
-class _Tree extends ConsumerWidget {
+class _Tree extends ConsumerStatefulWidget {
   const _Tree({required this.curriculum, required this.mastery});
 
   final Curriculum curriculum;
   final Map<String, Mastery> mastery;
 
+  @override
+  ConsumerState<_Tree> createState() => _TreeState();
+}
+
+class _TreeState extends ConsumerState<_Tree> {
   static const _evaluator = UnlockEvaluator();
+  static const _lessonEvaluator = LessonUnlockEvaluator();
+
+  /// The one unit showing its lessons, if any.
+  ///
+  /// One at a time: the tree is a list of choices, and two units open at once
+  /// turns it into a wall of twelve. Collapsing the previous one is also what
+  /// makes the newly opened unit land where the user is already looking.
+  String? _expandedUnitId;
+
+  Curriculum get curriculum => widget.curriculum;
+  Map<String, Mastery> get mastery => widget.mastery;
+
+  void _toggle(Unit unit) {
+    final director = ref.read(sensoryDirectorProvider);
+    // Motion and haptics both go through the sensory layer rather than being
+    // improvised here, so this screen honours reduced motion the same way every
+    // other moment in the app does.
+    director.syncWith(context);
+    final opening = _expandedUnitId != unit.id;
+    director.play(
+      opening
+          ? const FeedbackChoreography().forUnitExpand()
+          : const FeedbackChoreography().forUnitCollapse(),
+    );
+    setState(() => _expandedUnitId = opening ? unit.id : null);
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colors = context.colors;
     final gutter = context.gutter;
     final unlockStates = _evaluator.evaluate(
@@ -117,29 +152,32 @@ class _Tree extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: ResSpace.snug),
               itemBuilder: (context, index) {
                 final unit = tier.units[index];
-                final unlock = unlockStates[unit.id];
-                final unitMastery = _bestMasteryIn(unit);
-                return UnitNode(
-                  unit: unit,
-                  // Until progress persistence lands in M3, the first authored
-                  // unit is open and everything else reads as locked. This is
-                  // scaffolding, not the unlock rule — that lives in
-                  // domain/curriculum/mastery.dart and is already tested.
-                  mastery: unitMastery,
-                  isUnlocked: unlock?.isOpen ?? false,
-                  onTap: (unlock?.isOpen ?? false)
-                      ? () {
-                          ref.read(sensoryDirectorProvider).tap();
-                          // Opens the first lesson that is actually playable —
-                          // a unit whose first entry is awaiting a clip should
-                          // not dead-end the user.
-                          final lesson = unit.lessons.firstWhere(
-                            (l) => !l.isBlockedOnSelection,
-                            orElse: () => unit.lessons.first,
-                          );
-                          context.push(Routes.lessonPath(lesson.id));
-                        }
-                      : null,
+                final isOpen = unlockStates[unit.id]?.isOpen ?? false;
+                final expanded = _expandedUnitId == unit.id;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    UnitNode(
+                      unit: unit,
+                      // Whatever the deepest lesson reached is. The unit ring
+                      // summarises; the per-lesson rings below are exact.
+                      mastery: _bestMasteryIn(unit),
+                      isUnlocked: isOpen,
+                      isExpanded: expanded,
+                      onTap: isOpen ? () => _toggle(unit) : null,
+                    ),
+                    // Expands in place rather than pushing a screen. The unit
+                    // card stays where it was, so the lessons read as being
+                    // inside the thing that was tapped.
+                    _LessonList(
+                      unit: unit,
+                      expanded: expanded,
+                      mastery: mastery,
+                      unitIsOpen: isOpen,
+                      evaluator: _lessonEvaluator,
+                    ),
+                  ],
                 );
               },
             ),
@@ -150,7 +188,7 @@ class _Tree extends ConsumerWidget {
   }
 }
 
-extension on _Tree {
+extension on _TreeState {
   /// The highest level reached on any lesson in a unit.
   ///
   /// A unit-level ring from lesson-level data has to summarise somehow; the
@@ -256,6 +294,72 @@ class _SeedError extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The lessons inside a unit, revealed in place.
+///
+/// Collapsed, this is a zero-height box rather than an absent widget, so
+/// [AnimatedSize] has something to animate between and the unit card above it
+/// never jumps. Duration comes from [ResMotion.duration], which returns zero
+/// under reduced motion — the lessons then appear immediately rather than not
+/// at all, which is the rule the rest of the app follows.
+class _LessonList extends ConsumerWidget {
+  const _LessonList({
+    required this.unit,
+    required this.expanded,
+    required this.mastery,
+    required this.unitIsOpen,
+    required this.evaluator,
+  });
+
+  final Unit unit;
+  final bool expanded;
+  final Map<String, Mastery> mastery;
+  final bool unitIsOpen;
+  final LessonUnlockEvaluator evaluator;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final states = evaluator.evaluate(
+      unit: unit,
+      unitIsOpen: unitIsOpen,
+      mastery: mastery,
+    );
+
+    return AnimatedSize(
+      duration: ResMotion.duration(context, ResMotion.surface),
+      curve: ResMotion.enter,
+      alignment: Alignment.topCenter,
+      child: !expanded
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              padding: const EdgeInsets.only(
+                top: ResSpace.snug,
+                left: ResSpace.base,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < unit.lessons.length; i++) ...[
+                    if (i > 0) const SizedBox(height: ResSpace.hair),
+                    LessonNode(
+                      lesson: unit.lessons[i],
+                      number: i + 1,
+                      mastery:
+                          mastery[unit.lessons[i].id] ?? const Mastery.fresh(),
+                      unlock: states[unit.lessons[i].id]!,
+                      tierColor: context.colors.tier(unit.tierNumber),
+                      onTap: () {
+                        ref.read(sensoryDirectorProvider).tap();
+                        context.push(Routes.lessonPath(unit.lessons[i].id));
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }

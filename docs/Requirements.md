@@ -134,6 +134,23 @@ Unauthored content cannot gate anything — a unit blocked by lessons nobody has
 written yet is indistinguishable from a bug, and is reported as
 *not yet authored* rather than as locked.
 
+### Lesson sequencing within a unit
+
+Tapping a unit opens it in place to show its lessons; choosing one is a real
+decision, not a shortcut into whichever happens to be first.
+
+- **Lesson 1 of an open unit is always reachable.**
+- **Lesson N+1 opens once lesson N has been passed once** — Bronze. A
+  deliberately lower bar than the Silver that gates a *new* unit: this exists so
+  lessons are met in the order they were written, not to make anyone prove
+  retention twice inside a unit they have already committed to.
+- **Nothing that has been opened is ever taken away.** Not on decay, not on a
+  restored backup, not on a data repair.
+- **A lesson waiting on an editorial decision reads differently from one the
+  user has not reached.** Those are different facts, and one padlock for both
+  would misdescribe at least one of them. Such a lesson also cannot gate the
+  lessons after it, for the same reason unauthored units cannot gate the tree.
+
 ## Milestones
 
 M0–M6 for the MVP. Scope and current status only; the engineering rationale for

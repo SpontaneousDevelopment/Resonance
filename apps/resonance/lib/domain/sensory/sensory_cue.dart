@@ -117,6 +117,26 @@ class FeedbackChoreography {
     SensoryCue(at: Duration.zero, haptic: HapticCue.tap, sound: SoundCue.tap),
   ];
 
+  /// Opening a unit to show its lessons.
+  ///
+  /// The same cue as any other press, because that is what it is — the unit
+  /// card is a control and this is it responding. Kept as its own method rather
+  /// than calling [forTap] at the screen, so the expand interaction has a named
+  /// entry in the choreography like every other moment in the app, and its
+  /// timing is a value a test can pin.
+  List<SensoryCue> forUnitExpand() => const [
+    SensoryCue(at: Duration.zero, haptic: HapticCue.tap, sound: SoundCue.tap),
+  ];
+
+  /// Closing it again.
+  ///
+  /// Haptic only. Closing is the undo of a thing the user just did, and it
+  /// needs acknowledging rather than announcing; a second identical click on
+  /// the way out is the kind of noise that makes people turn sound off.
+  List<SensoryCue> forUnitCollapse() => const [
+    SensoryCue(at: Duration.zero, haptic: HapticCue.tap),
+  ];
+
   List<SensoryCue> forRecordingStart() => const [
     SensoryCue(
       at: Duration.zero,

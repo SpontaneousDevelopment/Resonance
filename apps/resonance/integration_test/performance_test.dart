@@ -83,8 +83,7 @@ void main() {
     expect(
       perDrag,
       lessThan(60.0),
-      reason:
-          '${perDrag}ms per scroll step on the tree; measured 31.5ms clean',
+      reason: '${perDrag}ms per scroll step on the tree; measured 31.5ms clean',
     );
   });
 

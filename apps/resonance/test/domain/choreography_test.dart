@@ -181,6 +181,8 @@ void main() {
     // requires the enums to be fully covered.
     List<SensoryCue> allPaths() => [
       ...choreo.forTap(),
+      ...choreo.forUnitExpand(),
+      ...choreo.forUnitCollapse(),
       ...choreo.forRecordingStart(),
       ...choreo.forRecordingStop(),
       ...attempt(score: 80),
@@ -223,6 +225,36 @@ void main() {
       expect(cue.sound, SoundCue.tap);
       expect(cue.haptic, HapticCue.tap);
       expect(cue.at, Duration.zero);
+    });
+  });
+
+  group('opening and closing a unit', () {
+    test('opening is an ordinary press', () {
+      final cue = choreo.forUnitExpand().single;
+      expect(cue.sound, SoundCue.tap);
+      expect(cue.haptic, HapticCue.tap);
+      expect(cue.at, Duration.zero);
+    });
+
+    test('closing is felt but not heard', () {
+      // Closing undoes something the user just did. It needs acknowledging,
+      // not announcing — a second identical click on the way out is the noise
+      // that makes people turn sound off.
+      final cue = choreo.forUnitCollapse().single;
+      expect(cue.haptic, HapticCue.tap);
+      expect(
+        cue.sound,
+        isNull,
+        reason: 'collapsing should not replay the open sound',
+      );
+      expect(cue.at, Duration.zero);
+    });
+
+    test('neither one stalls the interaction', () {
+      // Both fire at zero, so the animation is never waiting on a cue.
+      for (final cues in [choreo.forUnitExpand(), choreo.forUnitCollapse()]) {
+        expect(cues.map((c) => c.at), everyElement(Duration.zero));
+      }
     });
   });
 

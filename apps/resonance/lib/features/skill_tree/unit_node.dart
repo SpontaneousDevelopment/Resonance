@@ -19,12 +19,16 @@ class UnitNode extends StatefulWidget {
     required this.unit,
     required this.mastery,
     required this.isUnlocked,
+    this.isExpanded = false,
     this.onTap,
   });
 
   final Unit unit;
   final Mastery mastery;
   final bool isUnlocked;
+
+  /// Whether this unit is currently showing its lessons.
+  final bool isExpanded;
   final VoidCallback? onTap;
 
   @override
@@ -46,8 +50,9 @@ class _UnitNodeState extends State<UnitNode> {
         : colors.surface;
 
     return Semantics(
-      button: enabled,
       enabled: enabled,
+      button: enabled,
+      expanded: enabled ? widget.isExpanded : null,
       label:
           '${unit.label} ${unit.title}. '
           '${unit.displayLessonCount} lessons. '
@@ -141,10 +146,18 @@ class _UnitNodeState extends State<UnitNode> {
                     ),
                   ),
                   if (enabled)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: colors.inkFaint,
-                      size: 22,
+                    // Points down when open. The card expands in place, so an
+                    // arrow suggesting a jump elsewhere would describe the
+                    // wrong interaction.
+                    AnimatedRotation(
+                      turns: widget.isExpanded ? 0.25 : 0.0,
+                      duration: ResMotion.duration(context, ResMotion.control),
+                      curve: ResMotion.enter,
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: colors.inkFaint,
+                        size: 22,
+                      ),
                     )
                   else
                     Icon(

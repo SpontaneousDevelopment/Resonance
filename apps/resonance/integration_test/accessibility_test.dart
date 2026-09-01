@@ -37,8 +37,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
   }
 
+  /// Two taps now: a unit expands in place, and the lesson is chosen from the
+  /// list it reveals.
   Future<void> openLesson(WidgetTester tester) async {
     await tester.tap(find.text('Articulation & Diction'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    await tester.tap(find.text('Plosive Precision'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
   }
@@ -53,6 +59,24 @@ void main() {
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+
+      handle.dispose();
+    });
+
+    testWidgets('an expanded unit meets contrast, tap target and labelling', (
+      tester,
+    ) async {
+      // The lesson cards are new interactive surface, and a locked one still
+      // has to be readable — it is the thing telling someone what to do next.
+      final handle = tester.ensureSemantics();
+      await launch(tester);
+      await tester.tap(find.text('Articulation & Diction'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
       await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
 
       handle.dispose();

@@ -82,26 +82,42 @@ class RecordView extends StatelessWidget {
                               },
                         child: Text(busy ? 'Listening…' : 'Check my room'),
                       )
-                    : FilledButton(
-                        onPressed: room.isAcceptable
-                            ? () {
-                                // A tap while recording is silent — the duck is
-                                // held and the microphone is open. Deliberate:
-                                // Stop is the only button on screen mid-take.
-                                controller.sensory.tap();
-                                if (recording) {
-                                  controller.stopAndScore();
-                                } else {
-                                  controller.startRecording();
+                    : Semantics(
+                        // The button's own text changes between Record and
+                        // Stop, but nothing announces that the state changed —
+                        // and mid-take the user is looking at the script, not
+                        // the screen.
+                        liveRegion: true,
+                        label: recording
+                            ? 'Recording. Activate to stop and score your take.'
+                            : room.isAcceptable
+                            ? 'Record your take'
+                            : 'Recording unavailable until the room is quiet '
+                                  'enough',
+                        button: true,
+                        enabled: room.isAcceptable,
+                        excludeSemantics: true,
+                        child: FilledButton(
+                          onPressed: room.isAcceptable
+                              ? () {
+                                  // A tap while recording is silent — the duck is
+                                  // held and the microphone is open. Deliberate:
+                                  // Stop is the only button on screen mid-take.
+                                  controller.sensory.tap();
+                                  if (recording) {
+                                    controller.stopAndScore();
+                                  } else {
+                                    controller.startRecording();
+                                  }
                                 }
-                              }
-                            : null,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: recording
-                              ? colors.clip
-                              : colors.accent,
+                              : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: recording
+                                ? colors.clip
+                                : colors.accent,
+                          ),
+                          child: Text(recording ? 'Stop and score' : 'Record'),
                         ),
-                        child: Text(recording ? 'Stop and score' : 'Record'),
                       ),
               ),
               const SizedBox(height: ResSpace.base),
@@ -149,25 +165,41 @@ class _Readout extends StatelessWidget {
     final colors = context.colors;
     final frame = controller.latestFrame;
 
-    return DefaultTextStyle(
-      style: ResType.metric.copyWith(color: colors.inkMuted),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('${controller.elapsedSeconds.toStringAsFixed(1)}s'),
-          Text(
-            frame.isClipping ? 'CLIPPING' : '${frame.db.toStringAsFixed(0)} dB',
-            style: ResType.metric.copyWith(
-              color: frame.isClipping ? colors.clip : colors.inkMuted,
+    return Semantics(
+      // Four live numbers that change every frame. Read out individually they
+      // are noise — "—", "0 dB", "12.4s" — so the strip gets one label saying
+      // what it is, and the glyphs themselves are not announced.
+      label: controller.room == null
+          ? 'Live readout. Room not checked yet.'
+          : 'Live readout. Room noise floor '
+                '${controller.room!.noiseFloorDb.toStringAsFixed(0)} decibels.',
+      excludeSemantics: true,
+      child: DefaultTextStyle(
+        // `ink`, not `inkMuted`: this is a measurement someone reads while
+        // performing, and it sat at 3.15:1 against the dark ground.
+        style: ResType.metric.copyWith(color: colors.ink),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('${controller.elapsedSeconds.toStringAsFixed(1)}s'),
+            Text(
+              frame.isClipping
+                  ? 'CLIPPING'
+                  : '${frame.db.toStringAsFixed(0)} dB',
+              style: ResType.metric.copyWith(
+                color: frame.isClipping ? colors.clip : colors.ink,
+              ),
             ),
-          ),
-          Text(frame.hasPitch ? '${frame.pitchHz.toStringAsFixed(0)} Hz' : '—'),
-          Text(
-            controller.room == null
-                ? 'room —'
-                : 'room ${controller.room!.noiseFloorDb.toStringAsFixed(0)} dB',
-          ),
-        ],
+            Text(
+              frame.hasPitch ? '${frame.pitchHz.toStringAsFixed(0)} Hz' : '—',
+            ),
+            Text(
+              controller.room == null
+                  ? 'room —'
+                  : 'room ${controller.room!.noiseFloorDb.toStringAsFixed(0)} dB',
+            ),
+          ],
+        ),
       ),
     );
   }

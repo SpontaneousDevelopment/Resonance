@@ -168,9 +168,21 @@ class _Headline extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${score.composite}',
-                style: ResType.metricLarge.copyWith(color: colors.ink),
+              Semantics(
+                // The number is the first thing a sighted user sees and the
+                // last thing a screen reader can make sense of unannotated:
+                // "78" alone says nothing about what it measures, what it is
+                // out of, or what happened to the level.
+                header: true,
+                label:
+                    'Score ${score.composite} out of 100. '
+                    '${_verdict(promotion)}. '
+                    'Mastery ${promotion.after.label}.',
+                excludeSemantics: true,
+                child: Text(
+                  '${score.composite}',
+                  style: ResType.metricLarge.copyWith(color: colors.ink),
+                ),
               ),
               const SizedBox(height: ResSpace.hair),
               Text(

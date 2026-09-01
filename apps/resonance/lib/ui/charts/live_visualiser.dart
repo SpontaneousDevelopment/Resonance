@@ -130,21 +130,27 @@ class _LiveVisualiserState extends State<LiveVisualiser>
     // With reduced motion the scroll snaps frame to frame rather than gliding.
     final smooth = !MediaQuery.disableAnimationsOf(context);
 
-    return SizedBox(
-      height: widget.height,
-      width: double.infinity,
-      child: RepaintBoundary(
-        child: CustomPaint(
-          painter: _VisualiserPainter(
-            history: _history,
-            windowFrames: widget.windowFrames,
-            interFrame: smooth ? _interFrame : 1.0,
-            referenceContour: widget.referenceContour,
-            levelColor: colors.userTrace,
-            contourColor: colors.userTrace,
-            referenceColor: colors.referenceTrace,
-            gridColor: colors.ruleSoft,
-            clipColor: colors.clip,
+    return ExcludeSemantics(
+      // Decoration, and deliberately so. This is a pitch trace with no text in
+      // it; announced, it is noise on top of the script the user is trying to
+      // read. What it conveys — level, clipping, whether the room is usable —
+      // is spoken by the readout and the room check instead.
+      child: SizedBox(
+        height: widget.height,
+        width: double.infinity,
+        child: RepaintBoundary(
+          child: CustomPaint(
+            painter: _VisualiserPainter(
+              history: _history,
+              windowFrames: widget.windowFrames,
+              interFrame: smooth ? _interFrame : 1.0,
+              referenceContour: widget.referenceContour,
+              levelColor: colors.userTrace,
+              contourColor: colors.userTrace,
+              referenceColor: colors.referenceTrace,
+              gridColor: colors.ruleSoft,
+              clipColor: colors.clip,
+            ),
           ),
         ),
       ),

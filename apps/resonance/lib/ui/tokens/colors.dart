@@ -84,12 +84,15 @@ class ResColors {
     surfaceRaised: Color(0xFFFFFFFE),
     ink: Color(0xFF14181C),
     inkMuted: Color(0xFF4B545A),
-    inkFaint: Color(0xFF7B848A),
+    // Darkened from 0xFF7B848A, which sat at 3.36:1 on paper and 3.69:1 on a
+    // raised surface. It reads as faint against `ink` without being unreadable.
+    inkFaint: Color(0xFF626B71),
     rule: Color(0xFFD6D9D3),
     ruleSoft: Color(0xFFE2E5E0),
     accent: Color(0xFF0F7F72),
     accentInk: Color(0xFF0A5C53),
-    onAccent: Color(0xFFF4F6F3),
+    // 4.49:1 over the accent — under AA by a hundredth, on the primary button.
+    onAccent: Color(0xFFFFFFFF),
     tier1: Color(0xFF3F5296),
     tier2: Color(0xFF148176),
     tier3: Color(0xFFA9761A),
@@ -107,7 +110,8 @@ class ResColors {
     surfaceRaised: Color(0xFF1D242A),
     ink: Color(0xFFE7EAE5),
     inkMuted: Color(0xFFA2ABB1),
-    inkFaint: Color(0xFF737C82),
+    // Lightened from 0xFF737C82: 4.38:1 on paper, 3.81:1 on a raised surface.
+    inkFaint: Color(0xFF8A939A),
     rule: Color(0xFF262E34),
     ruleSoft: Color(0xFF1F262C),
     accent: Color(0xFF3DC3B1),

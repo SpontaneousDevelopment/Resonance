@@ -215,6 +215,9 @@ class _TakeFiveScreenState extends State<TakeFiveScreen>
                         context,
                       );
                       return _BreathCircle(
+                        secondsLabel:
+                            '${state.secondsRemaining} seconds left in this '
+                            'phase',
                         // Size is a value, not a tween target — the widget
                         // draws exactly what the model says for this instant.
                         scale: reduceMotion ? state.settledScale : state.scale,
@@ -234,10 +237,18 @@ class _TakeFiveScreenState extends State<TakeFiveScreen>
                   final phase = _stateAt(elapsed).phase;
                   return Column(
                     children: [
-                      Text(
-                        phase.label,
-                        textAlign: TextAlign.center,
-                        style: ResType.heading.copyWith(color: colors.ink),
+                      Semantics(
+                        // A live region, because this screen is done with the
+                        // eyes closed. An instruction that changes silently is
+                        // the whole exercise lost, not a rough edge.
+                        liveRegion: true,
+                        label: '${phase.label}. ${phase.detail}',
+                        excludeSemantics: true,
+                        child: Text(
+                          phase.label,
+                          textAlign: TextAlign.center,
+                          style: ResType.heading.copyWith(color: colors.ink),
+                        ),
                       ),
                       const SizedBox(height: ResSpace.tight),
                       SizedBox(
@@ -302,7 +313,11 @@ class _BreathCircle extends StatelessWidget {
     required this.scale,
     required this.color,
     required this.label,
+    required this.secondsLabel,
   });
+
+  /// What the countdown means, spoken. The digit alone says nothing.
+  final String secondsLabel;
 
   /// 0 at rest, 1 fully expanded.
   final double scale;
@@ -327,9 +342,13 @@ class _BreathCircle extends StatelessWidget {
           border: Border.all(color: color, width: 2),
         ),
         child: Center(
-          child: Text(
-            label,
-            style: ResType.metricLarge.copyWith(color: colors.ink),
+          child: Semantics(
+            label: secondsLabel,
+            excludeSemantics: true,
+            child: Text(
+              label,
+              style: ResType.metricLarge.copyWith(color: colors.ink),
+            ),
           ),
         ),
       ),

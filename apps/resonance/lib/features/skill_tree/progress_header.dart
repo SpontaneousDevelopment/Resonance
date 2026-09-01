@@ -50,12 +50,16 @@ class ProgressHeader extends ConsumerWidget {
         const Spacer(),
         IconButton(
           tooltip: 'Settings',
+          // 48x48: iOS asks for 44, Android for 48, and the default IconButton
+          // here lands at 40, under both.
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           icon: const Icon(Icons.settings_outlined, size: 18),
           onPressed: () => context.push(Routes.settings),
         ),
         if (soundAuditionAvailable) ...[
           IconButton(
             tooltip: 'Audition sounds',
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: const Icon(Icons.music_note_outlined, size: 18),
             onPressed: () => context.push(Routes.soundAudition),
           ),

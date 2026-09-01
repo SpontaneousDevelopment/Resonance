@@ -91,6 +91,17 @@ jobs:
              -o /tmp/dsp_test -lm
           /tmp/dsp_test
 
+      # The frame budget is a number the app has to keep hitting, so it is
+      # asserted rather than printed. This used to report a table and exit 0
+      # whatever it measured.
+      - name: Verify the DSP frame budget
+        run: |
+          cc -O2 -Ipackages/resonance_dsp/src \
+             packages/resonance_dsp/src/resonance_dsp.c \
+             packages/resonance_dsp/test/native/bench.c \
+             -o /tmp/dsp_bench -lm
+          /tmp/dsp_bench
+
   verify-functions:
     name: Type-check edge functions
     runs-on: ubuntu-latest
@@ -133,10 +144,16 @@ jobs:
       #
       # microphone_test.dart is deliberately excluded: its first access raises a
       # modal permission dialog, and with nobody to click it the run blocks.
+      # One file per invocation: run in parallel, two instances of the same app
+      # bundle collide and the second fails to start. --concurrency=1 does not
+      # prevent it.
       - name: Integration tests
         if: matrix.target == 'macos'
         working-directory: apps/resonance
-        run: flutter test integration_test/lesson_flow_test.dart -d macos
+        run: |
+          flutter test integration_test/lesson_flow_test.dart -d macos
+          flutter test integration_test/accessibility_test.dart -d macos
+          flutter test integration_test/performance_test.dart -d macos
 
   build-android:
     name: Build Android

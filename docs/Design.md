@@ -308,6 +308,16 @@ The build number is `git rev-list --count HEAD` rather than a hand-maintained
 field. TestFlight rejects a reused build number, and a number derived from
 history cannot go backwards or be forgotten.
 
+**Privacy manifests are wired into the Xcode targets, not merely present.**
+`PrivacyInfo.xcprivacy` exists for iOS and macOS and is listed in each Runner
+target's Resources phase; `tools/xcode/add_privacy_manifest.rb` adds it
+idempotently, using the same library CocoaPods edits projects with rather than
+hand-editing `project.pbxproj`. `tools/verify_plists` then checks three things:
+that the project references it at all (which holds in CI, where nothing is
+built), that a built bundle actually contains the app's own copy rather than
+only the ones every plugin ships, and that the copy declares the crash-data
+collection the app really performs.
+
 **Nothing here invents an account-level value.** `ExportOptions.plist` is
 generated from `APPLE_TEAM_ID` at release time rather than committed, because a
 committed placeholder Team ID produces a build that fails confusingly much

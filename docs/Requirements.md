@@ -194,10 +194,8 @@ codebase, and none has been guessed at or given a placeholder:
 
 `./scripts/release.sh check` reports exactly which of these are missing.
 
-**Also outstanding, and not account-blocked:** the `PrivacyInfo.xcprivacy`
-manifests exist for iOS and macOS but are not yet referenced by their Xcode
-targets, so they would not ship. Adding them to the Resources build phase is
-required before any store submission.
+The `PrivacyInfo.xcprivacy` manifests are wired into both Runner targets and
+verified in the built bundles, so nothing outside the list above is outstanding.
 
 ### Deliberate gaps, not outstanding work
 

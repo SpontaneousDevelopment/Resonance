@@ -66,6 +66,29 @@ for entitlement in \
   done
 done
 
+# ── Privacy manifests ───────────────────────────────────────────────────────
+#
+# The manifest files were written, reviewed and committed, and did not ship,
+# because nothing referenced them: Xcode copies what a target's Resources phase
+# lists, not what happens to sit in the folder. That is the wiring-gap pattern
+# in Apple build configuration — a component built, correct, and connected to
+# nothing.
+#
+# Checked in two places on purpose. The project reference is checked always,
+# because CI runs this before anything is built and a bundle-only check would
+# pass vacuously there. The bundle is checked when one exists, because the
+# project file states intent and only the bundle is evidence.
+for proj in apps/resonance/ios/Runner.xcodeproj apps/resonance/macos/Runner.xcodeproj; do
+  pbx="$proj/project.pbxproj"
+  if ! grep -q "PrivacyInfo.xcprivacy" "$pbx" 2>/dev/null; then
+    echo "error: $pbx does not reference PrivacyInfo.xcprivacy"
+    echo "       The manifest will not be copied into the app, and App Store"
+    echo "       submission is rejected without one."
+    echo "       Fix: ruby tools/xcode/add_privacy_manifest.rb"
+    failed=1
+  fi
+done
+
 # ── Built bundles ───────────────────────────────────────────────────────────
 #
 # Source plists are not enough. macOS resolves a bundle id through
@@ -76,7 +99,16 @@ done
 #
 # That is not hypothetical: a leftover iOS build under build/ios/ shadowed the
 # macOS app for an entire debugging session.
-for bundle in $(find apps/resonance/build -name "Info.plist" -path "*.app/*" -maxdepth 6 2>/dev/null); do
+# App-root Info.plists at any depth. The previous form used `-maxdepth 6`, which
+# excluded macOS entirely — its plist sits seven levels down at
+# build/macos/Build/Products/<config>/resonance.app/Contents/Info.plist — so
+# this loop had never once examined a macOS bundle, which is the platform the
+# stale-bundle problem was found on. It also matched plugin bundles nested
+# inside the app, whose identifiers are not app.resonance and were skipped
+# anyway.
+for bundle in $(find apps/resonance/build -name "Info.plist" \
+                  \( -path "*.app/Info.plist" -o -path "*.app/Contents/Info.plist" \) \
+                  2>/dev/null); do
   app_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$bundle" 2>/dev/null || echo "")
   [[ "$app_id" == "app.resonance" ]] || continue
 
@@ -90,10 +122,34 @@ for bundle in $(find apps/resonance/build -name "Info.plist" -path "*.app/*" -ma
       failed=1
     fi
   done
+
+  # The app's own manifest, not a plugin's — every plugin bundle ships one, so
+  # a bare find for the filename would pass on a build missing ours entirely.
+  app_root="${bundle%.app/*}.app"
+  manifest=""
+  for candidate in "$app_root/PrivacyInfo.xcprivacy" \
+                   "$app_root/Contents/Resources/PrivacyInfo.xcprivacy"; do
+    [[ -f "$candidate" ]] && manifest="$candidate" && break
+  done
+
+  if [[ -z "$manifest" ]]; then
+    echo "error: a BUILT bundle claiming app.resonance has no privacy manifest:"
+    echo "         $app_root"
+    echo "       Fix: ruby tools/xcode/add_privacy_manifest.rb, then rebuild."
+    failed=1
+  elif ! /usr/libexec/PlistBuddy -c "Print :NSPrivacyCollectedDataTypes" \
+       "$manifest" 2>/dev/null | grep -q "NSPrivacyCollectedDataTypeCrashData"; then
+    # Assert the content, not the filename: a manifest that does not declare
+    # what the app actually collects is worse than none, because it reads as a
+    # considered answer.
+    echo "error: $manifest does not declare crash data collection,"
+    echo "       which this app does whenever the user has consented."
+    failed=1
+  fi
 done
 
 if [[ $failed -eq 0 ]]; then
-  echo "Info.plist, entitlements and built bundles: all required privacy keys present."
+  echo "Info.plist, entitlements, privacy manifests and built bundles: all present."
 fi
 
 exit $failed

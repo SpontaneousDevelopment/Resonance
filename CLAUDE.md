@@ -105,8 +105,8 @@ Two rules. They fail in different ways and are checked separately.
 something real calls it, and that call site has a test that fails when the
 connection is removed.** If the only callers are tests, it is not done.
 
-This has happened **five times, in five unrelated subsystems**, and every unit
-test passed each time:
+This has happened **six times, in six unrelated subsystems**, and every test
+passed each time:
 
 | Component | Built, tested, and connected to nothing |
 | --- | --- |
@@ -115,11 +115,21 @@ test passed each time:
 | Plosive scores | A controller field that was never filled, so every attempt scored pop-free. |
 | The breather's reduced motion | A rewrite dropped the branch; nothing called it. |
 | `SyncEngine.drain()` | No caller in the app. A signed-in user would have synced nothing, forever. |
+| `PrivacyInfo.xcprivacy` | Written, reviewed, committed — and referenced by no Xcode target, so it was copied into no bundle. |
 
 Isolation tests cannot catch this by construction: they supply the caller the
 app fails to. **Every milestone audit checks each deliverable against this
 explicitly** — name the real call site, and name the test that fails when the
 call is removed.
+
+**A "call site" is not only Dart.** The sixth instance was Apple build
+configuration: Xcode copies what a target's Resources phase lists, not what
+happens to sit in the folder, so a correct committed file shipped in nothing.
+Build configuration, asset registries, CI steps and platform project files are
+all places a component can be complete and connected to nothing — and all of
+them need the same question asked. Where the artefact is what ships, the check
+runs against the artefact: `tools/verify_plists` inspects the built `.app`, not
+just the project that was supposed to produce it.
 
 ### Rule 2 — a check that reports success by the absence of an error proves nothing
 

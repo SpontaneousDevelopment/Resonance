@@ -58,8 +58,10 @@ void main() {
     await db.close();
   });
 
-  Unit articulation() =>
-      seed.allUnits.firstWhere((u) => u.title == 'Articulation & Diction');
+  Unit unitTitled(String title) =>
+      seed.allUnits.firstWhere((u) => u.title == title);
+
+  Unit articulation() => unitTitled('Articulation & Diction');
 
   Future<void> pumpTree(WidgetTester tester) async {
     tester.view
@@ -87,8 +89,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
-  Future<void> tapUnit(WidgetTester tester) async {
-    await tester.tap(find.text('Articulation & Diction'));
+  Future<void> tapUnit(
+    WidgetTester tester, [
+    String title = 'Articulation & Diction',
+  ]) async {
+    await tester.tap(find.text(title));
     await tester.pump();
     // Past the expand animation.
     await tester.pump(const Duration(milliseconds: 400));
@@ -292,6 +297,125 @@ void main() {
     // And it says so, rather than showing the same padlock as a lesson the
     // user simply has not reached.
     expect(find.text('Clip not chosen yet'), findsOneWidget);
+  });
+
+  group('Meet Your Voice', () {
+    // The first unit a real user meets, and the one that was a planned count
+    // with no lessons behind it until now. Reachability and completability are
+    // asserted separately on purpose: a route that resolves onto a lesson with
+    // nothing to read is not a completable lesson, and the two failures look
+    // nothing alike.
+    Unit meetYourVoice() => unitTitled('Meet Your Voice');
+
+    testWidgets('expands to five real lessons, not an empty planned count', (
+      tester,
+    ) async {
+      await pumpTree(tester);
+      await tapUnit(tester, 'Meet Your Voice');
+
+      expect(
+        meetYourVoice().lessons,
+        hasLength(5),
+        reason: 'the unit should be authored, not a planned_lesson_count',
+      );
+      expect(find.byType(LessonNode), findsNWidgets(5));
+      expect(find.text('Your Voice, Unedited'), findsOneWidget);
+      expect(find.text('One Minute, No Edits'), findsOneWidget);
+    });
+
+    testWidgets('reachability: the five open one after another', (
+      tester,
+    ) async {
+      await pumpTree(tester);
+      await tapUnit(tester, 'Meet Your Voice');
+
+      // Nothing unit-specific: this is the same LessonUnlockEvaluator that
+      // gates Articulation & Diction.
+      for (var i = 0; i < 5; i++) {
+        final nodes = tester
+            .widgetList<LessonNode>(find.byType(LessonNode))
+            .toList();
+        expect(
+          nodes[i].unlock.isOpen,
+          isTrue,
+          reason: 'lesson ${i + 1} should be reachable by now',
+        );
+        expect(
+          nodes[i].onTap,
+          isNotNull,
+          reason: 'lesson ${i + 1} is open but has no way in',
+        );
+        for (final later in nodes.skip(i + 1)) {
+          expect(
+            later.unlock.isOpen,
+            isFalse,
+            reason: '${later.lesson.title} should still be closed',
+          );
+        }
+        await completeLesson(tester, meetYourVoice().lessons[i]);
+      }
+
+      final finished = tester
+          .widgetList<LessonNode>(find.byType(LessonNode))
+          .toList();
+      for (var i = 0; i < 5; i++) {
+        expect(finished[i].mastery.everAttempted, isTrue);
+      }
+    });
+
+    test('completability: every lesson is content the rubric can score', () {
+      for (final lesson in meetYourVoice().lessons) {
+        expect(
+          lesson.type,
+          LessonType.scoredRead,
+          reason:
+              '${lesson.title} declares a type with no runtime path — the '
+              'lesson screen dispatches on phase, so anything else renders the '
+              'record view and is scored against its script anyway',
+        );
+        expect(
+          lesson.script?.trim(),
+          isNotEmpty,
+          reason: '${lesson.title} has nothing to read aloud',
+        );
+        expect(
+          lesson.brief.trim(),
+          isNotEmpty,
+          reason: '${lesson.title} gives no direction before recording',
+        );
+        expect(lesson.isBlockedOnSelection, isFalse);
+        expect(
+          lesson.targetWpmMin,
+          isNotNull,
+          reason: '${lesson.title} has no pace band, so pace goes unweighted',
+        );
+        expect(lesson.targetWpmMin! < lesson.targetWpmMax!, isTrue);
+
+        // The real rubric, on a faithful read, must actually pass it. A lesson
+        // nobody can score above Bronze would gate the whole unit behind it.
+        final score = passingScoreFor(lesson);
+        expect(
+          score.composite,
+          greaterThanOrEqualTo(60),
+          reason:
+              '${lesson.title} scores ${score.composite} on a perfect read, '
+              'which would leave the lesson after it unreachable',
+        );
+      }
+    });
+
+    test('the pace band is chosen per lesson, not copied', () {
+      // The band is a teaching instrument; identical bands across a unit are a
+      // sign nobody decided. See Design.md, "Authoring a lesson".
+      final bands = meetYourVoice().lessons
+          .map((l) => '${l.targetWpmMin}-${l.targetWpmMax}')
+          .toSet();
+      expect(
+        bands.length,
+        greaterThan(3),
+        reason: 'five lessons sharing one band means the number is decorative',
+      );
+    });
   });
 
   testWidgets('a lesson already opened is never taken away again', (

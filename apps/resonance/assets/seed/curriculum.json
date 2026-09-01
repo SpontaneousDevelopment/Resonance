@@ -14,9 +14,115 @@
           "title": "Meet Your Voice",
           "summary": "A baseline take, a map of your range, and an honest inventory of the habits you cannot hear yet.",
           "is_gate": false,
-          "planned_lesson_count": 5,
+          "planned_lesson_count": null,
           "prerequisites": [],
-          "lessons": []
+          "lessons": [
+            {
+              "id": "t1u1l1-baseline-take",
+              "unit_id": "t1u1-meet-your-voice",
+              "title": "Your Voice, Unedited",
+              "type": "scoredRead",
+              "brief": "This one is a measurement, not a test. Read it the way you would read anything aloud to another person in the room — no performance, no radio voice. The score you get here is the number everything later is compared against, so an honest one is worth more to you than a good one. The pace band is deliberately wide: we are finding out where you naturally sit, not correcting it yet.",
+              "script": "The kettle clicked off just as the rain started. I put my cup down, looked out at the street, and decided the walk could wait. Somewhere below, a door closed twice — once quietly, then again with feeling.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null,
+                "awaiting_selection": false
+              },
+              "target_wpm_min": 110,
+              "target_wpm_max": 180,
+              "estimated_seconds": 120
+            },
+            {
+              "id": "t1u1l2-two-ends",
+              "unit_id": "t1u1-meet-your-voice",
+              "title": "The Two Ends of Your Voice",
+              "type": "scoredRead",
+              "brief": "Read this twice. The first time, sit at the bottom of where your voice is comfortable — the pitch you land on when you are tired. The second time, take it as high as you can go without strain or falsetto. Your score is the clarity of the *worse* of the two passes. Most people lose consonants at one end and never find out which.",
+              "script": "I found the letter behind the radiator, still sealed, still addressed to a man who moved out eleven years ago.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null,
+                "awaiting_selection": false
+              },
+              "target_wpm_min": 120,
+              "target_wpm_max": 160,
+              "estimated_seconds": 180
+            },
+            {
+              "id": "t1u1l3-sentence-ends",
+              "unit_id": "t1u1-meet-your-voice",
+              "title": "Where Your Sentences Go",
+              "type": "scoredRead",
+              "brief": "Almost everyone starts a sentence with energy and arrives at the end of it with none. Six short sentences, each landing on a hard consonant. If your volume falls away before the full stop, those consonants disappear and the score will show you exactly which ones went. Listen for the last word of each sentence, not the first.",
+              "script": "The train left at eight. He locked the shed and lost the key. She kept the receipt. It rained all night. The dog stayed out. Nobody asked what happened next.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null,
+                "awaiting_selection": false
+              },
+              "target_wpm_min": 125,
+              "target_wpm_max": 160,
+              "estimated_seconds": 120
+            },
+            {
+              "id": "t1u1l4-slower-than-you-think",
+              "unit_id": "t1u1-meet-your-voice",
+              "title": "Slower Than You Think",
+              "type": "scoredRead",
+              "brief": "A microphone makes people hurry. The pace band here is the lesson: it is set lower than feels natural on a first recording, and if you read this at the speed it seems to want, you will land outside it. Nothing about the words needs urgency. Say them at the speed you would use giving directions to someone who has to remember them.",
+              "script": "There is a fire door at the end of the corridor. It opens outward. If the alarm sounds, walk to it, push the bar, and stand well clear of the building.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null,
+                "awaiting_selection": false
+              },
+              "target_wpm_min": 115,
+              "target_wpm_max": 140,
+              "estimated_seconds": 150
+            },
+            {
+              "id": "t1u1l5-one-minute",
+              "unit_id": "t1u1-meet-your-voice",
+              "title": "One Minute, No Edits",
+              "type": "scoredRead",
+              "brief": "The longest read in the unit, and the first one where staying the same is the difficulty. Quality decays over length: breath gets shallower, consonants soften, pace drifts up. The last third of this passage is where your habits live. Read it once, all the way through, without stopping to fix anything.",
+              "script": "The building had been a print works, then a furniture store, then nothing at all for most of a decade. When they finally opened the doors again the floor was still stained black in long lines where the presses had stood, and nobody had the heart to sand them out. The new owners left them, put tables between them, and told anyone who asked that the marks were the reason they had bought the place. On a quiet afternoon you could still smell ink under the coffee. The woman who ran the counter said it faded in summer and came back every autumn, which was not true, but everyone repeated it anyway.",
+              "reference": {
+                "source": "none",
+                "asset_path": null,
+                "video_id": null,
+                "start_seconds": null,
+                "end_seconds": null,
+                "attribution": null,
+                "license_url": null,
+                "awaiting_selection": false
+              },
+              "target_wpm_min": 125,
+              "target_wpm_max": 165,
+              "estimated_seconds": 210
+            }
+          ]
         },
         {
           "id": "t1u2-breath-support",

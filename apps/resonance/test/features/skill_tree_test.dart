@@ -129,8 +129,10 @@ void main() {
       await _pumpTree(tester);
 
       expect(find.text('TIER 1'), findsOneWidget);
-      // One of eight units is authored.
-      expect(find.text('1/8 open'), findsOneWidget);
+      // Two of eight are open: 1.1 and 1.3. The label counts units the user can
+      // actually enter, not units that happen to have content, so this moves
+      // when a unit is authored or a gate changes.
+      expect(find.text('2/8 open'), findsOneWidget);
     });
 
     testWidgets('unauthored units show their planned size, not zero', (

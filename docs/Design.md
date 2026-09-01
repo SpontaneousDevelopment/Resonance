@@ -23,7 +23,6 @@ root, several packages beneath it. Not Melos.
 | --- | --- |
 | `apps/resonance` | The Flutter app. iOS, Android, macOS. |
 | `packages/resonance_dsp` | FFI plugin: YIN pitch, RMS/dBFS, voicing, plosive onset, waveform envelope. C core plus Dart bindings. |
-| `packages/resonance_models` | **Still the `flutter create` scaffold.** Nothing imports it. Delete or fill it; do not assume it holds anything. |
 | `backend/supabase` | Migrations, RLS, tests, and two Deno edge functions (`coach-note`, `delete-account`). |
 | `content/curriculum` | Authored curriculum YAML — the source of truth, compiled to a bundled JSON seed. |
 | `tools/` | Curriculum compiler, privacy-key verifier, licence-checked audio ingestion. |
@@ -146,6 +145,112 @@ reason to hold the microphone before the user has asked for anything.
 was recorded — through an optional callback, and the caller decides what that is
 worth. Nothing waits on it, so a slow network cannot delay the score someone is
 waiting to look at.
+
+## Authoring a lesson
+
+The curriculum is content, but it is not prose — a lesson is a small piece of
+instructional design, and the five authored lessons in Articulation & Diction
+are the reference. What follows is what makes them teach rather than merely give
+someone something to read aloud.
+
+**The test a lesson has to pass.** A script makes the target behaviour
+*unavoidable*; a brief makes it *perceptible*; the score makes it *falsifiable*.
+Miss any one and the lesson still runs, and still teaches nothing: an
+unavoidable target nobody can hear themselves hit is frustrating, a perceptible
+one the script does not force is a suggestion, and either without a score is a
+warm-up.
+
+### The script forces the behaviour
+
+Build the passage out of words that collapse without the thing being trained,
+so a careless read is audibly wrong rather than merely lower-scoring. *The
+Middle of the Word* is the clearest case: "particularly probable statistics
+regularly deteriorate" cannot be read intelligibly by someone who articulates
+word beginnings and endings and lets the middle go, which is exactly the habit
+it targets. The plosive script is dense in P/B/T/D/K/G; the sibilance script can
+barely be spoken without a dozen S sounds.
+
+A script that merely *permits* the target behaviour is the failure mode. If a
+competent read of the passage sounds the same whether or not the user did the
+thing, the lesson is measuring something else.
+
+Keep scripts short — two to four sentences, roughly 25–45 words. Length tests
+endurance, which is a different lesson.
+
+Scripts are spoken verbatim and scored against, so direction never appears in
+one. The compiler warns on phrases that read like coaching for this reason;
+coaching belongs in the brief.
+
+### The brief says what to listen for in yourself
+
+Not "read clearly" but the specific perceptual target: *land every P, B, T, D, K
+and G cleanly*, *stop each S early and let the vowel carry the line*. The user
+has to know what success sounds like from the inside, because they are the only
+one in the room.
+
+Two further jobs the existing briefs do, both worth copying:
+
+- **Name the trade-off being scored.** "We score consonant clarity and plosive
+  control together, because they pull against each other" tells the user why the
+  task is hard, which is the difference between a challenge and a bad score.
+- **Price the failure modes against each other.** "Long, hissing S sounds cost
+  points; swallowed ones cost more." Now the user knows which way to err.
+
+### Teach by contrast where a single read cannot
+
+Two of the five are built on producing more than one state and hearing the gap,
+and it is the strongest shape available:
+
+- *The Tempo Ladder* — the same line slow, conversational and fast, scored on
+  the **lowest** clarity of the three. The lesson is not "read clearly", it is
+  "your clarity has a floor and here is where it is".
+- *The Over-Articulation Dial* — read twice, once over-enunciated and once
+  conversational, scored on the **difference**. The point is control, not
+  precision: "precision you cannot switch off is a limitation, not a skill".
+
+Reach for this when the skill is a *range* or a *dial* rather than a target.
+A single read can prove someone hit a mark; only a contrast can prove they can
+move between two on purpose.
+
+### WPM comes from the mechanism, not from habit
+
+The band is a teaching instrument, not metadata. Three patterns are in use:
+
+- **Standard and narrow** (130–165) where pace is not the variable and should
+  stay out of the way.
+- **Narrower and slower** (120–155, *The Middle of the Word*) where speed hides
+  the very thing being trained — rushing a long word conceals its middle.
+- **Deliberately wide** (110–210, *The Tempo Ladder*) where varying tempo *is*
+  the exercise, so a band that punished the extremes would punish the lesson.
+
+Set the band by asking what the number is doing. A band copied from the last
+lesson is a band doing nothing.
+
+### Check the type is one the app can run
+
+`LessonType` declares eight types. The lesson screen dispatches on *phase*, not
+type: every unblocked lesson renders the record-and-score view and is scored by
+`ScoredReadRubric`, which scores clarity by aligning the transcript against the
+script. So today **`scoredRead` is the only type with a working runtime path**,
+and `listenAndAnalyse` renders an awaiting-selection state.
+
+Declaring `pitchMatch` or `micTechnique` today would produce a lesson that
+routes, renders and scores nonsense — `micTechnique` has no script, so clarity
+would align a transcript against an empty string. Author against what runs, and
+add the type first if the lesson genuinely needs one that does not exist yet.
+
+### Diagnostic units are not drill units
+
+*Articulation & Diction* drills a skill: each lesson isolates one mechanism and
+scores it. *Meet Your Voice* has a different job — it orients someone who has
+never recorded themselves, and its lessons are measurements rather than
+corrections. The briefs say so explicitly, because a user who reads a baseline
+take as a test they can fail will perform to the test and the baseline will be
+worthless.
+
+The techniques above still apply. What changes is the framing in the brief and
+the choice of what the script makes unavoidable — in a diagnostic unit, that is
+usually a habit the user cannot yet hear, rather than a skill they are building.
 
 ## Local persistence
 

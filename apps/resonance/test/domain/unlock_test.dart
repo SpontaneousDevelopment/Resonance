@@ -26,16 +26,29 @@ void main() {
   });
 
   group('a fresh user', () {
-    test('the first unit is open, later ones are not', () {
+    test('the authored units are open and the rest are not', () {
       final states = evaluator.evaluate(curriculum: seed, mastery: {});
 
-      // Unit 1.1 has no prerequisites — but it is unwritten, so it reports
-      // "not yet authored" rather than pretending to be enterable.
-      expect(states['t1u1-meet-your-voice']!.reason, LockReason.notYetAuthored);
+      // 1.1 is authored and has no prerequisites: the first thing anyone sees
+      // is enterable on a fresh install.
+      expect(states['t1u1-meet-your-voice']!.isOpen, isTrue);
 
-      // 1.3 is authored but sits behind 1.2, which is unwritten and therefore
-      // cannot gate anything — so 1.3 opens.
+      // 1.3 is authored and sits behind 1.2, which is unwritten and therefore
+      // cannot gate anything — so 1.3 opens too.
       expect(states['t1u3-articulation']!.isOpen, isTrue);
+
+      // 1.2 itself is now held by a real prerequisite rather than by its own
+      // emptiness. Authoring 1.1 is what changed that, and the distinction
+      // matters: the user is told to go and do something, not that content is
+      // missing.
+      expect(
+        states['t1u2-breath-support']!.reason,
+        LockReason.prerequisitesIncomplete,
+      );
+
+      // Nothing else in the tier is open.
+      final open = states.values.where((s) => s.isOpen).map((s) => s.unitId);
+      expect(open, unorderedEquals(['t1u1-meet-your-voice', 't1u3-articulation']));
     });
 
     test('every unit gets a state', () {
@@ -134,11 +147,13 @@ void main() {
       final check = seed.unitById('t1u8-foundations-check')!;
       expect(check.prerequisiteUnitIds, hasLength(7));
 
-      // Only the authored one can actually block it today.
+      // Only authored units can actually block it — an unwritten prerequisite
+      // is skipped rather than walling off the tier.
       final states = evaluator.evaluate(curriculum: seed, mastery: {});
-      expect(states['t1u8-foundations-check']!.blockingUnitIds, [
-        't1u3-articulation',
-      ]);
+      expect(
+        states['t1u8-foundations-check']!.blockingUnitIds,
+        unorderedEquals(['t1u1-meet-your-voice', 't1u3-articulation']),
+      );
     });
   });
 }

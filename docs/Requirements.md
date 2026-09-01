@@ -99,8 +99,15 @@ Industry**. Units within a tier form a prerequisite DAG; the compiler fails the
 build on duplicate ids, dangling prerequisites and cycles.
 
 Authored YAML under `content/curriculum` is the source of truth, compiled to a
-bundled JSON seed. The MVP authors one unit in full: **Tier 1 Unit 3 —
-Articulation & Diction**, five lessons.
+bundled JSON seed. Two units are authored in full: **Tier 1 Unit 1 — Meet Your
+Voice**, five lessons, and **Tier 1 Unit 3 — Articulation & Diction**, five
+scored reads plus one lesson awaiting a clip.
+
+The two have different jobs, and the content reflects it. Unit 1 is diagnostic:
+it orients someone who has never recorded themselves, and its lessons are
+measurements rather than corrections. Unit 3 drills a skill, isolating one
+mechanism per lesson. How that difference is expressed in a script and a brief
+is set out in [`Design.md`](Design.md) under *Authoring a lesson*.
 
 ### The mastery ladder
 

@@ -208,7 +208,10 @@ void main() {
       tester,
     ) async {
       await withPersistedTree(tester, const {}, () async {
-        expect(find.text('1/8 open'), findsOneWidget);
+        // 1.1 and 1.3: the two authored units with no authored prerequisite in
+        // front of them. The count follows the gate, so authoring a unit
+        // changes it — which is why this is pinned to the real seed.
+        expect(find.text('2/8 open'), findsOneWidget);
       });
     });
 
@@ -221,8 +224,9 @@ void main() {
         {for (final l in lessons) l.id: at(MasteryLevel.master)},
         () async {
           // 1.4 has no lessons, so the gate is satisfied but there is nothing to
-          // enter. The tree must not imply otherwise.
-          expect(find.text('1/8 open'), findsOneWidget);
+          // enter. The tree must not imply otherwise — mastering 1.3 opens
+          // nothing new, and the count is unchanged.
+          expect(find.text('2/8 open'), findsOneWidget);
           expect(find.text('Pitch & Resonance'), findsOneWidget);
         },
       );

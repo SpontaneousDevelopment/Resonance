@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/curriculum_repository.dart';
+import '../domain/sensory/sensory_cue.dart';
 import '../features/debug/sound_audition_screen.dart';
 import '../features/lesson/lesson_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/skill_tree/skill_tree_screen.dart';
+import '../ui/tokens/motion.dart';
 import '../ui/tokens/spacing.dart';
 import '../ui/tokens/theme.dart';
 import '../ui/tokens/typography.dart';
@@ -61,8 +63,41 @@ final List<RouteBase> _routes = [
       ),
       GoRoute(
         path: 'lesson/:lessonId',
-        builder: (context, state) =>
-            _LessonRoute(lessonId: state.pathParameters['lessonId']!),
+        // A modal entrance: the lesson rises from the bottom over the tree, and
+        // leaves the way it came. The gesture is the point — a lesson is
+        // something you step into and back out of, not somewhere you navigate
+        // to, and the reverse of this transition is what dismissing the
+        // feedback screen resolves into.
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          transitionDuration: ResMotion.duration(
+            context,
+            FeedbackChoreography.lessonEnter,
+          ),
+          reverseTransitionDuration: ResMotion.duration(
+            context,
+            FeedbackChoreography.lessonExit,
+          ),
+          child: _LessonRoute(lessonId: state.pathParameters['lessonId']!),
+          transitionsBuilder: (context, animation, secondary, child) {
+            // easeOutCubic in, easeInCubic out: it decelerates into place and
+            // gathers speed on the way down, which is what weight does. A
+            // linear tween reads as a panel being dragged by the app rather
+            // than a thing with mass.
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: ResMotion.enter,
+              reverseCurve: ResMotion.exit,
+            );
+            return SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            );
+          },
+        ),
       ),
     ],
   ),

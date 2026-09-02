@@ -14,8 +14,10 @@ import '../tokens/theme.dart';
 /// second is over 2000 frames, and the visualiser only ever draws the last
 /// hundred or so. Keeping the rest would grow without bound during a long
 /// audiobook drill for no visible benefit.
-class _FrameHistory {
-  _FrameHistory(this.capacity);
+/// Ring buffer of recent frames. Public only because the painter is.
+@visibleForTesting
+class FrameHistory {
+  FrameHistory(this.capacity);
 
   final int capacity;
   final ListQueue<FrameAnalysis> _frames = ListQueue();
@@ -75,7 +77,7 @@ class LiveVisualiser extends StatefulWidget {
 
 class _LiveVisualiserState extends State<LiveVisualiser>
     with SingleTickerProviderStateMixin {
-  late final _FrameHistory _history = _FrameHistory(widget.windowFrames);
+  late final FrameHistory _history = FrameHistory(widget.windowFrames);
   late final Ticker _ticker;
   StreamSubscription<FrameAnalysis>? _subscription;
 
@@ -140,7 +142,7 @@ class _LiveVisualiserState extends State<LiveVisualiser>
         width: double.infinity,
         child: RepaintBoundary(
           child: CustomPaint(
-            painter: _VisualiserPainter(
+            painter: VisualiserPainter(
               history: _history,
               windowFrames: widget.windowFrames,
               interFrame: smooth ? _interFrame : 1.0,
@@ -158,8 +160,13 @@ class _LiveVisualiserState extends State<LiveVisualiser>
   }
 }
 
-class _VisualiserPainter extends CustomPainter {
-  _VisualiserPainter({
+/// Public so a test can read [interFrame], which is the single value reduced
+/// motion controls here — the trace snaps to the newest frame instead of
+/// gliding to it. Asserting the rendered pixels would be asserting the paint;
+/// this asserts the decision.
+@visibleForTesting
+class VisualiserPainter extends CustomPainter {
+  VisualiserPainter({
     required this.history,
     required this.windowFrames,
     required this.interFrame,
@@ -171,7 +178,7 @@ class _VisualiserPainter extends CustomPainter {
     this.referenceContour,
   });
 
-  final _FrameHistory history;
+  final FrameHistory history;
   final int windowFrames;
   final double interFrame;
   final List<double>? referenceContour;
@@ -372,5 +379,5 @@ class _VisualiserPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_VisualiserPainter old) => true;
+  bool shouldRepaint(VisualiserPainter old) => true;
 }

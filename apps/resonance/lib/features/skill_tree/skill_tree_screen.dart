@@ -305,7 +305,23 @@ class _SeedError extends StatelessWidget {
 /// never jumps. Duration comes from [ResMotion.duration], which returns zero
 /// under reduced motion — the lessons then appear immediately rather than not
 /// at all, which is the rule the rest of the app follows.
-class _LessonList extends ConsumerWidget {
+/// The lessons inside a unit, fanning out from under it.
+///
+/// One controller drives every card. That is the whole point: with a controller
+/// each, the cards are N animations that happen to start at slightly different
+/// times, and it reads as a queue. Driven from one clock with an [Interval] per
+/// card, the eye follows a single edge travelling down the list.
+///
+/// Cards start a little above their resting place and settle downward as they
+/// fade in, so they read as coming out from under the unit card that was
+/// tapped rather than materialising in a column. Collapsing runs the same
+/// clock backwards, and because the intervals are unchanged the last card is
+/// the first to leave — the list folds back the way it came out.
+///
+/// Under reduced motion the controller's duration is zero, so it jumps to the
+/// end state: every card at full opacity and no offset. The same widgets, in
+/// the same places, without the travel.
+class _LessonList extends ConsumerStatefulWidget {
   const _LessonList({
     required this.unit,
     required this.expanded,
@@ -321,45 +337,155 @@ class _LessonList extends ConsumerWidget {
   final LessonUnlockEvaluator evaluator;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final states = evaluator.evaluate(
-      unit: unit,
-      unitIsOpen: unitIsOpen,
-      mastery: mastery,
-    );
+  ConsumerState<_LessonList> createState() => _LessonListState();
+}
 
-    return AnimatedSize(
-      duration: ResMotion.duration(context, ResMotion.surface),
-      curve: ResMotion.enter,
-      alignment: Alignment.topCenter,
-      child: !expanded
+class _LessonListState extends ConsumerState<_LessonList>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fan = AnimationController(
+    vsync: this,
+    duration: FeedbackChoreography.unitFanTotal,
+    value: widget.expanded ? 1 : 0,
+  );
+
+  @override
+  void didUpdateWidget(_LessonList old) {
+    super.didUpdateWidget(old);
+    if (widget.expanded == old.expanded) return;
+    // Read here rather than stored: the setting can change while the app runs.
+    _fan.duration = ResMotion.duration(
+      context,
+      FeedbackChoreography.unitFanTotal,
+    );
+    widget.expanded ? _fan.forward() : _fan.reverse();
+  }
+
+  @override
+  void dispose() {
+    _fan.dispose();
+    super.dispose();
+  }
+
+  /// The slice of the shared clock belonging to card [i].
+  ///
+  /// Every card gets the **same length** of window, offset by the stagger. The
+  /// first attempt ran each from its own start to the end of the timeline,
+  /// which shrank the windows from 360ms down to 180ms — the last card
+  /// travelling the same ten pixels in half the time as the first. The wave
+  /// accelerated down the list and the bottom cards snapped. Equal windows make
+  /// it one edge moving at one speed, which is what "fans out" should mean.
+  ///
+  /// Each card gets the whole remaining window rather than a fixed slice, so
+  /// later cards ease over a slightly longer stretch. That is deliberate: equal
+  /// slices made the last card snap while the first was still gliding, which
+  /// is what a queue looks like.
+  Animation<double> _slotFor(int i, int count) {
+    final total = FeedbackChoreography.unitFanTotal.inMilliseconds;
+    final stagger = FeedbackChoreography.unitFanStagger(count).inMilliseconds;
+    final window = total - stagger * (count - 1);
+
+    final begin = (stagger * i) / total;
+    final end = (stagger * i + window) / total;
+
+    return CurvedAnimation(
+      parent: _fan,
+      curve: Interval(begin, end.clamp(0.0, 1.0), curve: ResMotion.enter),
+      reverseCurve: Interval(begin, end.clamp(0.0, 1.0), curve: ResMotion.exit),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final states = widget.evaluator.evaluate(
+      unit: widget.unit,
+      unitIsOpen: widget.unitIsOpen,
+      mastery: widget.mastery,
+    );
+    final lessons = widget.unit.lessons;
+
+    return AnimatedBuilder(
+      animation: _fan,
+      builder: (context, _) => _fan.isDismissed
+          // Fully collapsed: gone, not merely clipped to zero height. A
+          // SizeTransition keeps its child built, which would leave every
+          // lesson in a closed unit reachable by a screen reader.
           ? const SizedBox(width: double.infinity)
-          : Padding(
-              padding: const EdgeInsets.only(
-                top: ResSpace.snug,
-                left: ResSpace.base,
+          : _fanned(context, states, lessons),
+    );
+  }
+
+  Widget _fanned(
+    BuildContext context,
+    Map<String, LessonUnlockState> states,
+    List<Lesson> lessons,
+  ) {
+    return SizeTransition(
+      sizeFactor: CurvedAnimation(
+        parent: _fan,
+        curve: ResMotion.enter,
+        reverseCurve: ResMotion.exit,
+      ),
+      // Anchored to the top so the list grows downward out of the unit card.
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(top: ResSpace.snug, left: ResSpace.base),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < lessons.length; i++) ...[
+              if (i > 0) const SizedBox(height: ResSpace.hair),
+              _FannedCard(
+                slot: _slotFor(i, lessons.length),
+                child: LessonNode(
+                  lesson: lessons[i],
+                  number: i + 1,
+                  mastery:
+                      widget.mastery[lessons[i].id] ?? const Mastery.fresh(),
+                  unlock: states[lessons[i].id]!,
+                  tierColor: context.colors.tier(widget.unit.tierNumber),
+                  onTap: () {
+                    ref.read(sensoryDirectorProvider).tap();
+                    context.push(Routes.lessonPath(lessons[i].id));
+                  },
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < unit.lessons.length; i++) ...[
-                    if (i > 0) const SizedBox(height: ResSpace.hair),
-                    LessonNode(
-                      lesson: unit.lessons[i],
-                      number: i + 1,
-                      mastery:
-                          mastery[unit.lessons[i].id] ?? const Mastery.fresh(),
-                      unlock: states[unit.lessons[i].id]!,
-                      tierColor: context.colors.tier(unit.tierNumber),
-                      onTap: () {
-                        ref.read(sensoryDirectorProvider).tap();
-                        context.push(Routes.lessonPath(unit.lessons[i].id));
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One card's share of the fan.
+///
+/// Fade and a short downward settle. No scale: a card that grows into place
+/// reads as a popup, and these are meant to read as having been underneath the
+/// unit all along.
+class _FannedCard extends StatelessWidget {
+  const _FannedCard({required this.slot, required this.child});
+
+  final Animation<double> slot;
+  final Widget child;
+
+  /// How far above its resting place a card starts, in logical pixels.
+  ///
+  /// Small. At 24 the cards visibly rain down and the eye follows the movement
+  /// instead of the list; at 10 the travel is felt without being watched.
+  static const _rise = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: slot,
+      builder: (context, inner) => Opacity(
+        opacity: slot.value.clamp(0.0, 1.0),
+        child: Transform.translate(
+          offset: Offset(0, -_rise * (1 - slot.value)),
+          child: inner,
+        ),
+      ),
+      child: child,
     );
   }
 }

@@ -6,6 +6,8 @@ import '../../core/sensory/sensory_director.dart';
 import '../../core/speech/platform_speech_recogniser.dart';
 import '../../core/sync/sync_scheduler.dart';
 import '../../domain/curriculum/curriculum.dart';
+import '../../domain/sensory/sensory_cue.dart';
+import '../../ui/tokens/motion.dart';
 import '../../ui/tokens/spacing.dart';
 import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
@@ -127,50 +129,73 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
       );
     }
 
-    return ListenableBuilder(
-      listenable: _controller,
-      builder: (context, _) {
-        return switch (_controller.phase) {
-          LessonPhase.scored => Builder(
-            builder: (context) {
-              // After the frame, so the schedule starts alongside the ring fill
-              // rather than before the screen exists.
-              WidgetsBinding.instance.addPostFrameCallback(
-                (_) => _playOutcomeOnce(),
-              );
-              return FeedbackScreen(
-                lessonTitle: widget.lesson.title,
-                script: widget.lesson.script ?? '',
-                score: _controller.score!,
-                promotion: _controller.promotion!,
-                coachNote: _controller.coachNote,
-                coachNotePending: _controller.coachNotePending,
-                clarityUnavailable: _controller.clarityUnavailable,
-                outcome: _controller.outcome,
-                onTakeFive: () {
-                  ref.read(sensoryDirectorProvider).tap();
-                  setState(() => _resting = true);
+    // The feedback screen leaves downward, the same gesture the whole lesson
+    // arrived by. Continue pops the route, so its exit is the route transition
+    // reversing; Again stays on the route, so it needs this. Both read as the
+    // results sliding off the exercise rather than being swapped for it.
+    //
+    // Symmetric on purpose: the outgoing child runs this backwards, so a single
+    // offset gives "results drop away" and "exercise rises back" without
+    // special-casing direction.
+    return AnimatedSwitcher(
+      duration: ResMotion.duration(context, FeedbackChoreography.lessonExit),
+      switchInCurve: ResMotion.enter,
+      switchOutCurve: ResMotion.exit,
+      transitionBuilder: (child, animation) => SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
+      ),
+      child: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, _) {
+          return KeyedSubtree(
+            key: ValueKey(_controller.phase),
+            child: switch (_controller.phase) {
+              LessonPhase.scored => Builder(
+                builder: (context) {
+                  // After the frame, so the schedule starts alongside the ring fill
+                  // rather than before the screen exists.
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => _playOutcomeOnce(),
+                  );
+                  return FeedbackScreen(
+                    lessonTitle: widget.lesson.title,
+                    script: widget.lesson.script ?? '',
+                    score: _controller.score!,
+                    promotion: _controller.promotion!,
+                    coachNote: _controller.coachNote,
+                    coachNotePending: _controller.coachNotePending,
+                    clarityUnavailable: _controller.clarityUnavailable,
+                    outcome: _controller.outcome,
+                    onTakeFive: () {
+                      ref.read(sensoryDirectorProvider).tap();
+                      setState(() => _resting = true);
+                    },
+                    onRetry: () {
+                      ref.read(sensoryDirectorProvider).tap();
+                      _playedOutcome = false;
+                      _controller.reset();
+                    },
+                    onContinue: () {
+                      ref.read(sensoryDirectorProvider).tap();
+                      Navigator.of(context).pop();
+                    },
+                  );
                 },
-                onRetry: () {
-                  ref.read(sensoryDirectorProvider).tap();
-                  _playedOutcome = false;
-                  _controller.reset();
-                },
-                onContinue: () {
-                  ref.read(sensoryDirectorProvider).tap();
-                  Navigator.of(context).pop();
-                },
-              );
+              ),
+              LessonPhase.scoring => const _Scoring(),
+              LessonPhase.failed => _Failed(
+                message: _controller.error ?? 'Something went wrong.',
+                onBack: () => Navigator.of(context).pop(),
+              ),
+              _ => RecordView(controller: _controller),
             },
-          ),
-          LessonPhase.scoring => const _Scoring(),
-          LessonPhase.failed => _Failed(
-            message: _controller.error ?? 'Something went wrong.',
-            onBack: () => Navigator.of(context).pop(),
-          ),
-          _ => RecordView(controller: _controller),
-        };
-      },
+          );
+        },
+      ),
     );
   }
 }

@@ -156,6 +156,50 @@ class FeedbackChoreography {
     SensoryCue(at: Duration.zero, haptic: HapticCue.tap, sound: SoundCue.tap),
   ];
 
+  /// How long a lesson takes to rise into place, and to drop back out.
+  ///
+  /// Longer than a page push (280ms) because this is a modal gesture carrying
+  /// the whole screen, and weight reads as time. Much beyond this and it starts
+  /// to feel like waiting rather than arriving.
+  static const lessonEnter = Duration(milliseconds: 340);
+
+  /// How long the same screen takes to leave.
+  ///
+  /// Shorter than the entrance on purpose. Arriving is the app presenting
+  /// something and can afford to be unhurried; leaving is the user's decision
+  /// already made, and matching the entrance makes a dismissal feel reluctant.
+  static const lessonExit = Duration(milliseconds: 260);
+
+  /// How long the whole fan-out takes, first card to last settled.
+  ///
+  /// One gesture, not N animations. The figure is deliberately close to a page
+  /// transition (280ms): the lessons are arriving from under the unit card, and
+  /// anything much longer reads as the list being assembled in front of you.
+  static const unitFanTotal = Duration(milliseconds: 360);
+
+  /// Gap between one card starting and the next.
+  ///
+  /// Small on purpose. At 100ms a six-lesson unit reads as six separate cards
+  /// queuing; at 45ms the eye follows a single edge travelling down the list,
+  /// which is the thing being aimed at. See [unitFanStagger] for how this is
+  /// compressed when a unit has many lessons.
+  static const unitFanStep = Duration(milliseconds: 45);
+
+  /// The stagger actually used for [count] cards.
+  ///
+  /// Capped so the last card always begins before the sequence is half over.
+  /// Without this a nine-lesson unit would still be starting cards after the
+  /// first ones had settled, and the gesture would come apart into a queue.
+  static Duration unitFanStagger(int count) {
+    if (count <= 1) return Duration.zero;
+    // 0.35, not 0.5. At half the timeline a six-lesson unit put the last card's
+    // start exactly on the first card's finish — zero overlap, which is the
+    // definition of a queue rather than a wave. A third leaves every card
+    // travelling while its neighbour is still moving.
+    final evenly = unitFanTotal * 0.35 ~/ (count - 1);
+    return evenly < unitFanStep ? evenly : unitFanStep;
+  }
+
   /// Opening a unit to show its lessons.
   ///
   /// The same cue as any other press, because that is what it is — the unit

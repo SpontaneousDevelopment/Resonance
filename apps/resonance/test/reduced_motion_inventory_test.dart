@@ -16,6 +16,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// Coverage does not substitute for this. When the breather's reduced-motion
 /// branch was deleted, it took its lines with it: nothing was uncovered, the
 /// new code was simply doing less.
+///
+/// Nor does the presence of a test. The visualiser's entry sat here for two
+/// milestones pointing at a test whose only assertion was that pumping a frame
+/// threw no exception — deleting the whole reduced-motion branch left it green.
+/// An entry in this list is a claim that somewhere asserts the behaviour, and
+/// the way to check the claim is to break the branch and watch that test fail.
 void main() {
   test('every animated component has reduced-motion coverage somewhere', () {
     const covered = <String, String>{
@@ -27,7 +33,16 @@ void main() {
           '— group "reduced motion"',
       'LiveVisualiser (waveform scroll)':
           'test/ui/live_visualiser_test.dart '
-          '— "honours reduced motion"',
+          '— group "reduced motion"',
+      'PreExerciseCards (brief reveal and prompt blink)':
+          'test/features/lesson/pre_exercise_cards_test.dart '
+          '— group "reduced motion"',
+      'Unit fan-out (lesson cards expanding and collapsing)':
+          'test/features/skill_tree/fan_out_test.dart '
+          '— group "reduced motion"',
+      'Lesson modal transition (slide up and back down)':
+          'test/features/lesson/modal_transition_test.dart '
+          '— group "reduced motion"',
     };
 
     // Components that animate but are not yet listed. Add the component *and*

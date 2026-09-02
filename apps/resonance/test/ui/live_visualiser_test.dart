@@ -125,20 +125,81 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('honours reduced motion', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ResTheme.light(),
-        home: MediaQuery(
-          data: const MediaQueryData(disableAnimations: true),
-          child: Scaffold(body: LiveVisualiser(analysis: controller.stream)),
+  /// The interpolation factor the painter is actually using.
+  double interFrameOf(WidgetTester tester) =>
+      (tester
+                  .widget<CustomPaint>(
+                    find.descendant(
+                      of: find.byType(LiveVisualiser),
+                      matching: find.byType(CustomPaint),
+                    ),
+                  )
+                  .painter!
+              as VisualiserPainter)
+          .interFrame;
+
+  group('reduced motion', () {
+    /// This group replaces a test that pumped a frame and asserted
+    /// `takeException() == null` — "it did not crash". Deleting the entire
+    /// reduced-motion branch left it green, so it was measuring nothing. The
+    /// value the setting controls is `interFrame`: at 1.0 the trace is drawn
+    /// snapped to the newest frame, below 1.0 it is mid-glide.
+    Future<void> pumpWith(WidgetTester tester, {required bool reduced}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ResTheme.light(),
+          // Inside MaterialApp: wrapping it instead leaves the app's own
+          // MediaQuery in front and the test silently runs the standard path.
+          home: MediaQuery(
+            data: MediaQueryData(disableAnimations: reduced),
+            child: Scaffold(body: LiveVisualiser(analysis: controller.stream)),
+          ),
         ),
-      ),
-    );
+      );
+      await tester.pump();
+    }
 
-    controller.add(frame());
-    await tester.pump(const Duration(milliseconds: 50));
+    testWidgets('the trace snaps rather than glides', (tester) async {
+      await pumpWith(tester, reduced: true);
 
-    expect(tester.takeException(), isNull);
+      controller.add(frame());
+      await tester.pump();
+      expect(
+        interFrameOf(tester),
+        1.0,
+        reason: 'a new frame should be drawn in place, with no glide',
+      );
+
+      // And it stays there rather than easing in over the next few frames.
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(interFrameOf(tester), 1.0);
+      }
+    });
+
+    testWidgets('with motion enabled it genuinely glides', (tester) async {
+      // The inverse, so the test above cannot pass by the glide never working.
+      await pumpWith(tester, reduced: false);
+
+      controller.add(frame());
+      await tester.pump();
+
+      final seen = <double>{interFrameOf(tester)};
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        seen.add(interFrameOf(tester));
+      }
+
+      expect(
+        seen.any((v) => v < 1.0),
+        isTrue,
+        reason: 'the trace should be part-way between frames at some point',
+      );
+      expect(
+        seen.length,
+        greaterThan(1),
+        reason: 'interFrame did not move: $seen',
+      );
+    });
   });
 }

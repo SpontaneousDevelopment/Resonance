@@ -48,7 +48,10 @@ void main() {
 
       // Nothing else in the tier is open.
       final open = states.values.where((s) => s.isOpen).map((s) => s.unitId);
-      expect(open, unorderedEquals(['t1u1-meet-your-voice', 't1u3-articulation']));
+      expect(
+        open,
+        unorderedEquals(['t1u1-meet-your-voice', 't1u3-articulation']),
+      );
     });
 
     test('every unit gets a state', () {

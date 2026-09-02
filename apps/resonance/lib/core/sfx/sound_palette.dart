@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -9,8 +10,19 @@ import '../../domain/sensory/sensory_cue.dart';
 /// Plays a short asset. Abstracted so the palette's behaviour can be asserted
 /// against real playback rather than against its own bookkeeping.
 abstract interface class SoundPlayer {
-  Future<void> play(String assetPath);
+  /// Plays the asset, returning the duration reported when it was *loaded*, or
+  /// null when it came from cache. The duration is what makes a swapped file
+  /// observable: a replacement of a different length reports a different one.
+  Future<Duration?> play(String assetPath);
   Future<void> dispose();
+
+  /// Drops any cached decoding so the next [play] re-reads the asset.
+  ///
+  /// Exists for one reason: swapping a `.wav` on disk during development has no
+  /// audible effect while a preloaded player still holds the old one, and the
+  /// only way to hear a replacement was to kill the process. See
+  /// [SoundPalette.reloadAssetsFromDisk].
+  Future<void> evictCache();
 }
 
 /// Records every playback request. For tests.
@@ -21,8 +33,23 @@ abstract interface class SoundPlayer {
 class RecordingSoundPlayer implements SoundPlayer {
   final List<String> played = [];
 
+  final List<String> loads = [];
+
   @override
-  Future<void> play(String assetPath) async => played.add(assetPath);
+  Future<Duration?> play(String assetPath) async {
+    // Mirrors the real player: a cache miss is a load, a hit is not.
+    played.add(assetPath);
+    if (_loaded.add(assetPath)) {
+      loads.add(assetPath);
+      return const Duration(milliseconds: 1);
+    }
+    return null;
+  }
+
+  final Set<String> _loaded = {};
+
+  @override
+  Future<void> evictCache() async => _loaded.clear();
 
   @override
   Future<void> dispose() async {}
@@ -90,26 +117,50 @@ class SoundPalette {
   /// Returns early *before* reaching the player when muted or ducked — the bus
   /// is genuinely silent, not playing at zero volume where a stray unduck could
   /// expose it mid-take.
-  Future<void> play(SoundCue cue) async {
-    if (!isAudible) return;
+  Future<Duration?> play(SoundCue cue) async {
+    if (!isAudible) return null;
 
     final path = assets[cue];
-    if (path == null) return;
+    if (path == null) return null;
 
     try {
-      await _player.play(path);
+      return await _player.play(path);
     } catch (error) {
       // A missing or unplayable asset must never break a lesson. Logged once
       // per cue so a missing file is visible in development without flooding.
       if (_warned.add(cue)) {
         debugPrint('Sound asset unavailable for ${cue.name} ($path): $error');
       }
+      return null;
     }
   }
 
   final Set<SoundCue> _warned = {};
 
   Future<void> dispose() => _player.dispose();
+
+  /// Drops the preloaded players so the next cue re-reads its asset.
+  ///
+  /// **Debug builds only, and a no-op in release** — not merely hidden behind a
+  /// debug-only screen. A dev convenience that stays callable in production is
+  /// one refactor away from becoming production behaviour, and this one would
+  /// reintroduce load latency on every cue, putting a "correct" chime a beat
+  /// behind the score it belongs to. The guard is here rather than at the call
+  /// site so there is exactly one place it can be got wrong.
+  Future<void> reloadAssetsFromDisk() async {
+    if (!kDebugMode) return;
+
+    // Three caches sit between a file on disk and a sound, and dropping any two
+    // of them changes nothing audible. This was found by swapping a real file
+    // rather than by reading the code: evicting only the players still played
+    // the old sound, because just_audio had already extracted the asset and
+    // Flutter had already cached its bytes.
+    await _player.evictCache();
+    for (final path in assets.values) {
+      rootBundle.evict(path);
+    }
+    _warned.clear();
+  }
 }
 
 /// One outstanding duck.
@@ -140,22 +191,36 @@ class _JustAudioPlayer implements SoundPlayer {
   final Map<String, AudioPlayer> _players = {};
 
   @override
-  Future<void> play(String assetPath) async {
+  Future<Duration?> play(String assetPath) async {
     final player = _players.putIfAbsent(assetPath, AudioPlayer.new);
+    Duration? loaded;
     if (player.audioSource == null) {
-      await player.setAsset(assetPath);
+      loaded = await player.setAsset(assetPath);
+      if (kDebugMode) {
+        // The signal that a swapped file actually took.
+        debugPrint('sfx loaded $assetPath (${loaded?.inMilliseconds}ms)');
+      }
     }
     await player.seek(Duration.zero);
     unawaited(player.play());
+    return loaded;
   }
 
   @override
-  Future<void> dispose() async {
+  Future<void> evictCache() async {
+    // Disposing and clearing rather than calling setAsset again: just_audio
+    // holds the decoded source on the player, and the map rebuilds lazily on
+    // the next play, so this is self-healing rather than leaving a dead cache.
     for (final player in _players.values) {
       await player.dispose();
     }
     _players.clear();
+    // And the copies just_audio extracted out of the bundle to play from.
+    await AudioPlayer.clearAssetCache();
   }
+
+  @override
+  Future<void> dispose() => evictCache();
 }
 
 final soundPaletteProvider = Provider<SoundPalette>((ref) {

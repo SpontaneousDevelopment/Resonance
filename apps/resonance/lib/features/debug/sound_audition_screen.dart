@@ -41,6 +41,25 @@ class _SoundAuditionScreenState extends ConsumerState<SoundAuditionScreen> {
     _findUnreferencedAssets();
   }
 
+  /// Drops the preloaded players so the next cue re-reads its file.
+  ///
+  /// The whole point of the audition screen is judging a replacement by ear,
+  /// and until this existed that meant killing the app between every swap —
+  /// which is long enough to forget what the previous one sounded like.
+  Future<void> _reloadFromDisk() async {
+    final palette = ref.read(soundPaletteProvider);
+    await palette.reloadAssetsFromDisk();
+    await _findUnreferencedAssets();
+    if (!mounted) return;
+    setState(() => _lastPlayed = null);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sounds dropped. The next play reloads from disk.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _findUnreferencedAssets() async {
     try {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
@@ -64,7 +83,17 @@ class _SoundAuditionScreenState extends ConsumerState<SoundAuditionScreen> {
     final director = ref.watch(sensoryDirectorProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sound palette')),
+      appBar: AppBar(
+        title: const Text('Sound palette'),
+        actions: [
+          IconButton(
+            tooltip: 'Reload sounds from disk',
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _reloadFromDisk,
+          ),
+        ],
+      ),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: context.gutter),
         children: [

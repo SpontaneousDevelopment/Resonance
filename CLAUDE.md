@@ -89,11 +89,49 @@ fvm flutter analyze && fvm flutter test                   # from apps/resonance
   instances of one app bundle collide — the second fails with "Unable to start
   the app on the device". `--concurrency=1` does not prevent it; use
   `scripts/integration_test.sh`.
-- **A backgrounded macOS window can stall a test run.** macOS pauses an occluded
-  window's display link, and `tester.pump()` waits on a frame from it, so a run
-  behind a maximised editor stalls rather than fails. The integration tests ask
-  the app to pin its window on screen. This mitigation is **unproven** — the
-  stall could not be reproduced on demand afterwards.
+- **A backgrounded macOS window can stall a test run.** `tester.pump()` waits on
+  a frame from the window's display link, and frames arrive only as fast as the
+  window is serviced — so a run whose window is not being serviced slows to a
+  crawl or stops. Seen four times: once as a 25-minute hang, three times as the
+  breather measuring ~1300ms per frame against a normal 25-35ms.
+
+  **The mechanism is now measured rather than guessed.** A stalled run was
+  sampled twice while the app sat behind another window: its consumed CPU time
+  did not move at all across twenty seconds — 1.16s, then 1.16s. The process was
+  not running slowly, it was **stopped**. Foregrounding the window restarted it
+  (1.16s → 2.65s in fifteen seconds) and it froze again as soon as focus went
+  elsewhere. That is App Nap: macOS suspends timers for an app it judges to be
+  doing nothing visible, and a test driving frames with nobody clicking and no
+  audio playing is exactly that.
+
+  `MainFlutterWindow.swift` therefore holds an **activity assertion** for the
+  run as well as pinning the window. The pin keeps it visible; the assertion
+  keeps it *running*, and only the second addresses what was measured. It is
+  still not proven — the stall has never been reproducible on demand across
+  thirteen attempts, so a clean run proves nothing — but it now targets a
+  confirmed mechanism rather than a hypothesis.
+
+  What *is* settled is how to tell it apart from a real regression, which is
+  the thing that cost the time. `performance_test.dart` measures a **harness
+  floor** — the cost of a pump with an empty widget — before every measurement,
+  and compares against it:
+
+  | Floor | Subject | Meaning |
+  | --- | --- | --- |
+  | ~25–35ms | fast | fine |
+  | ~25–35ms | slow | a real regression in the app |
+  | >120ms | anything | the environment; nothing in the file means anything |
+
+  The floor catches the *throttled* mode. The *frozen* mode has no threshold to
+  catch — the run simply never returns — so a perf test that hangs for minutes
+  is that one, and the first thing to check is whether the app's CPU time is
+  advancing at all.
+
+  Both branches are verified: a 200M-iteration loop in the breather reports
+  219ms against a 25ms floor and fails as a regression, and a forced-high floor
+  fails with an explicit environment message instead. **A perf failure that
+  names the floor is now self-diagnosing — read the message before assuming
+  either answer.**
 
 ## Verification
 

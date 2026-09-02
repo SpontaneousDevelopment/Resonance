@@ -36,14 +36,19 @@ class TimestampedHaptics implements HapticEngine {
 }
 
 class TimestampedPlayer implements SoundPlayer {
+  @override
+  Future<void> evictCache() async {}
+
   TimestampedPlayer(this.clock);
 
   final VirtualClock clock;
   final List<(Duration, String)> played = [];
 
   @override
-  Future<void> play(String assetPath) async =>
-      played.add((clock.now, assetPath));
+  Future<Duration?> play(String assetPath) async {
+    played.add((clock.now, assetPath));
+    return null;
+  }
 
   @override
   Future<void> dispose() async {}

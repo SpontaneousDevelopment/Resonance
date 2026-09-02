@@ -2,6 +2,12 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
+  #if DEBUG
+    /// Held for the process lifetime while a test is running. Released only by
+    /// the process exiting, which is what ends the run anyway.
+    private var testActivity: NSObjectProtocol?
+  #endif
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
@@ -60,6 +66,26 @@ class MainFlutterWindow: NSWindow {
         self?.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         NSApp.activate(ignoringOtherApps: true)
         self?.makeKeyAndOrderFront(nil)
+
+        // Hold an activity assertion for the life of the run.
+        //
+        // Measured, not guessed: a stalled run was sampled twice while the app
+        // sat behind another window, and its consumed CPU time did not move at
+        // all across twenty seconds — 1.16s, then 1.16s. Bringing the window to
+        // the front restarted it (1.16s to 2.65s in fifteen seconds), and it
+        // froze again the moment focus went elsewhere. The process was not slow;
+        // it was stopped. That is App Nap, which suspends timers for an app it
+        // judges to be doing nothing visible — and a test driving frames is
+        // exactly that, since nobody is clicking and no audio is playing.
+        //
+        // The window pin above keeps it visible; this keeps it *running*, which
+        // is a different thing and the one that was missing.
+        if self?.testActivity == nil {
+          self?.testActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .idleSystemSleepDisabled],
+            reason: "integration test driving frames"
+          )
+        }
         result(true)
       }
     }

@@ -52,6 +52,43 @@ void main() {
     return clock.elapsedMilliseconds / frames;
   }
 
+  /// What a pump costs with nothing on screen — the harness floor.
+  ///
+  /// This exists to tell two failures apart, because they had looked identical
+  /// and one of them wasted most of a session. A pump here is dominated by
+  /// waiting for a real frame from the compositor, not by widget work, so an
+  /// empty page costs about the same as the breather does. That makes the floor
+  /// a control:
+  ///
+  /// * **Floor normal, subject slow** → the app got slower. A real regression.
+  /// * **Floor slow too** → frames are not being delivered at the usual rate,
+  ///   and every measurement in the file is meaningless. That is the
+  ///   environment, and it is reported as the environment rather than as the
+  ///   breather having regressed by 50x.
+  ///
+  /// Comparing against the floor also normalises out machine speed, so these
+  /// thresholds do not need re-tuning per runner.
+  Future<double> harnessFloor(WidgetTester tester) async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await msPerFrame(tester, 10);
+    return msPerFrame(tester, 30);
+  }
+
+  /// Fails with the right diagnosis when the harness itself is not delivering
+  /// frames at a usable rate.
+  void requireUsableHarness(double floor) {
+    expect(
+      floor,
+      lessThan(120.0),
+      reason:
+          'the frame harness is delivering a pump every ${floor.round()}ms '
+          'against a normal 25-35ms, so nothing measured in this file means '
+          'anything. This is the environment, not the app: frames arrive only '
+          'as fast as the window is serviced. Re-run; if it persists, see the '
+          'backgrounded-window note in CLAUDE.md.',
+    );
+  }
+
   Future<void> launch(WidgetTester tester) async {
     tester.view
       ..physicalSize = const Size(1200, 2000)
@@ -65,6 +102,9 @@ void main() {
   testWidgets('the skill tree scrolls without a frame cost cliff', (
     tester,
   ) async {
+    final floor = await harnessFloor(tester);
+    requireUsableHarness(floor);
+
     await launch(tester);
 
     // Warm up, so first-paint of the rings is not counted as steady state.
@@ -93,6 +133,9 @@ void main() {
     // The one screen that animates continuously for ninety seconds, rebuilding
     // every frame by design — and the screen a user is told to close their eyes
     // and breathe with, so a stutter here is felt rather than seen.
+    final floor = await harnessFloor(tester);
+    requireUsableHarness(floor);
+
     tester.view
       ..physicalSize = const Size(1200, 2000)
       ..devicePixelRatio = 1.0;
@@ -115,15 +158,21 @@ void main() {
 
     expect(
       steady,
-      lessThan(45.0),
+      lessThan(floor * 2.5),
       reason:
-          '${steady}ms per animated frame during the breather; measured 25ms clean',
+          '${steady}ms per animated frame during the breather against a '
+          '${floor.round()}ms harness floor. Measured against the floor rather '
+          'than an absolute number so a slow machine moves both together and '
+          'only a real regression moves them apart',
     );
   });
 
   testWidgets('opening a lesson does not blow the build budget', (
     tester,
   ) async {
+    final floor = await harnessFloor(tester);
+    requireUsableHarness(floor);
+
     await launch(tester);
 
     final clock = Stopwatch()..start();
@@ -137,10 +186,13 @@ void main() {
     // work that should have been deferred off the first frame.
     expect(
       elapsed,
-      lessThan(1500),
+      // 600ms of this is the settle pump the test itself asks for, which is
+      // wall-clock regardless; the rest scales with the harness floor so a slow
+      // runner does not read as a slow lesson screen.
+      lessThan(600 + floor * 30),
       reason:
-          '${elapsed}ms to open the lesson screen; measured 717ms clean, of which '
-          '600ms is the settle pump this test itself asks for',
+          '${elapsed}ms to open the lesson screen against a ${floor.round()}ms '
+          'harness floor; measured 717ms clean',
     );
   });
 }

@@ -117,6 +117,45 @@ class FeedbackChoreography {
     SensoryCue(at: Duration.zero, haptic: HapticCue.tap, sound: SoundCue.tap),
   ];
 
+  /// How long a brief card takes to fade in.
+  ///
+  /// Slower than a control (180ms) and slower than a page (280ms), because the
+  /// user is being asked to *read* rather than to notice. A reveal that lands
+  /// before the eye has moved to it reads as a flicker; one that takes much
+  /// longer than this reads as the app being slow to obey a tap.
+  static const briefReveal = Duration(milliseconds: 300);
+
+  /// The pause after the last card lands before the continue prompt appears.
+  ///
+  /// Deliberately long enough to read the final line first. A prompt that
+  /// arrives with the text competes with it, and the last card is usually the
+  /// one that says what to actually do.
+  static const briefPromptDelay = Duration(milliseconds: 900);
+
+  /// One full cycle of the continue prompt's blink.
+  ///
+  /// Slow. A fast blink is an alarm; this is an invitation, and it has to sit
+  /// on screen for as long as someone takes to finish reading without becoming
+  /// something they want to make stop.
+  static const briefBlink = Duration(milliseconds: 1600);
+
+  /// Advancing to the next brief card.
+  ///
+  /// Haptic only, and that is the point. This fires two to five times per
+  /// lesson, every lesson; a click each time is the sound people turn off. The
+  /// tap is confirmed in the hand, and the eye gets the reveal.
+  List<SensoryCue> forBriefAdvance() => const [
+    SensoryCue(at: Duration.zero, haptic: HapticCue.tap),
+  ];
+
+  /// The last card has landed and the exercise is ready to begin.
+  ///
+  /// The one audible moment in the sequence, because it marks a change of
+  /// state rather than a step through one — reading is over, recording is next.
+  List<SensoryCue> forBriefComplete() => const [
+    SensoryCue(at: Duration.zero, haptic: HapticCue.tap, sound: SoundCue.tap),
+  ];
+
   /// Opening a unit to show its lessons.
   ///
   /// The same cue as any other press, because that is what it is — the unit

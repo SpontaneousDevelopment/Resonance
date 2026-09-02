@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:resonance/app/app.dart';
+import 'package:resonance/features/lesson/runner/pre_exercise_cards.dart';
 import 'package:resonance/features/skill_tree/lesson_node.dart';
 
 import 'test_window.dart';
@@ -31,6 +32,23 @@ void main() {
 
   /// Opens a unit and enters one of its lessons, which is now two taps rather
   /// than one — a unit expands in place, and the lesson is chosen from the list.
+
+  /// Taps through the pre-exercise brief cards until the exercise appears.
+  ///
+  /// The brief is a sequence of taps now rather than a paragraph above the
+  /// script, so every path into a lesson goes through it. Bounded rather than
+  /// looping forever: if the cards stop advancing, this should fail as a test
+  /// rather than hang.
+  Future<void> tapThroughBrief(WidgetTester tester) async {
+    for (var i = 0; i < 12; i++) {
+      if (find.text('Check my room').evaluate().isNotEmpty) return;
+      await tester.tap(find.byType(PreExerciseCards));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+    fail('the brief cards never reached the exercise');
+  }
+
   Future<void> openLesson(WidgetTester tester, String lessonTitle) async {
     await tester.tap(find.text('Articulation & Diction'));
     await tester.pump();
@@ -39,6 +57,8 @@ void main() {
     await tester.tap(find.text(lessonTitle));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
+
+    await tapThroughBrief(tester);
   }
 
   Future<void> launch(WidgetTester tester) async {
@@ -92,6 +112,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
+    // The brief now has the screen to itself, one beat per tap.
+    expect(
+      find.byType(PreExerciseCards),
+      findsOneWidget,
+      reason: 'entering a lesson should show its brief before the exercise',
+    );
+    expect(find.text('Check my room'), findsNothing);
+
+    await tapThroughBrief(tester);
     expect(find.text('Plosive Precision'), findsWidgets);
     expect(find.text('Check my room'), findsOneWidget);
     // The script the user reads, not the direction.

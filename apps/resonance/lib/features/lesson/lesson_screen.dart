@@ -10,7 +10,9 @@ import '../../ui/tokens/spacing.dart';
 import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
 import 'feedback/feedback_screen.dart';
+import '../../domain/curriculum/brief_chunks.dart';
 import 'runner/lesson_controller.dart';
+import 'runner/pre_exercise_cards.dart';
 import '../rest/take_five_screen.dart';
 import 'runner/record_view.dart';
 
@@ -40,6 +42,13 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
     // backend, which is the anonymous-first default.
     onAttemptRecorded: () => ref.read(syncSchedulerProvider)?.nudge(),
   );
+
+  /// False until the user has tapped through the brief.
+  ///
+  /// Not a phase on the controller: reading the brief is something the user is
+  /// doing before the attempt exists, and the controller's phases describe an
+  /// attempt.
+  bool _briefRead = false;
 
   /// True while the rest exercise is showing. Not a phase on the controller:
   /// resting is something the user is doing, not something the attempt is.
@@ -98,6 +107,19 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
     // A lesson whose reference clip has not been chosen is written but not
     // playable. Refusing here is what makes `awaiting_selection` more than a
     // comment — nothing can ship having silently defaulted to some video.
+    if (!_briefRead) {
+      final chunks = briefChunks(widget.lesson.brief);
+      if (chunks.isNotEmpty && !widget.lesson.isBlockedOnSelection) {
+        return PreExerciseCards(
+          title: widget.lesson.title,
+          chunks: chunks,
+          sensory: ref.read(sensoryDirectorProvider),
+          onBack: () => Navigator.of(context).pop(),
+          onDone: () => setState(() => _briefRead = true),
+        );
+      }
+    }
+
     if (widget.lesson.isBlockedOnSelection) {
       return _AwaitingSelection(
         lesson: widget.lesson,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:resonance/app/app.dart';
+import 'package:resonance/features/lesson/runner/pre_exercise_cards.dart';
 import 'package:resonance/features/rest/take_five_screen.dart';
 import 'package:resonance/ui/charts/live_visualiser.dart';
 import 'package:resonance/ui/tokens/theme.dart';
@@ -47,6 +48,15 @@ void main() {
     await tester.tap(find.text('Plosive Precision'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
+
+    // Through the brief cards to the exercise itself.
+    for (var i = 0; i < 12; i++) {
+      if (find.text('Check my room').evaluate().isNotEmpty) return;
+      await tester.tap(find.byType(PreExerciseCards));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+    fail('the brief cards never reached the exercise');
   }
 
   group('guidelines', () {

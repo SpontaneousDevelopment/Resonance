@@ -101,9 +101,9 @@ units:
         type: scoredRead
         estimated_seconds: 150
         brief: >-
-          A microphone makes people hurry. The pace band here is the lesson: it
-          is set lower than feels natural on a first recording, and if you read
-          this at the speed it seems to want, you will land outside it. Nothing
+          A microphone makes people hurry. The pace band here is the lesson.
+          It is set lower than feels natural on a first recording, so reading
+          this at the speed it seems to want will land you outside it. Nothing
           about the words needs urgency. Say them at the speed you would use
           giving directions to someone who has to remember them.
         target_wpm_min: 115

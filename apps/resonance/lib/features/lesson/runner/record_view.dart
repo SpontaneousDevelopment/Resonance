@@ -34,12 +34,10 @@ class RecordView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                lesson.brief,
-                style: ResType.caption.copyWith(color: colors.inkMuted),
-              ),
-              const SizedBox(height: ResSpace.base),
-
+              // The brief is not here any more. As a paragraph of caption text
+              // above the script it was present and therefore skipped; it now
+              // gets its own screen before this one, one beat at a time, with
+              // a tap between each. See PreExerciseCards.
               Expanded(
                 child: SingleChildScrollView(
                   child: Text(

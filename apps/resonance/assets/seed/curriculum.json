@@ -23,6 +23,8 @@
               "title": "Your Voice, Unedited",
               "type": "scoredRead",
               "brief": "This one is a measurement, not a test. Read it the way you would read anything aloud to another person in the room — no performance, no radio voice. The score you get here is the number everything later is compared against, so an honest one is worth more to you than a good one. The pace band is deliberately wide: we are finding out where you naturally sit, not correcting it yet.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "The kettle clicked off just as the rain started. I put my cup down, looked out at the street, and decided the walk could wait. Somewhere below, a door closed twice — once quietly, then again with feeling.",
               "reference": {
                 "source": "none",
@@ -44,6 +46,8 @@
               "title": "The Two Ends of Your Voice",
               "type": "scoredRead",
               "brief": "Read this twice. The first time, sit at the bottom of where your voice is comfortable — the pitch you land on when you are tired. The second time, take it as high as you can go without strain or falsetto. Your score is the clarity of the *worse* of the two passes. Most people lose consonants at one end and never find out which.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "I found the letter behind the radiator, still sealed, still addressed to a man who moved out eleven years ago.",
               "reference": {
                 "source": "none",
@@ -65,6 +69,8 @@
               "title": "Where Your Sentences Go",
               "type": "scoredRead",
               "brief": "Almost everyone starts a sentence with energy and arrives at the end of it with none. Six short sentences, each landing on a hard consonant. If your volume falls away before the full stop, those consonants disappear and the score will show you exactly which ones went. Listen for the last word of each sentence, not the first.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "The train left at eight. He locked the shed and lost the key. She kept the receipt. It rained all night. The dog stayed out. Nobody asked what happened next.",
               "reference": {
                 "source": "none",
@@ -86,6 +92,8 @@
               "title": "Slower Than You Think",
               "type": "scoredRead",
               "brief": "A microphone makes people hurry. The pace band here is the lesson. It is set lower than feels natural on a first recording, so reading this at the speed it seems to want will land you outside it. Nothing about the words needs urgency. Say them at the speed you would use giving directions to someone who has to remember them.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "There is a fire door at the end of the corridor. It opens outward. If the alarm sounds, walk to it, push the bar, and stand well clear of the building.",
               "reference": {
                 "source": "none",
@@ -107,6 +115,8 @@
               "title": "One Minute, No Edits",
               "type": "scoredRead",
               "brief": "The longest read in the unit, and the first one where staying the same is the difficulty. Quality decays over length: breath gets shallower, consonants soften, pace drifts up. The last third of this passage is where your habits live. Read it once, all the way through, without stopping to fix anything.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "The building had been a print works, then a furniture store, then nothing at all for most of a decade. When they finally opened the doors again the floor was still stained black in long lines where the presses had stood, and nobody had the heart to sand them out. The new owners left them, put tables between them, and told anyone who asked that the marks were the reason they had bought the place. On a quiet afternoon you could still smell ink under the coffee. The woman who ran the counter said it faded in summer and came back every autumn, which was not true, but everyone repeated it anyway.",
               "reference": {
                 "source": "none",
@@ -155,6 +165,8 @@
               "title": "Plosive Precision",
               "type": "scoredRead",
               "brief": "Read at a steady, conversational pace. Land every P, B, T, D, K and G cleanly — but keep the mic off-axis so the plosives stay crisp without thumping. Keep the tempo even, and don't push the P: let the consonant do the work while the breath behind it stays quiet. We score consonant clarity and plosive control together, because they pull against each other.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "Peter picked a bitter batch of pickled peppers, packed them tight, and put the barrel back beside the broken gate. The proper paper was buried beneath a big black book, but Bobby brought it back before breakfast.",
               "reference": {
                 "source": "none",
@@ -176,6 +188,8 @@
               "title": "Taming the S",
               "type": "scoredRead",
               "brief": "Sibilance is the fastest way to sound harsh on a condenser. Read this with fully formed S sounds that stay short — stop each one early and let the vowel carry the line. Long, hissing S sounds cost points; swallowed ones cost more.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "She sells sea shells, and the shells she sells are surely seaside shells. Six slick sisters swiftly stitched a silk sash, then set it aside to see whether the stitches would settle.",
               "reference": {
                 "source": "none",
@@ -197,6 +211,8 @@
               "title": "The Middle of the Word",
               "type": "scoredRead",
               "brief": "Most people articulate the start and end of a word and let the middle go. This passage is built almost entirely from words that fall apart if you do that.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "Particularly probable statistics regularly deteriorate under comparable circumstances. The temperature fluctuated considerably, and the laboratory's preliminary interpretation was consequently unreliable. February, library, comfortable, deteriorate.",
               "reference": {
                 "source": "none",
@@ -218,6 +234,24 @@
               "title": "The Tempo Ladder",
               "type": "scoredRead",
               "brief": "Same line, three times: slow, conversational, then fast. Clarity must hold at every rung. Your score is the *lowest* clarity across the three passes, so the fast one is where the unit is won or lost.",
+              "takes": [
+                {
+                  "label": "Slow",
+                  "target_wpm_min": 95,
+                  "target_wpm_max": 125
+                },
+                {
+                  "label": "Conversational",
+                  "target_wpm_min": 130,
+                  "target_wpm_max": 165
+                },
+                {
+                  "label": "Fast",
+                  "target_wpm_min": 175,
+                  "target_wpm_max": 215
+                }
+              ],
+              "take_aggregation": "lowest",
               "script": "The rugged brigadier bragged briefly about the burglary before breakfast, then hurried back through the bracken.",
               "reference": {
                 "source": "none",
@@ -238,7 +272,20 @@
               "unit_id": "t1u3-articulation",
               "title": "The Over-Articulation Dial",
               "type": "scoredRead",
-              "brief": "Now the opposite problem. Read this twice — once deliberately over-enunciated, once genuinely conversational. We score the *difference*: you should be able to hear the dial move. Precision you cannot switch off is a limitation, not a skill.",
+              "brief": "Now the opposite problem. Read this twice — once deliberately over-enunciated, once genuinely conversational. Both have to stay clear: your score is the weaker of the two, so dropping consonants the moment you relax is what costs you. Precision you cannot switch off is a limitation, not a skill.",
+              "takes": [
+                {
+                  "label": "Over-enunciated",
+                  "target_wpm_min": 120,
+                  "target_wpm_max": 165
+                },
+                {
+                  "label": "Conversational",
+                  "target_wpm_min": 140,
+                  "target_wpm_max": 180
+                }
+              ],
+              "take_aggregation": "lowest",
               "script": "I told him I would be there at eight, and I meant it. It is not complicated. He just has to answer the phone.",
               "reference": {
                 "source": "none",
@@ -250,7 +297,7 @@
                 "license_url": null,
                 "awaiting_selection": false
               },
-              "target_wpm_min": 140,
+              "target_wpm_min": 120,
               "target_wpm_max": 180,
               "estimated_seconds": 180
             },
@@ -260,6 +307,8 @@
               "title": "Hear It Done Well",
               "type": "listenAndAnalyse",
               "brief": "Listen for the consonants, not the performance. Notice how little effort the plosives take, and how the sound stops rather than trailing. Then answer the two prompts below.",
+              "takes": [],
+              "take_aggregation": null,
               "script": "Listen twice. The first time, follow the meaning. The second time, ignore it entirely and listen only to the ends of words.",
               "reference": {
                 "source": "embed",

@@ -145,6 +145,54 @@ class LessonReference {
 }
 
 /// A single practisable lesson — one session, two to four minutes.
+/// How a lesson's takes combine into one score.
+///
+/// Declared by the content rather than inferred, so a lesson says what it is
+/// graded on and the brief can be checked against it. The Over-Articulation
+/// Dial is why: its brief claimed the score was the *difference* between two
+/// reads while the code scored a single take, and nothing connected the two.
+enum TakeAggregation {
+  /// The worst take carries the lesson. For a ladder, where the point is that
+  /// clarity has a floor and the fast rung is where it is found.
+  lowest,
+
+  /// The *distance* between two takes — how far the user can move a dial on
+  /// purpose. Not implemented: it needs a measure of articulation precision
+  /// that is independent of pace, and the measurement layer has none. Recogniser
+  /// confidence is the only candidate and the platform routinely declines to
+  /// report it. The compiler rejects this value rather than letting content
+  /// declare a grading rule that does not exist.
+  difference;
+
+  static TakeAggregation fromId(String id) => TakeAggregation.values.firstWhere(
+    (a) => a.name == id,
+    orElse: () => throw FormatException('Unknown take aggregation: $id'),
+  );
+}
+
+/// One recording within a lesson.
+///
+/// A lesson with no authored takes still has exactly one — see [Lesson.takes].
+/// N=1 is the same path as N=3, not a branch around it.
+class LessonTake {
+  const LessonTake({required this.label, this.targetWpmMin, this.targetWpmMax});
+
+  /// Shown above the record button as a heading. Short and imperative: "Slow",
+  /// "Conversational". Not put inside the button, which says what tapping does.
+  final String label;
+
+  /// Overrides the lesson's band for this take. A ladder needs a different
+  /// target per rung, which a single lesson-level band cannot express.
+  final int? targetWpmMin;
+  final int? targetWpmMax;
+
+  factory LessonTake.fromJson(Map<String, dynamic> json) => LessonTake(
+    label: json['label'] as String,
+    targetWpmMin: json['target_wpm_min'] as int?,
+    targetWpmMax: json['target_wpm_max'] as int?,
+  );
+}
+
 class Lesson {
   const Lesson({
     required this.id,
@@ -157,7 +205,34 @@ class Lesson {
     this.targetWpmMin,
     this.targetWpmMax,
     this.estimatedSeconds = 150,
+    this.takeAggregation = TakeAggregation.lowest,
+    this.authoredTakes = const [],
   });
+
+  /// Exactly what the content declared. Empty for a lesson that never mentions
+  /// takes; read [takes] instead, which is never empty.
+  final List<LessonTake> authoredTakes;
+
+  /// How this lesson's takes combine. Irrelevant when there is only one.
+  final TakeAggregation takeAggregation;
+
+  /// The takes to record, always at least one.
+  ///
+  /// A plain lesson synthesises a single take from its own band, so every
+  /// caller walks a list and nothing has to ask "is this a multi-take lesson".
+  /// The branch that would otherwise exist here is the one that gets forgotten.
+  List<LessonTake> get takes => authoredTakes.isNotEmpty
+      ? authoredTakes
+      : [
+          LessonTake(
+            label: title,
+            targetWpmMin: targetWpmMin,
+            targetWpmMax: targetWpmMax,
+          ),
+        ];
+
+  /// True when the content actually authored more than one take.
+  bool get isMultiTake => authoredTakes.length > 1;
 
   /// Stable across content edits. Progress is keyed on this, so it must never
   /// be reused or renumbered.
@@ -200,6 +275,13 @@ class Lesson {
       reference: json['reference'] == null
           ? null
           : LessonReference.fromJson(json['reference'] as Map<String, dynamic>),
+      takeAggregation: json['take_aggregation'] == null
+          ? TakeAggregation.lowest
+          : TakeAggregation.fromId(json['take_aggregation'] as String),
+      authoredTakes: [
+        for (final t in (json['takes'] as List<dynamic>? ?? const []))
+          LessonTake.fromJson(Map<String, dynamic>.from(t as Map)),
+      ],
       targetWpmMin: json['target_wpm_min'] as int?,
       targetWpmMax: json['target_wpm_max'] as int?,
       estimatedSeconds: json['estimated_seconds'] as int? ?? 150,

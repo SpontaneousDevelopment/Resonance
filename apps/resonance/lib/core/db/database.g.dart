@@ -2999,6 +2999,604 @@ class EnergyStateCompanion extends UpdateCompanion<EnergyRow> {
   }
 }
 
+class $TakeRecordsTable extends TakeRecords
+    with TableInfo<$TakeRecordsTable, TakeRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TakeRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _attemptIdMeta = const VerificationMeta(
+    'attemptId',
+  );
+  @override
+  late final GeneratedColumn<String> attemptId = GeneratedColumn<String>(
+    'attempt_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES attempts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _takeIndexMeta = const VerificationMeta(
+    'takeIndex',
+  );
+  @override
+  late final GeneratedColumn<int> takeIndex = GeneratedColumn<int>(
+    'take_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<int> score = GeneratedColumn<int>(
+    'score',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _wordsPerMinuteMeta = const VerificationMeta(
+    'wordsPerMinute',
+  );
+  @override
+  late final GeneratedColumn<int> wordsPerMinute = GeneratedColumn<int>(
+    'words_per_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _transcriptMeta = const VerificationMeta(
+    'transcript',
+  );
+  @override
+  late final GeneratedColumn<String> transcript = GeneratedColumn<String>(
+    'transcript',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _audioPathMeta = const VerificationMeta(
+    'audioPath',
+  );
+  @override
+  late final GeneratedColumn<String> audioPath = GeneratedColumn<String>(
+    'audio_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _passedSanityMeta = const VerificationMeta(
+    'passedSanity',
+  );
+  @override
+  late final GeneratedColumn<bool> passedSanity = GeneratedColumn<bool>(
+    'passed_sanity',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("passed_sanity" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    attemptId,
+    takeIndex,
+    label,
+    score,
+    wordsPerMinute,
+    transcript,
+    audioPath,
+    durationMs,
+    passedSanity,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'take_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TakeRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('attempt_id')) {
+      context.handle(
+        _attemptIdMeta,
+        attemptId.isAcceptableOrUnknown(data['attempt_id']!, _attemptIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_attemptIdMeta);
+    }
+    if (data.containsKey('take_index')) {
+      context.handle(
+        _takeIndexMeta,
+        takeIndex.isAcceptableOrUnknown(data['take_index']!, _takeIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_takeIndexMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    }
+    if (data.containsKey('words_per_minute')) {
+      context.handle(
+        _wordsPerMinuteMeta,
+        wordsPerMinute.isAcceptableOrUnknown(
+          data['words_per_minute']!,
+          _wordsPerMinuteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('transcript')) {
+      context.handle(
+        _transcriptMeta,
+        transcript.isAcceptableOrUnknown(data['transcript']!, _transcriptMeta),
+      );
+    }
+    if (data.containsKey('audio_path')) {
+      context.handle(
+        _audioPathMeta,
+        audioPath.isAcceptableOrUnknown(data['audio_path']!, _audioPathMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMsMeta);
+    }
+    if (data.containsKey('passed_sanity')) {
+      context.handle(
+        _passedSanityMeta,
+        passedSanity.isAcceptableOrUnknown(
+          data['passed_sanity']!,
+          _passedSanityMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {attemptId, takeIndex};
+  @override
+  TakeRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TakeRecord(
+      attemptId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attempt_id'],
+      )!,
+      takeIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}take_index'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score'],
+      ),
+      wordsPerMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}words_per_minute'],
+      ),
+      transcript: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}transcript'],
+      ),
+      audioPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}audio_path'],
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      )!,
+      passedSanity: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}passed_sanity'],
+      )!,
+    );
+  }
+
+  @override
+  $TakeRecordsTable createAlias(String alias) {
+    return $TakeRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class TakeRecord extends DataClass implements Insertable<TakeRecord> {
+  final String attemptId;
+
+  /// Position in the lesson's take list, 0-based. Recording order is the
+  /// lesson's order; there is no backward navigation between takes.
+  final int takeIndex;
+
+  /// The authored label, copied rather than referenced. Content can be re-worded
+  /// later, and a stored attempt should still say what the user was asked for
+  /// at the time.
+  final String label;
+  final int? score;
+  final int? wordsPerMinute;
+  final String? transcript;
+
+  /// Path to this take's audio. One file per take, all deleted together.
+  final String? audioPath;
+  final int durationMs;
+
+  /// False when the take only got through because it was the third consecutive
+  /// failure of the sanity gate and the user chose to continue. Recorded so the
+  /// rubric's honest low score is distinguishable from a gate that gave up.
+  final bool passedSanity;
+  const TakeRecord({
+    required this.attemptId,
+    required this.takeIndex,
+    required this.label,
+    this.score,
+    this.wordsPerMinute,
+    this.transcript,
+    this.audioPath,
+    required this.durationMs,
+    required this.passedSanity,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['attempt_id'] = Variable<String>(attemptId);
+    map['take_index'] = Variable<int>(takeIndex);
+    map['label'] = Variable<String>(label);
+    if (!nullToAbsent || score != null) {
+      map['score'] = Variable<int>(score);
+    }
+    if (!nullToAbsent || wordsPerMinute != null) {
+      map['words_per_minute'] = Variable<int>(wordsPerMinute);
+    }
+    if (!nullToAbsent || transcript != null) {
+      map['transcript'] = Variable<String>(transcript);
+    }
+    if (!nullToAbsent || audioPath != null) {
+      map['audio_path'] = Variable<String>(audioPath);
+    }
+    map['duration_ms'] = Variable<int>(durationMs);
+    map['passed_sanity'] = Variable<bool>(passedSanity);
+    return map;
+  }
+
+  TakeRecordsCompanion toCompanion(bool nullToAbsent) {
+    return TakeRecordsCompanion(
+      attemptId: Value(attemptId),
+      takeIndex: Value(takeIndex),
+      label: Value(label),
+      score: score == null && nullToAbsent
+          ? const Value.absent()
+          : Value(score),
+      wordsPerMinute: wordsPerMinute == null && nullToAbsent
+          ? const Value.absent()
+          : Value(wordsPerMinute),
+      transcript: transcript == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transcript),
+      audioPath: audioPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(audioPath),
+      durationMs: Value(durationMs),
+      passedSanity: Value(passedSanity),
+    );
+  }
+
+  factory TakeRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TakeRecord(
+      attemptId: serializer.fromJson<String>(json['attemptId']),
+      takeIndex: serializer.fromJson<int>(json['takeIndex']),
+      label: serializer.fromJson<String>(json['label']),
+      score: serializer.fromJson<int?>(json['score']),
+      wordsPerMinute: serializer.fromJson<int?>(json['wordsPerMinute']),
+      transcript: serializer.fromJson<String?>(json['transcript']),
+      audioPath: serializer.fromJson<String?>(json['audioPath']),
+      durationMs: serializer.fromJson<int>(json['durationMs']),
+      passedSanity: serializer.fromJson<bool>(json['passedSanity']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'attemptId': serializer.toJson<String>(attemptId),
+      'takeIndex': serializer.toJson<int>(takeIndex),
+      'label': serializer.toJson<String>(label),
+      'score': serializer.toJson<int?>(score),
+      'wordsPerMinute': serializer.toJson<int?>(wordsPerMinute),
+      'transcript': serializer.toJson<String?>(transcript),
+      'audioPath': serializer.toJson<String?>(audioPath),
+      'durationMs': serializer.toJson<int>(durationMs),
+      'passedSanity': serializer.toJson<bool>(passedSanity),
+    };
+  }
+
+  TakeRecord copyWith({
+    String? attemptId,
+    int? takeIndex,
+    String? label,
+    Value<int?> score = const Value.absent(),
+    Value<int?> wordsPerMinute = const Value.absent(),
+    Value<String?> transcript = const Value.absent(),
+    Value<String?> audioPath = const Value.absent(),
+    int? durationMs,
+    bool? passedSanity,
+  }) => TakeRecord(
+    attemptId: attemptId ?? this.attemptId,
+    takeIndex: takeIndex ?? this.takeIndex,
+    label: label ?? this.label,
+    score: score.present ? score.value : this.score,
+    wordsPerMinute: wordsPerMinute.present
+        ? wordsPerMinute.value
+        : this.wordsPerMinute,
+    transcript: transcript.present ? transcript.value : this.transcript,
+    audioPath: audioPath.present ? audioPath.value : this.audioPath,
+    durationMs: durationMs ?? this.durationMs,
+    passedSanity: passedSanity ?? this.passedSanity,
+  );
+  TakeRecord copyWithCompanion(TakeRecordsCompanion data) {
+    return TakeRecord(
+      attemptId: data.attemptId.present ? data.attemptId.value : this.attemptId,
+      takeIndex: data.takeIndex.present ? data.takeIndex.value : this.takeIndex,
+      label: data.label.present ? data.label.value : this.label,
+      score: data.score.present ? data.score.value : this.score,
+      wordsPerMinute: data.wordsPerMinute.present
+          ? data.wordsPerMinute.value
+          : this.wordsPerMinute,
+      transcript: data.transcript.present
+          ? data.transcript.value
+          : this.transcript,
+      audioPath: data.audioPath.present ? data.audioPath.value : this.audioPath,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      passedSanity: data.passedSanity.present
+          ? data.passedSanity.value
+          : this.passedSanity,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TakeRecord(')
+          ..write('attemptId: $attemptId, ')
+          ..write('takeIndex: $takeIndex, ')
+          ..write('label: $label, ')
+          ..write('score: $score, ')
+          ..write('wordsPerMinute: $wordsPerMinute, ')
+          ..write('transcript: $transcript, ')
+          ..write('audioPath: $audioPath, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('passedSanity: $passedSanity')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    attemptId,
+    takeIndex,
+    label,
+    score,
+    wordsPerMinute,
+    transcript,
+    audioPath,
+    durationMs,
+    passedSanity,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TakeRecord &&
+          other.attemptId == this.attemptId &&
+          other.takeIndex == this.takeIndex &&
+          other.label == this.label &&
+          other.score == this.score &&
+          other.wordsPerMinute == this.wordsPerMinute &&
+          other.transcript == this.transcript &&
+          other.audioPath == this.audioPath &&
+          other.durationMs == this.durationMs &&
+          other.passedSanity == this.passedSanity);
+}
+
+class TakeRecordsCompanion extends UpdateCompanion<TakeRecord> {
+  final Value<String> attemptId;
+  final Value<int> takeIndex;
+  final Value<String> label;
+  final Value<int?> score;
+  final Value<int?> wordsPerMinute;
+  final Value<String?> transcript;
+  final Value<String?> audioPath;
+  final Value<int> durationMs;
+  final Value<bool> passedSanity;
+  final Value<int> rowid;
+  const TakeRecordsCompanion({
+    this.attemptId = const Value.absent(),
+    this.takeIndex = const Value.absent(),
+    this.label = const Value.absent(),
+    this.score = const Value.absent(),
+    this.wordsPerMinute = const Value.absent(),
+    this.transcript = const Value.absent(),
+    this.audioPath = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.passedSanity = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TakeRecordsCompanion.insert({
+    required String attemptId,
+    required int takeIndex,
+    required String label,
+    this.score = const Value.absent(),
+    this.wordsPerMinute = const Value.absent(),
+    this.transcript = const Value.absent(),
+    this.audioPath = const Value.absent(),
+    required int durationMs,
+    this.passedSanity = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : attemptId = Value(attemptId),
+       takeIndex = Value(takeIndex),
+       label = Value(label),
+       durationMs = Value(durationMs);
+  static Insertable<TakeRecord> custom({
+    Expression<String>? attemptId,
+    Expression<int>? takeIndex,
+    Expression<String>? label,
+    Expression<int>? score,
+    Expression<int>? wordsPerMinute,
+    Expression<String>? transcript,
+    Expression<String>? audioPath,
+    Expression<int>? durationMs,
+    Expression<bool>? passedSanity,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (attemptId != null) 'attempt_id': attemptId,
+      if (takeIndex != null) 'take_index': takeIndex,
+      if (label != null) 'label': label,
+      if (score != null) 'score': score,
+      if (wordsPerMinute != null) 'words_per_minute': wordsPerMinute,
+      if (transcript != null) 'transcript': transcript,
+      if (audioPath != null) 'audio_path': audioPath,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (passedSanity != null) 'passed_sanity': passedSanity,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TakeRecordsCompanion copyWith({
+    Value<String>? attemptId,
+    Value<int>? takeIndex,
+    Value<String>? label,
+    Value<int?>? score,
+    Value<int?>? wordsPerMinute,
+    Value<String?>? transcript,
+    Value<String?>? audioPath,
+    Value<int>? durationMs,
+    Value<bool>? passedSanity,
+    Value<int>? rowid,
+  }) {
+    return TakeRecordsCompanion(
+      attemptId: attemptId ?? this.attemptId,
+      takeIndex: takeIndex ?? this.takeIndex,
+      label: label ?? this.label,
+      score: score ?? this.score,
+      wordsPerMinute: wordsPerMinute ?? this.wordsPerMinute,
+      transcript: transcript ?? this.transcript,
+      audioPath: audioPath ?? this.audioPath,
+      durationMs: durationMs ?? this.durationMs,
+      passedSanity: passedSanity ?? this.passedSanity,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (attemptId.present) {
+      map['attempt_id'] = Variable<String>(attemptId.value);
+    }
+    if (takeIndex.present) {
+      map['take_index'] = Variable<int>(takeIndex.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<int>(score.value);
+    }
+    if (wordsPerMinute.present) {
+      map['words_per_minute'] = Variable<int>(wordsPerMinute.value);
+    }
+    if (transcript.present) {
+      map['transcript'] = Variable<String>(transcript.value);
+    }
+    if (audioPath.present) {
+      map['audio_path'] = Variable<String>(audioPath.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (passedSanity.present) {
+      map['passed_sanity'] = Variable<bool>(passedSanity.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TakeRecordsCompanion(')
+          ..write('attemptId: $attemptId, ')
+          ..write('takeIndex: $takeIndex, ')
+          ..write('label: $label, ')
+          ..write('score: $score, ')
+          ..write('wordsPerMinute: $wordsPerMinute, ')
+          ..write('transcript: $transcript, ')
+          ..write('audioPath: $audioPath, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('passedSanity: $passedSanity, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ResonanceDatabase extends GeneratedDatabase {
   _$ResonanceDatabase(QueryExecutor e) : super(e);
   $ResonanceDatabaseManager get managers => $ResonanceDatabaseManager(this);
@@ -3008,6 +3606,7 @@ abstract class _$ResonanceDatabase extends GeneratedDatabase {
   late final $DailyXpTable dailyXp = $DailyXpTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $EnergyStateTable energyState = $EnergyStateTable(this);
+  late final $TakeRecordsTable takeRecords = $TakeRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3019,7 +3618,18 @@ abstract class _$ResonanceDatabase extends GeneratedDatabase {
     dailyXp,
     outbox,
     energyState,
+    takeRecords,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attempts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('take_records', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$LessonProgressTableCreateCompanionBuilder =
@@ -3351,6 +3961,30 @@ typedef $$AttemptsTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$AttemptsTableReferences
+    extends BaseReferences<_$ResonanceDatabase, $AttemptsTable, AttemptRow> {
+  $$AttemptsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TakeRecordsTable, List<TakeRecord>>
+  _takeRecordsRefsTable(_$ResonanceDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.takeRecords,
+        aliasName: 'attempts__id__take_records__attempt_id',
+      );
+
+  $$TakeRecordsTableProcessedTableManager get takeRecordsRefs {
+    final manager = $$TakeRecordsTableTableManager(
+      $_db,
+      $_db.takeRecords,
+    ).filter((f) => f.attemptId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_takeRecordsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$AttemptsTableFilterComposer
     extends Composer<_$ResonanceDatabase, $AttemptsTable> {
   $$AttemptsTableFilterComposer({
@@ -3424,6 +4058,31 @@ class $$AttemptsTableFilterComposer
     column: $table.syncedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> takeRecordsRefs(
+    Expression<bool> Function($$TakeRecordsTableFilterComposer f) f,
+  ) {
+    final $$TakeRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.takeRecords,
+      getReferencedColumn: (t) => t.attemptId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TakeRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.takeRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AttemptsTableOrderingComposer
@@ -3560,6 +4219,31 @@ class $$AttemptsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  Expression<T> takeRecordsRefs<T extends Object>(
+    Expression<T> Function($$TakeRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$TakeRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.takeRecords,
+      getReferencedColumn: (t) => t.attemptId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TakeRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.takeRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AttemptsTableTableManager
@@ -3573,12 +4257,9 @@ class $$AttemptsTableTableManager
           $$AttemptsTableAnnotationComposer,
           $$AttemptsTableCreateCompanionBuilder,
           $$AttemptsTableUpdateCompanionBuilder,
-          (
-            AttemptRow,
-            BaseReferences<_$ResonanceDatabase, $AttemptsTable, AttemptRow>,
-          ),
+          (AttemptRow, $$AttemptsTableReferences),
           AttemptRow,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool takeRecordsRefs})
         > {
   $$AttemptsTableTableManager(_$ResonanceDatabase db, $AttemptsTable table)
     : super(
@@ -3656,9 +4337,42 @@ class $$AttemptsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AttemptsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({takeRecordsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (takeRecordsRefs) db.takeRecords],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (takeRecordsRefs)
+                    await $_getPrefetchedData<
+                      AttemptRow,
+                      $AttemptsTable,
+                      TakeRecord
+                    >(
+                      currentTable: table,
+                      referencedTable: $$AttemptsTableReferences
+                          ._takeRecordsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$AttemptsTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).takeRecordsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.attemptId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -3673,12 +4387,9 @@ typedef $$AttemptsTableProcessedTableManager =
       $$AttemptsTableAnnotationComposer,
       $$AttemptsTableCreateCompanionBuilder,
       $$AttemptsTableUpdateCompanionBuilder,
-      (
-        AttemptRow,
-        BaseReferences<_$ResonanceDatabase, $AttemptsTable, AttemptRow>,
-      ),
+      (AttemptRow, $$AttemptsTableReferences),
       AttemptRow,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool takeRecordsRefs})
     >;
 typedef $$StreakStateTableCreateCompanionBuilder =
     StreakStateCompanion Function({
@@ -4523,6 +5234,409 @@ typedef $$EnergyStateTableProcessedTableManager =
       EnergyRow,
       PrefetchHooks Function()
     >;
+typedef $$TakeRecordsTableCreateCompanionBuilder =
+    TakeRecordsCompanion Function({
+      required String attemptId,
+      required int takeIndex,
+      required String label,
+      Value<int?> score,
+      Value<int?> wordsPerMinute,
+      Value<String?> transcript,
+      Value<String?> audioPath,
+      required int durationMs,
+      Value<bool> passedSanity,
+      Value<int> rowid,
+    });
+typedef $$TakeRecordsTableUpdateCompanionBuilder =
+    TakeRecordsCompanion Function({
+      Value<String> attemptId,
+      Value<int> takeIndex,
+      Value<String> label,
+      Value<int?> score,
+      Value<int?> wordsPerMinute,
+      Value<String?> transcript,
+      Value<String?> audioPath,
+      Value<int> durationMs,
+      Value<bool> passedSanity,
+      Value<int> rowid,
+    });
+
+final class $$TakeRecordsTableReferences
+    extends BaseReferences<_$ResonanceDatabase, $TakeRecordsTable, TakeRecord> {
+  $$TakeRecordsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AttemptsTable _attemptIdTable(_$ResonanceDatabase db) =>
+      db.attempts.createAlias('take_records__attempt_id__attempts__id');
+
+  $$AttemptsTableProcessedTableManager get attemptId {
+    final $_column = $_itemColumn<String>('attempt_id')!;
+
+    final manager = $$AttemptsTableTableManager(
+      $_db,
+      $_db.attempts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_attemptIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TakeRecordsTableFilterComposer
+    extends Composer<_$ResonanceDatabase, $TakeRecordsTable> {
+  $$TakeRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get takeIndex => $composableBuilder(
+    column: $table.takeIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get wordsPerMinute => $composableBuilder(
+    column: $table.wordsPerMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get transcript => $composableBuilder(
+    column: $table.transcript,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get audioPath => $composableBuilder(
+    column: $table.audioPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get passedSanity => $composableBuilder(
+    column: $table.passedSanity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AttemptsTableFilterComposer get attemptId {
+    final $$AttemptsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attemptId,
+      referencedTable: $db.attempts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttemptsTableFilterComposer(
+            $db: $db,
+            $table: $db.attempts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TakeRecordsTableOrderingComposer
+    extends Composer<_$ResonanceDatabase, $TakeRecordsTable> {
+  $$TakeRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get takeIndex => $composableBuilder(
+    column: $table.takeIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get wordsPerMinute => $composableBuilder(
+    column: $table.wordsPerMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get transcript => $composableBuilder(
+    column: $table.transcript,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get audioPath => $composableBuilder(
+    column: $table.audioPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get passedSanity => $composableBuilder(
+    column: $table.passedSanity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AttemptsTableOrderingComposer get attemptId {
+    final $$AttemptsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attemptId,
+      referencedTable: $db.attempts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttemptsTableOrderingComposer(
+            $db: $db,
+            $table: $db.attempts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TakeRecordsTableAnnotationComposer
+    extends Composer<_$ResonanceDatabase, $TakeRecordsTable> {
+  $$TakeRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get takeIndex =>
+      $composableBuilder(column: $table.takeIndex, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+
+  GeneratedColumn<int> get wordsPerMinute => $composableBuilder(
+    column: $table.wordsPerMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get transcript => $composableBuilder(
+    column: $table.transcript,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get audioPath =>
+      $composableBuilder(column: $table.audioPath, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get passedSanity => $composableBuilder(
+    column: $table.passedSanity,
+    builder: (column) => column,
+  );
+
+  $$AttemptsTableAnnotationComposer get attemptId {
+    final $$AttemptsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attemptId,
+      referencedTable: $db.attempts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttemptsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attempts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TakeRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$ResonanceDatabase,
+          $TakeRecordsTable,
+          TakeRecord,
+          $$TakeRecordsTableFilterComposer,
+          $$TakeRecordsTableOrderingComposer,
+          $$TakeRecordsTableAnnotationComposer,
+          $$TakeRecordsTableCreateCompanionBuilder,
+          $$TakeRecordsTableUpdateCompanionBuilder,
+          (TakeRecord, $$TakeRecordsTableReferences),
+          TakeRecord,
+          PrefetchHooks Function({bool attemptId})
+        > {
+  $$TakeRecordsTableTableManager(
+    _$ResonanceDatabase db,
+    $TakeRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TakeRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TakeRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TakeRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> attemptId = const Value.absent(),
+                Value<int> takeIndex = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<int?> score = const Value.absent(),
+                Value<int?> wordsPerMinute = const Value.absent(),
+                Value<String?> transcript = const Value.absent(),
+                Value<String?> audioPath = const Value.absent(),
+                Value<int> durationMs = const Value.absent(),
+                Value<bool> passedSanity = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TakeRecordsCompanion(
+                attemptId: attemptId,
+                takeIndex: takeIndex,
+                label: label,
+                score: score,
+                wordsPerMinute: wordsPerMinute,
+                transcript: transcript,
+                audioPath: audioPath,
+                durationMs: durationMs,
+                passedSanity: passedSanity,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String attemptId,
+                required int takeIndex,
+                required String label,
+                Value<int?> score = const Value.absent(),
+                Value<int?> wordsPerMinute = const Value.absent(),
+                Value<String?> transcript = const Value.absent(),
+                Value<String?> audioPath = const Value.absent(),
+                required int durationMs,
+                Value<bool> passedSanity = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TakeRecordsCompanion.insert(
+                attemptId: attemptId,
+                takeIndex: takeIndex,
+                label: label,
+                score: score,
+                wordsPerMinute: wordsPerMinute,
+                transcript: transcript,
+                audioPath: audioPath,
+                durationMs: durationMs,
+                passedSanity: passedSanity,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TakeRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({attemptId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (attemptId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.attemptId,
+                                referencedTable: $$TakeRecordsTableReferences
+                                    ._attemptIdTable(db),
+                                referencedColumn: $$TakeRecordsTableReferences
+                                    ._attemptIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TakeRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ResonanceDatabase,
+      $TakeRecordsTable,
+      TakeRecord,
+      $$TakeRecordsTableFilterComposer,
+      $$TakeRecordsTableOrderingComposer,
+      $$TakeRecordsTableAnnotationComposer,
+      $$TakeRecordsTableCreateCompanionBuilder,
+      $$TakeRecordsTableUpdateCompanionBuilder,
+      (TakeRecord, $$TakeRecordsTableReferences),
+      TakeRecord,
+      PrefetchHooks Function({bool attemptId})
+    >;
 
 class $ResonanceDatabaseManager {
   final _$ResonanceDatabase _db;
@@ -4539,4 +5653,6 @@ class $ResonanceDatabaseManager {
       $$OutboxTableTableManager(_db, _db.outbox);
   $$EnergyStateTableTableManager get energyState =>
       $$EnergyStateTableTableManager(_db, _db.energyState);
+  $$TakeRecordsTableTableManager get takeRecords =>
+      $$TakeRecordsTableTableManager(_db, _db.takeRecords);
 }

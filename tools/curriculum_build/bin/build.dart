@@ -281,6 +281,73 @@ Map<String, dynamic> _convertLesson(
           id as String,
         );
 
+  // ── Takes ────────────────────────────────────────────────────────────────
+  //
+  // A lesson may declare the recordings it is made of. One is the default and
+  // is synthesised at read time, so nothing downstream branches on "is this
+  // multi-take".
+  final takesRaw = raw['takes'];
+  final takes = <Map<String, dynamic>>[];
+  if (takesRaw != null) {
+    if (takesRaw is! List || takesRaw.isEmpty) {
+      _fail('$source: lesson $id — `takes` must be a non-empty list');
+    } else {
+      for (final entry in takesRaw) {
+        if (entry is! Map) {
+          _fail('$source: lesson $id — each take must be a mapping');
+          continue;
+        }
+        final take = _toMap(entry);
+        final label = _squash(take['label'] as String?);
+        if (label == null || label.isEmpty) {
+          _fail('$source: lesson $id — every take needs a `label`');
+        }
+        final tMin = take['target_wpm_min'];
+        final tMax = take['target_wpm_max'];
+        if (tMin is int && tMax is int && tMin >= tMax) {
+          _fail(
+            '$source: lesson $id — take "$label" has target_wpm_min ($tMin) '
+            'at or above target_wpm_max ($tMax)',
+          );
+        }
+        takes.add({
+          'label': label,
+          'target_wpm_min': tMin,
+          'target_wpm_max': tMax,
+        });
+      }
+    }
+  }
+
+  // How the takes combine. Declared by the content so a brief can be checked
+  // against what is actually graded.
+  const validAggregations = {'lowest', 'difference'};
+  final aggregation = raw['take_aggregation'] as String?;
+  if (aggregation != null) {
+    if (!validAggregations.contains(aggregation)) {
+      _fail(
+        '$source: lesson $id — unknown take_aggregation "$aggregation". '
+        'Valid: ${validAggregations.join(", ")}',
+      );
+    } else if (aggregation == 'difference') {
+      // The same rule `awaiting_selection` follows: content may not declare a
+      // capability the app does not have. Scoring the distance between two
+      // takes needs a measure of articulation precision independent of pace,
+      // and the measurement layer has none — recogniser confidence is the only
+      // candidate and the platform routinely declines to report it.
+      _fail(
+        '$source: lesson $id — take_aggregation "difference" is not '
+        'implemented. It needs an articulation measure independent of pace, '
+        'which the DSP does not yet provide. Use "lowest" until it does.',
+      );
+    } else if (takes.length < 2) {
+      _warn(
+        '$source: lesson $id — take_aggregation "$aggregation" on a lesson '
+        'with ${takes.length} take(s) does nothing.',
+      );
+    }
+  }
+
   final wpmMin = raw['target_wpm_min'];
   final wpmMax = raw['target_wpm_max'];
   if (wpmMin is int && wpmMax is int && wpmMin >= wpmMax) {
@@ -296,6 +363,8 @@ Map<String, dynamic> _convertLesson(
     'title': raw['title'],
     'type': type,
     'brief': _squash(raw['brief'] as String?),
+    'takes': takes,
+    'take_aggregation': aggregation,
     'script': script,
     'reference': reference,
     'target_wpm_min': wpmMin,

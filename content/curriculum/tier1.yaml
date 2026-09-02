@@ -230,6 +230,19 @@ units:
           Same line, three times: slow, conversational, then fast. Clarity must
           hold at every rung. Your score is the *lowest* clarity across the three
           passes, so the fast one is where the unit is won or lost.
+        # Three rungs, each with its own band. The lesson-level band below is
+        # the union of the three and is what a single-take reading would use.
+        take_aggregation: lowest
+        takes:
+          - label: Slow
+            target_wpm_min: 95
+            target_wpm_max: 125
+          - label: Conversational
+            target_wpm_min: 130
+            target_wpm_max: 165
+          - label: Fast
+            target_wpm_min: 175
+            target_wpm_max: 215
         target_wpm_min: 110
         target_wpm_max: 210
         reference:
@@ -245,10 +258,27 @@ units:
         estimated_seconds: 180
         brief: >-
           Now the opposite problem. Read this twice — once deliberately
-          over-enunciated, once genuinely conversational. We score the
-          *difference*: you should be able to hear the dial move. Precision you
-          cannot switch off is a limitation, not a skill.
-        target_wpm_min: 140
+          over-enunciated, once genuinely conversational. Both have to stay
+          clear: your score is the weaker of the two, so dropping consonants the
+          moment you relax is what costs you. Precision you cannot switch off is
+          a limitation, not a skill.
+        # Scored on the weaker take, not on the distance between them.
+        #
+        # The distance is the measure this lesson actually wants, and it does
+        # not exist: it needs articulation precision independent of pace, and
+        # the only candidate signal — recogniser confidence — is routinely not
+        # reported by the platform. `take_aggregation: difference` is rejected
+        # by the compiler for exactly this reason, so the mismatch cannot be
+        # reintroduced silently. The brief above describes what is graded today.
+        take_aggregation: lowest
+        takes:
+          - label: Over-enunciated
+            target_wpm_min: 120
+            target_wpm_max: 165
+          - label: Conversational
+            target_wpm_min: 140
+            target_wpm_max: 180
+        target_wpm_min: 120
         target_wpm_max: 180
         reference:
           source: none

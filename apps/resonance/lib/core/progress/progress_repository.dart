@@ -10,6 +10,35 @@ import '../../domain/progress/vocal_energy.dart';
 import '../../domain/scoring/rubric.dart';
 import '../db/database.dart';
 
+/// One recorded take, as the repository receives it.
+///
+/// Separate from the domain's [LessonTake] (what was asked for) and from the
+/// audio layer's `Take` (what was captured): this is what gets stored.
+class RecordedTake {
+  const RecordedTake({
+    required this.index,
+    required this.label,
+    required this.durationMs,
+    this.score,
+    this.wordsPerMinute,
+    this.transcript,
+    this.audioPath,
+    this.passedSanity = true,
+  });
+
+  final int index;
+  final String label;
+  final int durationMs;
+  final int? score;
+  final int? wordsPerMinute;
+  final String? transcript;
+  final String? audioPath;
+
+  /// False when this take only proceeded because the sanity gate had failed
+  /// three times and the user chose to continue.
+  final bool passedSanity;
+}
+
 /// Everything one finished attempt changed.
 ///
 /// Returned as a single value so the feedback screen renders the whole outcome
@@ -87,6 +116,7 @@ class ProgressRepository {
     String? transcript,
     String? audioPath,
     DateTime? now,
+    List<RecordedTake> takes = const [],
   }) async {
     final at = now ?? DateTime.now();
     final day = _dayOf(at);
@@ -148,6 +178,26 @@ class ProgressRepository {
           lastPracticeDay: Value(streak.lastPracticeDay),
         ),
       );
+
+      // In the same transaction as the attempt, deliberately. A composite score
+      // computed from N takes, with only some of them stored, would look like a
+      // complete record and be wrong — and there is nothing on the row to say
+      // so. Either the attempt and all its takes land, or neither does.
+      for (final take in takes) {
+        await _db.insertTakeRecord(
+          TakeRecordsCompanion.insert(
+            attemptId: attemptId,
+            takeIndex: take.index,
+            label: take.label,
+            durationMs: take.durationMs,
+            score: Value(take.score),
+            wordsPerMinute: Value(take.wordsPerMinute),
+            transcript: Value(take.transcript),
+            audioPath: Value(take.audioPath),
+            passedSanity: Value(take.passedSanity),
+          ),
+        );
+      }
 
       await _saveEnergy(nextEnergy);
 

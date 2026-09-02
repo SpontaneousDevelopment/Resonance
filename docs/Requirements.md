@@ -221,6 +221,42 @@ codebase, and none has been guessed at or given a placeholder:
 The `PrivacyInfo.xcprivacy` manifests are wired into both Runner targets and
 verified in the built bundles, so nothing outside the list above is outstanding.
 
+### Multi-take lessons
+
+A lesson is made of one or more **takes**. A lesson that authors none still has
+exactly one, synthesised from itself, so a single-take lesson is the N=1 case of
+the same path rather than a branch around it.
+
+Each take carries a label and may override the lesson's pace band — a tempo
+ladder needs a different target per rung, which one lesson-level band cannot
+express. How the takes combine is declared by the content, so a brief can be
+checked against what is actually graded.
+
+**The Over-Articulation Dial is scored on its weaker take, not on the distance
+between them.** The distance is the measure the lesson wants and it does not
+exist: it needs articulation precision independent of pace, and the only
+candidate signal — recogniser confidence — is routinely not reported by the
+platform. The brief says what is graded today, and the compiler *rejects*
+`take_aggregation: difference` outright, the same way it refuses a lesson whose
+clip has not been chosen. Content cannot declare a grading rule the app does not
+have.
+
+### The sanity gate
+
+Between recording a take and scoring it sits a check on whether a real attempt
+happened at all — a mis-tap, a cough, a recording of the room. **It is not a
+quality bar.** A genuinely poor take passes and is scored honestly by the
+rubric; refusing it would be the app telling someone who did read the passage
+that they did not.
+
+After three consecutive failures on one take the user is offered a way past, and
+whatever was recorded is kept as-is. At that point the gate has either been
+wrong twice or the user cannot satisfy it, and blocking further is arguing with
+someone about whether they spoke.
+
+Its thresholds are **uncalibrated** — reasoned from the shape of the failure,
+not validated against real non-attempts. Same status as the rubric weights.
+
 ### Deliberate gaps, not outstanding work
 
 - **Rubric calibration** — see the principle above.

@@ -9,14 +9,22 @@ import 'tables.dart';
 part 'database.g.dart';
 
 @DriftDatabase(
-  tables: [LessonProgress, Attempts, StreakState, DailyXp, Outbox, EnergyState],
+  tables: [
+    LessonProgress,
+    Attempts,
+    StreakState,
+    DailyXp,
+    Outbox,
+    EnergyState,
+    TakeRecords,
+  ],
 )
 class ResonanceDatabase extends _$ResonanceDatabase {
   ResonanceDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'resonance'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,10 +39,16 @@ class ResonanceDatabase extends _$ResonanceDatabase {
       if (from < 2) {
         await m.createTable(energyState);
       }
+      if (from < 4 && from >= 3) {
+        // Additive. Existing attempts have no take rows, which reads correctly
+        // as "recorded before takes existed" rather than as data loss.
+        await m.createTable(takeRecords);
+      }
       if (from < 3) {
         // Additive: existing queued rows default to un-parked, which is what
         // they were.
         await m.addColumn(outbox, outbox.parked);
+        await m.createTable(takeRecords);
       }
       await _seedSingletons();
     },
@@ -128,6 +142,34 @@ class ResonanceDatabase extends _$ResonanceDatabase {
   );
 
   // ── Attempts ────────────────────────────────────────────────────────────
+
+  Future<void> insertTakeRecord(TakeRecordsCompanion take) =>
+      into(takeRecords).insert(take);
+
+  Future<List<TakeRecord>> takesFor(String attemptId) =>
+      (select(takeRecords)
+            ..where((t) => t.attemptId.equals(attemptId))
+            ..orderBy([(t) => OrderingTerm(expression: t.takeIndex)]))
+          .get();
+
+  /// Every audio file this device holds, across attempts and their takes.
+  ///
+  /// Returned rather than deleted here: the database has no business touching
+  /// the filesystem, and the deletion needs to be testable against real files.
+  Future<List<String>> allAudioPaths() async {
+    final fromAttempts = await (selectOnly(attempts)
+          ..addColumns([attempts.audioPath]))
+        .map((r) => r.read(attempts.audioPath))
+        .get();
+    final fromTakes = await (selectOnly(takeRecords)
+          ..addColumns([takeRecords.audioPath]))
+        .map((r) => r.read(takeRecords.audioPath))
+        .get();
+    return [
+      ...fromAttempts.whereType<String>(),
+      ...fromTakes.whereType<String>(),
+    ];
+  }
 
   Future<void> insertAttempt(AttemptsCompanion attempt) =>
       into(attempts).insert(attempt);
@@ -252,6 +294,10 @@ class ResonanceDatabase extends _$ResonanceDatabase {
   /// deletion cannot be followed by a queued upload of the data just deleted.
   Future<void> deleteAllUserData() async {
     await transaction(() async {
+      // Takes first: the cascade would handle it, but being explicit means a
+      // future schema change dropping the foreign key cannot silently orphan
+      // rows that point at audio files.
+      await delete(takeRecords).go();
       await delete(attempts).go();
       await delete(lessonProgress).go();
       await delete(dailyXp).go();

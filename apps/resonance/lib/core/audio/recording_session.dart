@@ -111,9 +111,11 @@ class RoomCheck {
 class RecordingSession {
   RecordingSession({
     AudioCapture? capture,
+    VoiceAnalyser? analyser,
     this.sampleRate = 48000,
     this.frameSize = 2048,
   }) : _injectedCapture = capture,
+       _lazyAnalyser = analyser,
        _frames = FrameBuffer(frameSize: frameSize);
 
   final AudioCapture? _injectedCapture;
@@ -133,8 +135,14 @@ class RecordingSession {
 
   final FrameBuffer _frames;
 
-  /// Built on first use. Constructing it reaches into the native DSP, so an
-  /// eager one meant a session could not exist without the plugin linked.
+  /// Built on first use, or supplied.
+  ///
+  /// Lazy because constructing it reaches into the native DSP, so an eager one
+  /// meant a session could not exist without the plugin linked. Injectable for
+  /// the same reason one step further out: a test that feeds real PCM through a
+  /// session — which is the only way to prove takes do not accumulate across
+  /// recordings — would otherwise need the native library present in the Dart
+  /// VM, where it is not.
   VoiceAnalyser? _lazyAnalyser;
   VoiceAnalyser get _analyser => _lazyAnalyser ??= VoiceAnalyser(
     sampleRate: sampleRate,

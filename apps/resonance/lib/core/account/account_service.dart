@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../db/database.dart';
+import '../progress/audio_store.dart';
 import '../net/supabase_bootstrap.dart';
 
 /// Account actions. Every one of them is optional.
@@ -10,12 +11,20 @@ import '../net/supabase_bootstrap.dart';
 /// feature works without an account. Signing in adds sync; it does not unlock
 /// anything that was previously withheld.
 class AccountService {
-  const AccountService({required this.client, required this.database});
+  const AccountService({
+    required this.client,
+    required this.database,
+    required this.audio,
+  });
 
   /// Null when no backend is configured. All methods no-op rather than throw,
   /// so an unconfigured build behaves exactly as it always has.
   final SupabaseClient? client;
   final ResonanceDatabase database;
+
+  /// The recordings on disk. Rows and files are separate deletions, and the
+  /// files were the half nobody was doing.
+  final AudioStore audio;
 
   bool get isAvailable => client != null;
   User? get currentUser => client?.auth.currentUser;
@@ -60,6 +69,10 @@ class AccountService {
       await auth.signOut();
     }
 
+    // Files before rows: the rows are what say where the files are. Wiping the
+    // database first would leave every recording on disk with nothing left
+    // pointing at it — undeletable by the app, and still there.
+    await audio.deleteAll();
     await database.deleteAllUserData();
   }
 }
@@ -81,6 +94,7 @@ final accountServiceProvider = Provider<AccountService>(
   (ref) => AccountService(
     client: ref.watch(supabaseClientProvider),
     database: ref.watch(databaseProvider),
+    audio: ref.watch(audioStoreProvider),
   ),
 );
 

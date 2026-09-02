@@ -305,4 +305,103 @@ void main() {
       expect((await repo.energy()).bars, VocalEnergy.maxBars);
     });
   });
+
+  group('multi-take attempts', () {
+    test('takes are stored with the attempt', () async {
+      await repo.recordAttempt(
+        lesson: lesson,
+        score: scoreOf(good: true),
+        attemptId: 'multi-1',
+        durationMs: 9000,
+        now: day(1),
+        takes: const [
+          RecordedTake(index: 0, label: 'Slow', durationMs: 3000, score: 82),
+          RecordedTake(
+            index: 1,
+            label: 'Conversational',
+            durationMs: 3000,
+            score: 74,
+          ),
+          RecordedTake(index: 2, label: 'Fast', durationMs: 3000, score: 61),
+        ],
+      );
+
+      final stored = await db.takesFor('multi-1');
+      expect(stored, hasLength(3));
+      expect(stored.map((t) => t.label), ['Slow', 'Conversational', 'Fast']);
+      expect(stored.map((t) => t.takeIndex), [
+        0,
+        1,
+        2,
+      ], reason: 'takes must come back in the order they were recorded');
+      expect(stored.map((t) => t.score), [82, 74, 61]);
+    });
+
+    test('a lesson with no takes still commits, storing none', () async {
+      // N=1 goes through the same call; the take list is simply empty until
+      // the runner supplies one.
+      await repo.recordAttempt(
+        lesson: lesson,
+        score: scoreOf(good: true),
+        attemptId: 'single-1',
+        durationMs: 4000,
+        now: day(2),
+      );
+
+      expect(await db.takesFor('single-1'), isEmpty);
+      expect(await db.masteryFor(lesson.id), isNotNull);
+    });
+
+    test('a failed take write takes the whole attempt with it', () async {
+      // The invariant: an attempt whose takes half-landed would carry a
+      // composite score computed from all of them, with only some stored, and
+      // nothing on the row would say so.
+      await expectLater(
+        repo.recordAttempt(
+          lesson: lesson,
+          score: scoreOf(good: true),
+          attemptId: 'doomed',
+          durationMs: 9000,
+          now: day(3),
+          takes: const [
+            RecordedTake(index: 0, label: 'Slow', durationMs: 3000),
+            // Same index twice: violates the composite primary key.
+            RecordedTake(index: 0, label: 'Fast', durationMs: 3000),
+          ],
+        ),
+        throwsA(anything),
+      );
+
+      expect(await db.takesFor('doomed'), isEmpty);
+      final attempts = await db.select(db.attempts).get();
+      expect(
+        attempts.where((a) => a.id == 'doomed'),
+        isEmpty,
+        reason: 'the attempt survived a failed take write',
+      );
+    });
+
+    test('the sanity-gate override is recorded, not hidden', () async {
+      // A take that only proceeded on the third failure is scored honestly by
+      // the rubric, but the fact that the gate gave up is worth keeping.
+      await repo.recordAttempt(
+        lesson: lesson,
+        score: scoreOf(good: false),
+        attemptId: 'forced',
+        durationMs: 4000,
+        now: day(4),
+        takes: const [
+          RecordedTake(
+            index: 0,
+            label: 'Slow',
+            durationMs: 4000,
+            passedSanity: false,
+          ),
+        ],
+      );
+
+      final stored = await db.takesFor('forced');
+      expect(stored.single.passedSanity, isFalse);
+    });
+  });
 }

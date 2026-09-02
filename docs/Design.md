@@ -252,6 +252,30 @@ The techniques above still apply. What changes is the framing in the brief and
 the choice of what the script makes unavoidable — in a diagnostic unit, that is
 usually a habit the user cannot yet hear, rather than a skill they are building.
 
+## Takes
+
+`Lesson.takes` is never empty: a lesson that authors none synthesises one from
+its own title and band. That is the whole reason it is a getter rather than a
+field — the branch that would otherwise sit at every call site is the one that
+gets forgotten, and single-take lessons are most of the curriculum.
+
+`TakeRecords` is a child of `Attempts` rather than more columns on it, because N
+is content and not schema, and it is written **inside the attempt's
+transaction**. An attempt whose takes half-landed would carry a composite score
+computed from all of them with only some stored, and nothing on the row would
+say so.
+
+`passedSanity` records that a take only proceeded because the gate had failed
+three times and the user chose to continue. The rubric still scores it honestly;
+this keeps the distinction between a low score and a gate that gave up.
+
+**Recordings are deleted from disk, which they were not.** `audioPath` has
+documented since M3 that the file goes when the attempt does, and nothing
+deleted a file — every recording survived delete-my-data. `AudioStore` does it
+now, and runs *before* the rows: the rows are the only record of where the files
+are, so wiping them first strands every recording on disk with nothing pointing
+at it.
+
 ## Local persistence
 
 Drift, schema version 3. Tables: `LessonProgress`, `Attempts`, `StreakState`,

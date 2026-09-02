@@ -89,6 +89,43 @@ class Attempts extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// One recording within an attempt.
+///
+/// A child of [Attempts] rather than more columns on it: a lesson has N takes
+/// and N is content, not schema. Written in the same transaction as its parent
+/// — an attempt whose takes half-landed is worse than one that failed outright,
+/// because the composite score would be computed from a subset and look real.
+class TakeRecords extends Table {
+  TextColumn get attemptId =>
+      text().references(Attempts, #id, onDelete: KeyAction.cascade)();
+
+  /// Position in the lesson's take list, 0-based. Recording order is the
+  /// lesson's order; there is no backward navigation between takes.
+  IntColumn get takeIndex => integer()();
+
+  /// The authored label, copied rather than referenced. Content can be re-worded
+  /// later, and a stored attempt should still say what the user was asked for
+  /// at the time.
+  TextColumn get label => text()();
+
+  IntColumn get score => integer().nullable()();
+  IntColumn get wordsPerMinute => integer().nullable()();
+  TextColumn get transcript => text().nullable()();
+
+  /// Path to this take's audio. One file per take, all deleted together.
+  TextColumn get audioPath => text().nullable()();
+
+  IntColumn get durationMs => integer()();
+
+  /// False when the take only got through because it was the third consecutive
+  /// failure of the sanity gate and the user chose to continue. Recorded so the
+  /// rubric's honest low score is distinguishable from a gate that gave up.
+  BoolColumn get passedSanity => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {attemptId, takeIndex};
+}
+
 /// The streak. A single row, id 0.
 @DataClassName('StreakRow')
 class StreakState extends Table {

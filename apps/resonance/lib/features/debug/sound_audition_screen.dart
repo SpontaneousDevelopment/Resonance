@@ -196,6 +196,7 @@ class _SoundAuditionScreenState extends ConsumerState<SoundAuditionScreen> {
   static HapticCue? _hapticFor(SoundCue cue) => switch (cue) {
     SoundCue.tap => HapticCue.tap,
     SoundCue.correct => HapticCue.correct,
+    SoundCue.takePassed => HapticCue.takePassed,
     SoundCue.mistake => HapticCue.mistake,
     SoundCue.recordStart => HapticCue.recordStart,
     SoundCue.recordStop => HapticCue.recordStop,

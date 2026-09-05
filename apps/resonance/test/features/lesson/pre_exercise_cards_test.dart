@@ -76,15 +76,37 @@ void main() {
   Future<void> tapThrough(WidgetTester tester) async {
     await tester.tap(find.byType(PreExerciseCards));
     await tester.pump();
-    // Past the 300ms reveal, so the outgoing card has actually left.
-    await tester.pump(const Duration(milliseconds: 600));
+    // Past the card switch and the word reveal, so the outgoing card has left
+    // and the incoming one has fully landed.
+    await tester.pump(const Duration(milliseconds: 1200));
   }
 
-  /// Past the prompt delay and a blink or two.
+  /// Past the word reveal, the prompt delay, and a blink or two.
+  ///
+  /// The prompt is now timed from the last word landing rather than from the
+  /// card appearing, so this has to cover both.
   Future<void> settlePrompt(WidgetTester tester) async {
-    await tester.pump(const Duration(milliseconds: 1200));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 2500));
+    await tester.pump(const Duration(milliseconds: 800));
   }
+
+  /// The line currently on screen, reassembled from its words.
+  ///
+  /// The card renders one Text per word so they can fade in individually, so
+  /// `find.text('First beat.')` no longer matches anything.
+  String visibleChunk(WidgetTester tester) => tester
+      .widgetList<Text>(
+        find.descendant(
+          of: find.byType(PreExerciseCards),
+          matching: find.byType(Text),
+        ),
+      )
+      .map((t) => t.data ?? '')
+      // The screen's own chrome: the app-bar title and the continue prompt are
+      // Text widgets inside this subtree too.
+      .where((t) => t != 'Tap to continue' && t != 'A lesson')
+      .join()
+      .trim();
 
   group('pacing', () {
     testWidgets('only the first chunk is on screen to begin with', (
@@ -92,25 +114,22 @@ void main() {
     ) async {
       await pump(tester);
 
-      expect(find.text('First beat.'), findsOneWidget);
+      expect(visibleChunk(tester), 'First beat.');
       expect(
-        find.text('Second beat.'),
-        findsNothing,
+        visibleChunk(tester),
+        isNot(contains('Second')),
         reason: 'the whole brief must not arrive at once',
       );
-      expect(find.text('Third and last beat.'), findsNothing);
     });
 
     testWidgets('each tap advances exactly one chunk', (tester) async {
       await pump(tester);
 
       await tapThrough(tester);
-      expect(find.text('Second beat.'), findsOneWidget);
-      expect(find.text('First beat.'), findsNothing);
+      expect(visibleChunk(tester), 'Second beat.');
 
       await tapThrough(tester);
-      expect(find.text('Third and last beat.'), findsOneWidget);
-      expect(find.text('Second beat.'), findsNothing);
+      expect(visibleChunk(tester), 'Third and last beat.');
     });
 
     testWidgets('nothing advances on its own', (tester) async {
@@ -119,8 +138,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
 
       expect(
-        find.text('First beat.'),
-        findsOneWidget,
+        visibleChunk(tester),
+        'First beat.',
         reason: 'the user sets the pace, not a timer',
       );
     });
@@ -157,7 +176,7 @@ void main() {
       await tapThrough(tester);
 
       // On the last chunk, but only just.
-      expect(find.text('Third and last beat.'), findsOneWidget);
+      expect(visibleChunk(tester), 'Third and last beat.');
       expect(
         find.text('Tap to continue'),
         findsNothing,
@@ -200,11 +219,11 @@ void main() {
       await pump(tester, reduceMotion: true);
 
       // Same chunks, same order, same taps.
-      expect(find.text('First beat.'), findsOneWidget);
+      expect(visibleChunk(tester), 'First beat.');
       await tapThrough(tester);
-      expect(find.text('Second beat.'), findsOneWidget);
+      expect(visibleChunk(tester), 'Second beat.');
       await tapThrough(tester);
-      expect(find.text('Third and last beat.'), findsOneWidget);
+      expect(visibleChunk(tester), 'Third and last beat.');
 
       await settlePrompt(tester);
       expect(
@@ -222,8 +241,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
 
       expect(
-        find.text('First beat.'),
-        findsOneWidget,
+        visibleChunk(tester),
+        'First beat.',
         reason:
             'reduced motion must not auto-advance — that would take the pacing '
             'control away from the person most likely to want it',
@@ -312,6 +331,90 @@ void main() {
 
     test('empty is empty rather than one blank card', () {
       expect(briefChunks('   '), isEmpty);
+    });
+  });
+
+  group('the word-by-word reveal', () {
+    testWidgets('words arrive one at a time, not all at once', (tester) async {
+      await pump(tester, text: const ['One two three four five six seven.']);
+      // Mid-reveal.
+      await tester.pump(const Duration(milliseconds: 120));
+
+      final opacities = tester
+          .widgetList<Opacity>(
+            find.descendant(
+              of: find.byType(PreExerciseCards),
+              matching: find.byType(Opacity),
+            ),
+          )
+          .map((o) => o.opacity)
+          .toList();
+
+      expect(opacities, isNotEmpty);
+      expect(
+        opacities.toSet().length,
+        greaterThan(1),
+        reason:
+            'every word had the same opacity ($opacities) — the line '
+            'arrived as a block',
+      );
+      // In reading order: earlier words are further along.
+      for (var i = 1; i < opacities.length; i++) {
+        expect(opacities[i], lessThanOrEqualTo(opacities[i - 1] + 0.001));
+      }
+    });
+
+    testWidgets('the prompt waits for the words, not for the card', (
+      tester,
+    ) async {
+      // A long card: the words take well over a second to land, so a prompt
+      // timed from the card appearing would arrive while they were still
+      // coming.
+      const long =
+          'One two three four five six seven eight nine ten eleven twelve '
+          'thirteen fourteen fifteen sixteen seventeen eighteen.';
+      await pump(tester, text: const [long]);
+
+      final settled = FeedbackChoreography.briefWordsSettled(
+        long.split(' ').length,
+      );
+      // Just after the words land, but before the prompt delay has run.
+      await tester.pump(settled + const Duration(milliseconds: 200));
+      expect(
+        find.text('Tap to continue'),
+        findsNothing,
+        reason: 'the prompt should still be waiting out its delay',
+      );
+
+      await tester.pump(FeedbackChoreography.briefPromptDelay);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('Tap to continue'), findsOneWidget);
+    });
+
+    testWidgets('reduced motion puts every word up at once', (tester) async {
+      await pump(
+        tester,
+        reduceMotion: true,
+        text: const ['One two three four five six seven.'],
+      );
+      await tester.pump();
+
+      final opacities = tester
+          .widgetList<Opacity>(
+            find.descendant(
+              of: find.byType(PreExerciseCards),
+              matching: find.byType(Opacity),
+            ),
+          )
+          .map((o) => o.opacity)
+          .toList();
+
+      expect(opacities, isNotEmpty);
+      expect(
+        opacities,
+        everyElement(1.0),
+        reason: 'words should be present immediately: $opacities',
+      );
     });
   });
 }

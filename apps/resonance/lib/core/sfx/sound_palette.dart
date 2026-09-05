@@ -83,6 +83,8 @@ class SoundPalette {
   static const assets = <SoundCue, String>{
     SoundCue.tap: 'assets/sfx/tap.wav',
     SoundCue.correct: 'assets/sfx/correct.wav',
+    // A copy of correct.wav, not a second reference to it. See SoundCue.
+    SoundCue.takePassed: 'assets/sfx/take_passed.wav',
     SoundCue.mistake: 'assets/sfx/mistake.wav',
     SoundCue.recordStart: 'assets/sfx/record_start.wav',
     SoundCue.recordStop: 'assets/sfx/record_stop.wav',

@@ -51,6 +51,11 @@ class PlatformHaptics implements HapticEngine {
       // Success is frequent, so it stays light — confirmation, not applause.
       HapticCue.correct => HapticFeedback.lightImpact(),
 
+      // A take banked. Medium rather than light: this one also carries the
+      // pass signal for someone who cannot use the script turning green, so it
+      // has to be distinguishable from an ordinary tap by feel alone.
+      HapticCue.takePassed => HapticFeedback.mediumImpact(),
+
       // Soft on purpose. A poor score here is as often fatigue as fault.
       HapticCue.mistake => HapticFeedback.lightImpact(),
 

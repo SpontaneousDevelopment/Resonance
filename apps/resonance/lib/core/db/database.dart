@@ -157,14 +157,14 @@ class ResonanceDatabase extends _$ResonanceDatabase {
   /// Returned rather than deleted here: the database has no business touching
   /// the filesystem, and the deletion needs to be testable against real files.
   Future<List<String>> allAudioPaths() async {
-    final fromAttempts = await (selectOnly(attempts)
-          ..addColumns([attempts.audioPath]))
-        .map((r) => r.read(attempts.audioPath))
-        .get();
-    final fromTakes = await (selectOnly(takeRecords)
-          ..addColumns([takeRecords.audioPath]))
-        .map((r) => r.read(takeRecords.audioPath))
-        .get();
+    final fromAttempts =
+        await (selectOnly(attempts)..addColumns([attempts.audioPath]))
+            .map((r) => r.read(attempts.audioPath))
+            .get();
+    final fromTakes =
+        await (selectOnly(takeRecords)..addColumns([takeRecords.audioPath]))
+            .map((r) => r.read(takeRecords.audioPath))
+            .get();
     return [
       ...fromAttempts.whereType<String>(),
       ...fromTakes.whereType<String>(),

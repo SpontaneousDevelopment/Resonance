@@ -181,6 +181,8 @@ void main() {
     // requires the enums to be fully covered.
     List<SensoryCue> allPaths() => [
       ...choreo.forTap(),
+      ...choreo.forTakePassed(),
+      ...choreo.forTakeFailed(),
       ...choreo.forUnitExpand(),
       ...choreo.forUnitCollapse(),
       ...choreo.forRecordingStart(),

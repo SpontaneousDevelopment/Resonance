@@ -18,6 +18,11 @@ enum HapticCue {
   /// A light tick. Buttons, selection.
   tap,
 
+  /// A take banked. Distinct from [correct] for the same reason its sound is:
+  /// it also carries the pass/fail signal for someone who cannot rely on the
+  /// script turning green.
+  takePassed,
+
   /// A passing attempt. Light — success should feel like confirmation, not
   /// applause, because it happens many times a session.
   correct,
@@ -46,6 +51,15 @@ enum HapticCue {
 enum SoundCue {
   tap,
   correct,
+
+  /// A take clearing the sanity gate, mid-lesson.
+  ///
+  /// Its own entry rather than a second use of [correct], and its own file
+  /// rather than a shared path. The audio is identical today, deliberately:
+  /// what matters is that "this take is in the bag" and "the whole lesson is
+  /// scored" are separate moments, and they will want to sound different long
+  /// before anyone gets round to refactoring a shared reference apart.
+  takePassed,
   mistake,
   recordStart,
   recordStop,
@@ -125,12 +139,31 @@ class FeedbackChoreography {
   /// longer than this reads as the app being slow to obey a tap.
   static const briefReveal = Duration(milliseconds: 300);
 
-  /// The pause after the last card lands before the continue prompt appears.
+  /// Gap between one word appearing and the next.
   ///
-  /// Deliberately long enough to read the final line first. A prompt that
+  /// The card arrives a word at a time rather than all at once, which paces the
+  /// reading instead of presenting a block and hoping. Slow enough to be a
+  /// rhythm, fast enough that a twenty-six word card is not a wait: at 55ms
+  /// the longest authored beat lands in about a second and a half.
+  static const briefWordStep = Duration(milliseconds: 55);
+
+  /// How long a single word takes to fade in.
+  static const briefWordFade = Duration(milliseconds: 220);
+
+  /// When the last word has finished landing on card [wordCount].
+  static Duration briefWordsSettled(int wordCount) =>
+      briefWordStep * (wordCount - 1).clamp(0, 1 << 30) + briefWordFade;
+
+  /// The pause after the last **word** has landed before the continue prompt
+  /// appears.
+  ///
+  /// Measured from the words settling, not from the card appearing — with a
+  /// word-by-word reveal those are seconds apart on a long card, and timing it
+  /// from the card's arrival would put the prompt on screen while words were
+  /// still coming. Long enough to actually read the final line: a prompt that
   /// arrives with the text competes with it, and the last card is usually the
-  /// one that says what to actually do.
-  static const briefPromptDelay = Duration(milliseconds: 900);
+  /// one that says what to do.
+  static const briefPromptDelay = Duration(milliseconds: 1800);
 
   /// One full cycle of the continue prompt's blink.
   ///
@@ -199,6 +232,38 @@ class FeedbackChoreography {
     final evenly = unitFanTotal * 0.35 ~/ (count - 1);
     return evenly < unitFanStep ? evenly : unitFanStep;
   }
+
+  /// How long "Success!" sits on the button before the loop moves on.
+  ///
+  /// A second. Long enough to register as a small celebration rather than a
+  /// label changing, short enough that a three-take lesson does not spend three
+  /// seconds congratulating someone.
+  static const takeCelebration = Duration(milliseconds: 1000);
+
+  /// A take clearing the sanity gate.
+  ///
+  /// Sound and haptic together, because this is one of the two moments where
+  /// the same information is also carried by colour, and colour cannot be the
+  /// only channel.
+  List<SensoryCue> forTakePassed() => const [
+    SensoryCue(
+      at: Duration.zero,
+      haptic: HapticCue.takePassed,
+      sound: SoundCue.takePassed,
+    ),
+  ];
+
+  /// A take that did not look like an attempt.
+  ///
+  /// The existing soft failure cue: the gate cannot tell whether someone read
+  /// badly or the microphone was muted, and a harsh sound would imply it can.
+  List<SensoryCue> forTakeFailed() => const [
+    SensoryCue(
+      at: Duration.zero,
+      haptic: HapticCue.mistake,
+      sound: SoundCue.mistake,
+    ),
+  ];
 
   /// Opening a unit to show its lessons.
   ///

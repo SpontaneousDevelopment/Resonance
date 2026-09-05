@@ -87,9 +87,13 @@ class _PreExerciseCardsState extends State<PreExerciseCards>
   /// Shows the continue prompt once the final card has had time to be read.
   void _armPrompt() {
     final reduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    // From the last word landing, not from the card appearing. With a
+    // word-by-word reveal those are seconds apart on a long card.
+    final words = widget.chunks[_index].split(RegExp(r'\s+')).length;
     final delay = reduced
         ? Duration.zero
-        : FeedbackChoreography.briefPromptDelay;
+        : FeedbackChoreography.briefWordsSettled(words) +
+              FeedbackChoreography.briefPromptDelay;
 
     _promptTimer?.cancel();
     _promptTimer = Timer(delay, () {
@@ -165,9 +169,9 @@ class _PreExerciseCardsState extends State<PreExerciseCards>
                       // not animating at all.
                       transitionBuilder: (child, animation) =>
                           FadeTransition(opacity: animation, child: child),
-                      child: Text(
-                        widget.chunks[_index],
+                      child: _WordByWord(
                         key: ValueKey(_index),
+                        text: widget.chunks[_index],
                         style: ResType.hero.copyWith(
                           color: colors.ink,
                           height: 1.25,
@@ -243,6 +247,92 @@ class _Progress extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A line that arrives a word at a time.
+///
+/// One controller for the whole line, with an interval per word — the same
+/// reason the lesson cards fan from one clock. Separate controllers would make
+/// this N animations that happen to be offset, and it would read as words being
+/// dealt out rather than a line being spoken onto the screen.
+///
+/// Under reduced motion the controller's duration is zero, so every word is
+/// present on the first frame. The same text, in the same place, without the
+/// arrival.
+class _WordByWord extends StatefulWidget {
+  const _WordByWord({super.key, required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_WordByWord> createState() => _WordByWordState();
+}
+
+class _WordByWordState extends State<_WordByWord>
+    with SingleTickerProviderStateMixin {
+  late final List<String> _words = widget.text.split(RegExp(r'\s+'));
+
+  late final AnimationController _reveal = AnimationController(
+    vsync: this,
+    duration: FeedbackChoreography.briefWordsSettled(_words.length),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _reveal.duration = ResMotion.duration(
+        context,
+        FeedbackChoreography.briefWordsSettled(_words.length),
+      );
+      _reveal.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  /// Word [i]'s slice of the shared clock.
+  Animation<double> _slot(int i) {
+    final total = FeedbackChoreography.briefWordsSettled(
+      _words.length,
+    ).inMilliseconds;
+    final begin = (FeedbackChoreography.briefWordStep.inMilliseconds * i)
+        .clamp(0, total)
+        .toDouble();
+    final end = (begin + FeedbackChoreography.briefWordFade.inMilliseconds)
+        .clamp(0, total)
+        .toDouble();
+    return CurvedAnimation(
+      parent: _reveal,
+      curve: Interval(begin / total, end / total, curve: ResMotion.enter),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _reveal,
+      builder: (context, _) => Wrap(
+        spacing: 0,
+        children: [
+          for (var i = 0; i < _words.length; i++)
+            Opacity(
+              opacity: _slot(i).value.clamp(0.0, 1.0),
+              child: Text(
+                i == _words.length - 1 ? _words[i] : '${_words[i]} ',
+                style: widget.style,
+              ),
+            ),
         ],
       ),
     );

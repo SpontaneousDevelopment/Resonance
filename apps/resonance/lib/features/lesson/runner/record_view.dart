@@ -5,6 +5,9 @@ import '../../../ui/tokens/motion.dart';
 import '../../../ui/tokens/spacing.dart';
 import '../../../ui/tokens/theme.dart';
 import '../../../ui/tokens/typography.dart';
+import '../../../domain/lesson/take_loop.dart';
+import '../../../domain/scoring/sanity_gate.dart';
+import '../../../domain/sensory/sensory_cue.dart';
 import 'lesson_controller.dart';
 
 /// The record surface, driven by [LessonController].
@@ -14,9 +17,36 @@ import 'lesson_controller.dart';
 /// their performance was unusable once they have already given it is the
 /// fastest way to make an app feel punitive.
 class RecordView extends StatelessWidget {
-  const RecordView({super.key, required this.controller});
+  const RecordView({
+    super.key,
+    required this.controller,
+    required this.takeNumber,
+    required this.takeCount,
+    required this.takeLabel,
+    required this.stage,
+    required this.onRecord,
+    required this.onStop,
+    required this.onRetry,
+    required this.onContinueAnyway,
+    this.failure,
+  });
 
   final LessonController controller;
+
+  /// 1-based, shown on the button. The authored label goes above it as a
+  /// heading — a button says what tapping does, and an authored string is
+  /// variable-length.
+  final int takeNumber;
+  final int takeCount;
+  final String takeLabel;
+
+  final TakeLoopStage stage;
+  final SanityFailure? failure;
+
+  final VoidCallback onRecord;
+  final VoidCallback onStop;
+  final VoidCallback onRetry;
+  final VoidCallback onContinueAnyway;
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +68,36 @@ class RecordView extends StatelessWidget {
               // above the script it was present and therefore skipped; it now
               // gets its own screen before this one, one beat at a time, with
               // a tap between each. See PreExerciseCards.
+              // The verdict, on the script itself. Colour is never the only
+              // channel: an icon sits beside it, the haptic differs, and the
+              // semantics say pass or fail in words.
+              if (stage == TakeLoopStage.passed ||
+                  stage == TakeLoopStage.failed ||
+                  stage == TakeLoopStage.exhausted)
+                _Verdict(stage: stage, failure: failure),
+
               Expanded(
                 child: SingleChildScrollView(
-                  child: Text(
-                    lesson.script ?? '',
-                    style: ResType.script.copyWith(color: colors.ink),
+                  child: Semantics(
+                    liveRegion: true,
+                    label: switch (stage) {
+                      TakeLoopStage.passed => 'Take $takeNumber accepted.',
+                      TakeLoopStage.failed || TakeLoopStage.exhausted =>
+                        'Take $takeNumber was not accepted. '
+                            '${SanityVerdict.fail(failure ?? SanityFailure.didNotMatchScript).message}',
+                      _ => 'The line to read.',
+                    },
+                    child: Text(
+                      lesson.script ?? '',
+                      style: ResType.script.copyWith(
+                        color: switch (stage) {
+                          TakeLoopStage.passed => colors.signal,
+                          TakeLoopStage.failed ||
+                          TakeLoopStage.exhausted => colors.clip,
+                          _ => colors.ink,
+                        },
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -68,6 +123,14 @@ class RecordView extends StatelessWidget {
               _Readout(controller: controller),
               const SizedBox(height: ResSpace.base),
 
+              if (takeCount > 1) ...[
+                Text(
+                  'TAKE $takeNumber OF $takeCount · ${takeLabel.toUpperCase()}',
+                  style: ResType.label.copyWith(color: colors.inkFaint),
+                ),
+                const SizedBox(height: ResSpace.tight),
+              ],
+
               SizedBox(
                 width: double.infinity,
                 child: room == null
@@ -80,42 +143,15 @@ class RecordView extends StatelessWidget {
                               },
                         child: Text(busy ? 'Listening…' : 'Check my room'),
                       )
-                    : Semantics(
-                        // The button's own text changes between Record and
-                        // Stop, but nothing announces that the state changed —
-                        // and mid-take the user is looking at the script, not
-                        // the screen.
-                        liveRegion: true,
-                        label: recording
-                            ? 'Recording. Activate to stop and score your take.'
-                            : room.isAcceptable
-                            ? 'Record your take'
-                            : 'Recording unavailable until the room is quiet '
-                                  'enough',
-                        button: true,
+                    : _TakeButton(
+                        stage: stage,
+                        takeNumber: takeNumber,
+                        recording: recording,
                         enabled: room.isAcceptable,
-                        excludeSemantics: true,
-                        child: FilledButton(
-                          onPressed: room.isAcceptable
-                              ? () {
-                                  // A tap while recording is silent — the duck is
-                                  // held and the microphone is open. Deliberate:
-                                  // Stop is the only button on screen mid-take.
-                                  controller.sensory.tap();
-                                  if (recording) {
-                                    controller.stopAndScore();
-                                  } else {
-                                    controller.startRecording();
-                                  }
-                                }
-                              : null,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: recording
-                                ? colors.clip
-                                : colors.accent,
-                          ),
-                          child: Text(recording ? 'Stop and score' : 'Record'),
-                        ),
+                        onRecord: onRecord,
+                        onStop: onStop,
+                        onRetry: onRetry,
+                        onContinueAnyway: onContinueAnyway,
                       ),
               ),
               const SizedBox(height: ResSpace.base),
@@ -199,6 +235,194 @@ class _Readout extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The verdict on the last take, in a channel that is not colour.
+///
+/// The script turning green or red is the loud signal, and it is the one a
+/// colour-blind user gets nothing from. This sits beside it: a distinct icon
+/// and a word. The haptic differs too — `takePassed` is a medium impact where
+/// the failure is a light one — so the same fact arrives three ways.
+class _Verdict extends StatelessWidget {
+  const _Verdict({required this.stage, this.failure});
+
+  final TakeLoopStage stage;
+  final SanityFailure? failure;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final passed = stage == TakeLoopStage.passed;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: ResSpace.snug),
+      child: Row(
+        children: [
+          Icon(
+            passed
+                ? Icons.check_circle_rounded
+                : Icons.replay_circle_filled_rounded,
+            color: passed ? colors.signal : colors.clip,
+            size: 20,
+          ),
+          const SizedBox(width: ResSpace.tight),
+          Expanded(
+            child: Text(
+              passed
+                  ? 'Take accepted.'
+                  : SanityVerdict.fail(
+                      failure ?? SanityFailure.didNotMatchScript,
+                    ).message,
+              style: ResType.caption.copyWith(
+                color: passed ? colors.signal : colors.clip,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The record button, in each of the states the take loop can be in.
+///
+/// Four, and they are genuinely different actions rather than one button with
+/// different words: record, stop, re-record, and continue past a gate that has
+/// given up. The last is deliberately not automatic — proceeding on the user's
+/// behalf after telling them three times that something was wrong would be the
+/// app overruling itself.
+class _TakeButton extends StatefulWidget {
+  const _TakeButton({
+    required this.stage,
+    required this.takeNumber,
+    required this.recording,
+    required this.enabled,
+    required this.onRecord,
+    required this.onStop,
+    required this.onRetry,
+    required this.onContinueAnyway,
+  });
+
+  final TakeLoopStage stage;
+  final int takeNumber;
+  final bool recording;
+  final bool enabled;
+  final VoidCallback onRecord;
+  final VoidCallback onStop;
+  final VoidCallback onRetry;
+  final VoidCallback onContinueAnyway;
+
+  @override
+  State<_TakeButton> createState() => _TakeButtonState();
+}
+
+class _TakeButtonState extends State<_TakeButton>
+    with SingleTickerProviderStateMixin {
+  /// The same loop the continue prompt uses, at the same period — a second
+  /// blink rhythm in the app would read as a different kind of urgency.
+  late final AnimationController _blink = AnimationController(
+    vsync: this,
+    duration: FeedbackChoreography.briefBlink,
+  );
+
+  @override
+  void didUpdateWidget(_TakeButton old) {
+    super.didUpdateWidget(old);
+    _syncBlink();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncBlink());
+  }
+
+  void _syncBlink() {
+    if (!mounted) return;
+    final wants =
+        widget.stage == TakeLoopStage.failed &&
+        !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    if (wants && !_blink.isAnimating) {
+      _blink.repeat(reverse: true);
+    } else if (!wants && _blink.isAnimating) {
+      _blink
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    final (label, action, background, semantic) = switch (widget.stage) {
+      TakeLoopStage.passed => (
+        'Success!',
+        null,
+        colors.signal,
+        'Take ${widget.takeNumber} accepted.',
+      ),
+      TakeLoopStage.failed => (
+        'Re-record',
+        widget.onRetry,
+        colors.clip,
+        'That take was not accepted. Activate to record take '
+            '${widget.takeNumber} again.',
+      ),
+      TakeLoopStage.exhausted => (
+        'Continue',
+        widget.onContinueAnyway,
+        colors.inkFaint,
+        'Continue with the take as recorded.',
+      ),
+      _ =>
+        widget.recording
+            ? (
+                'Stop and score',
+                widget.onStop,
+                colors.clip,
+                'Recording. Activate to stop.',
+              )
+            : (
+                'Record Take ${widget.takeNumber}',
+                widget.onRecord,
+                colors.accent,
+                'Record take ${widget.takeNumber}.',
+              ),
+    };
+
+    final button = FilledButton(
+      onPressed: widget.enabled ? action : null,
+      style: FilledButton.styleFrom(backgroundColor: background),
+      child: Text(label),
+    );
+
+    return Semantics(
+      liveRegion: true,
+      button: action != null,
+      enabled: widget.enabled && action != null,
+      label: semantic,
+      excludeSemantics: true,
+      child: widget.stage == TakeLoopStage.failed
+          ? FadeTransition(
+              key: const ValueKey('re-record-blink'),
+              opacity: _blink.drive(Tween(begin: 1.0, end: 0.45)),
+              child: button,
+            )
+          : AnimatedSwitcher(
+              // "Success!" fades in rather than the word changing under the
+              // cursor: it is a small celebration, not a state label.
+              duration: ResMotion.duration(context, ResMotion.control),
+              child: KeyedSubtree(key: ValueKey(label), child: button),
+            ),
     );
   }
 }

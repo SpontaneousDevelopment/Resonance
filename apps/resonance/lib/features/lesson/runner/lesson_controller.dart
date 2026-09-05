@@ -11,6 +11,8 @@ import '../../../core/progress/progress_repository.dart';
 import '../../../core/sensory/sensory_director.dart';
 import '../../../core/sfx/sound_palette.dart';
 import '../../../core/scoring/attempt_scorer.dart';
+import '../../../domain/scoring/sanity_gate.dart';
+import '../../../domain/scoring/take_aggregation.dart';
 import '../../../core/speech/speech_recogniser.dart';
 import '../../../domain/curriculum/curriculum.dart';
 import '../../../domain/curriculum/mastery.dart';
@@ -119,6 +121,25 @@ class LessonController extends ChangeNotifier {
 
   AttemptScore? _score;
   AttemptScore? get score => _score;
+
+  /// Takes banked so far this attempt, with the score each earned.
+  final List<ScoredTake> _scoredTakes = [];
+  final List<RecordedTake> _recordedTakes = [];
+
+  /// The take just recorded, scored but not yet banked.
+  ///
+  /// It sits here between the sanity gate judging it and the user either
+  /// accepting the pass or choosing to continue past three failures — because
+  /// a take the gate refused must not end up in the attempt unless the user
+  /// says so.
+  ({ScoredTake scored, RecordedTake recorded})? _pending;
+
+  SanityVerdict? _lastVerdict;
+  SanityVerdict? get lastVerdict => _lastVerdict;
+
+  /// The composite, once every take is in. Null until then.
+  AggregateScore? _aggregate;
+  AggregateScore? get aggregate => _aggregate;
 
   PromotionResult? _promotion;
   PromotionResult? get promotion => _promotion;
@@ -240,6 +261,135 @@ class LessonController extends ChangeNotifier {
       rethrow;
     }
     _setPhase(LessonPhase.recording);
+  }
+
+  /// Stops recording, scores the take, and asks the sanity gate about it.
+  ///
+  /// Deliberately does **not** commit. A take the gate refused is held aside
+  /// until the user either re-records it or chooses to continue past three
+  /// failures — committing here would put a non-attempt into the attempt and
+  /// then have to take it back out.
+  Future<SanityVerdict> stopAndJudge({
+    required int takeIndex,
+    required LessonTake lessonTake,
+  }) async {
+    _setPhase(LessonPhase.scoring);
+
+    final take = await _session.stop();
+    _releaseCaptureDuck();
+    await sensory.play(sensory.choreography.forRecordingStop());
+
+    Transcript transcript = const Transcript.empty();
+    if (!_clarityUnavailable) {
+      try {
+        transcript = await recogniser.stop();
+      } catch (e) {
+        _clarityUnavailable = true;
+        debugPrint('Transcript unavailable: $e');
+      }
+    }
+
+    final score = scorer.score(
+      lesson: lesson,
+      take: take,
+      transcript: transcript,
+      frameAnalyses: _frames,
+      plosiveScores: take.plosiveScores,
+      lessonTake: lessonTake,
+    );
+
+    // The gate reads the same measurements the rubric just used. One
+    // measurement pipeline, so there is one thing to calibrate.
+    final verdict = const SanityGate().check(score.measurements);
+
+    _pending = (
+      scored: ScoredTake(
+        index: takeIndex,
+        label: lessonTake.label,
+        score: score,
+      ),
+      recorded: RecordedTake(
+        index: takeIndex,
+        label: lessonTake.label,
+        durationMs: (take.durationSeconds * 1000).round(),
+        score: score.composite,
+        wordsPerMinute: score.measurements.wordsPerMinute.round(),
+        transcript: transcript.text.isEmpty ? null : transcript.text,
+        audioPath: take.path,
+      ),
+    );
+    _lastVerdict = verdict;
+    _score = score;
+    _setPhase(LessonPhase.roomChecked);
+    return verdict;
+  }
+
+  /// Accepts the pending take into the attempt.
+  ///
+  /// [passedSanity] records whether the gate approved it or gave up on it. The
+  /// rubric's score is unchanged either way — the gate was only ever there to
+  /// catch a non-attempt, and a weak take is the rubric's to judge.
+  void bankTake({required bool passedSanity}) {
+    final pending = _pending;
+    if (pending == null) return;
+    _scoredTakes.add(pending.scored);
+    _recordedTakes.add(
+      RecordedTake(
+        index: pending.recorded.index,
+        label: pending.recorded.label,
+        durationMs: pending.recorded.durationMs,
+        score: pending.recorded.score,
+        wordsPerMinute: pending.recorded.wordsPerMinute,
+        transcript: pending.recorded.transcript,
+        audioPath: pending.recorded.audioPath,
+        passedSanity: passedSanity,
+      ),
+    );
+    _pending = null;
+    notifyListeners();
+  }
+
+  /// Every take is in. Aggregate and commit, once, atomically.
+  Future<void> commitAttempt({DateTime? now}) async {
+    _setPhase(LessonPhase.scoring);
+
+    final aggregate = aggregatorFor(
+      lesson.takeAggregation,
+    ).combine(_scoredTakes);
+    _aggregate = aggregate;
+
+    final at = now ?? DateTime.now();
+    final attemptId = '${lesson.id}-${at.microsecondsSinceEpoch}';
+
+    final outcome = await progress.recordAttempt(
+      lesson: lesson,
+      // The lesson is graded on the aggregate, not on the last take recorded.
+      score: aggregate.decidedBy.score,
+      attemptId: attemptId,
+      durationMs: _recordedTakes.fold(0, (sum, t) => sum + t.durationMs),
+      transcript: _recordedTakes
+          .map((t) => t.transcript)
+          .whereType<String>()
+          .join('\n'),
+      audioPath: _recordedTakes.first.audioPath,
+      now: at,
+      takes: _recordedTakes,
+    );
+
+    onAttemptRecorded?.call();
+
+    _score = aggregate.decidedBy.score;
+    _outcome = outcome;
+    _mastery = await progress.masteryFor(lesson.id);
+    _promotion = outcome.promotion;
+    _setPhase(LessonPhase.scored);
+
+    unawaited(
+      _fetchCoachNote(
+        aggregate.decidedBy.score,
+        _recordedTakes.map((t) => t.transcript ?? '').join(' '),
+      ),
+    );
   }
 
   Future<void> stopAndScore({DateTime? now}) async {

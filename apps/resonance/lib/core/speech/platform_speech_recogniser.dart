@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'speech_recogniser.dart';
 
 /// [SpeechRecogniser] backed by the OS recogniser — `SFSpeechRecognizer` on
@@ -137,3 +139,13 @@ class PlatformSpeechRecogniser implements SpeechRecogniser {
     await _controller.close();
   }
 }
+
+/// How the app gets a recogniser.
+///
+/// A factory rather than an instance: each lesson builds its own, and building
+/// one touches the platform. Overriding this is what lets the assembled lesson
+/// screen be driven end to end — otherwise the only way to reach a take the
+/// sanity gate refuses is a real microphone and a deliberately bad read.
+final speechRecogniserProvider = Provider<SpeechRecogniser Function()>(
+  (ref) => PlatformSpeechRecogniser.new,
+);

@@ -39,6 +39,7 @@ class AttemptScorer {
     required Transcript transcript,
     required List<FrameAnalysis> frameAnalyses,
     required List<double> plosiveScores,
+    LessonTake? lessonTake,
   }) {
     final alignment = aligner.align(
       script: lesson.script ?? '',
@@ -63,8 +64,11 @@ class AttemptScorer {
       AttemptMeasurements(
         alignment: alignment,
         durationSeconds: voicedSeconds,
-        targetWpmMin: lesson.targetWpmMin,
-        targetWpmMax: lesson.targetWpmMax,
+        // A take's own band wins where it declares one: a tempo ladder's rungs
+        // have different targets, and scoring the fast rung against the
+        // lesson-wide band would say the whole ladder was in range.
+        targetWpmMin: lessonTake?.targetWpmMin ?? lesson.targetWpmMin,
+        targetWpmMax: lessonTake?.targetWpmMax ?? lesson.targetWpmMax,
         plosiveEvents: plosiveEvents,
         clippedFrames: clippedFrames,
         totalFrames: frameAnalyses.length,

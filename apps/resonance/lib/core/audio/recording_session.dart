@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:resonance_dsp/resonance_dsp.dart';
 
@@ -367,3 +368,14 @@ class Take {
     return out;
   }
 }
+
+/// How the app gets a recording session.
+///
+/// A factory, and injectable for the same reason the recogniser is: without it
+/// the only way to drive a lesson end to end is a real microphone, and on this
+/// project a real microphone means the TCC problem — an app launched from a
+/// VS Code shell is killed the moment it touches capture. That made the one
+/// test that matters most, the assembled loop, the one test that could not run.
+final recordingSessionProvider = Provider<RecordingSession Function()>(
+  (ref) => RecordingSession.new,
+);

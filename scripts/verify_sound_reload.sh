@@ -17,7 +17,7 @@ ASSETS="$BUNDLE/Contents/Frameworks/App.framework/Resources/flutter_assets/asset
 pkill -f "Build/Products/Debug/resonance.app" 2>/dev/null || true
 
 LOG=$(mktemp)
-( cd apps/resonance && fvm flutter test integration_test/sound_reload_test.dart -d macos ) > "$LOG" 2>&1 &
+( cd apps/resonance && RESONANCE_SOUND_SWAP=1 fvm flutter test integration_test/sound_reload_test.dart -d macos ) > "$LOG" 2>&1 &
 TEST=$!
 
 # Wait for the app's own signal that it has loaded the original asset, rather

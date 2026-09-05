@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/progress/progress_repository.dart';
 import '../../core/sensory/sensory_director.dart';
+import '../../core/audio/recording_session.dart';
 import '../../core/speech/platform_speech_recogniser.dart';
 import '../../core/sync/sync_scheduler.dart';
 import '../../domain/curriculum/curriculum.dart';
@@ -13,6 +14,7 @@ import '../../ui/tokens/theme.dart';
 import '../../ui/tokens/typography.dart';
 import 'feedback/feedback_screen.dart';
 import '../../domain/curriculum/brief_chunks.dart';
+import '../../domain/lesson/take_loop.dart';
 import 'runner/lesson_controller.dart';
 import 'runner/pre_exercise_cards.dart';
 import '../rest/take_five_screen.dart';
@@ -37,7 +39,11 @@ class LessonScreen extends ConsumerStatefulWidget {
 class _LessonScreenState extends ConsumerState<LessonScreen> {
   late final LessonController _controller = LessonController(
     lesson: widget.lesson,
-    recogniser: PlatformSpeechRecogniser(),
+    // From a provider rather than constructed here, so the assembled screen can
+    // be driven end to end in a test. Without this seam the only way to reach a
+    // failing take is a real microphone.
+    recogniser: ref.read(speechRecogniserProvider)(),
+    session: ref.read(recordingSessionProvider)(),
     progress: ref.read(progressRepositoryProvider),
     sensory: ref.read(sensoryDirectorProvider),
     // Send it now rather than at next launch. Null whenever there is no
@@ -45,12 +51,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
     onAttemptRecorded: () => ref.read(syncSchedulerProvider)?.nudge(),
   );
 
-  /// False until the user has tapped through the brief.
-  ///
-  /// Not a phase on the controller: reading the brief is something the user is
-  /// doing before the attempt exists, and the controller's phases describe an
-  /// attempt.
-  bool _briefRead = false;
+  late final TakeLoop _loop = TakeLoop(takes: widget.lesson.takes);
+  TakeLoopState _state = const TakeLoopState.start();
+
+  LessonTake get _take => _loop.takeAt(_state.takeIndex);
 
   /// True while the rest exercise is showing. Not a phase on the controller:
   /// resting is something the user is doing, not something the attempt is.
@@ -65,6 +69,69 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
   void initState() {
     super.initState();
     _controller.load();
+  }
+
+  void _advance(TakeLoopState next) => setState(() => _state = next);
+
+  /// One short line naming the take about to be recorded.
+  ///
+  /// Built from the authored label rather than authored separately: a per-take
+  /// sentence in the curriculum would be one more thing to write for every
+  /// lesson, and the label already says the thing that changes.
+  String _takeIntroLine() {
+    final take = _take;
+    final band = (take.targetWpmMin != null && take.targetWpmMax != null)
+        ? ' Aim for ${take.targetWpmMin}–${take.targetWpmMax} words a minute.'
+        : '';
+    return _loop.count == 1
+        ? 'Read the line as it is written.$band'
+        : 'Take ${_state.takeNumber} of ${_loop.count}: ${take.label}.$band';
+  }
+
+  /// A recording finished. Judge it, signal, and move the loop.
+  Future<void> _judgeTake() async {
+    // Read before awaiting: syncWith needs a context, and the analyzer is right
+    // that holding one across a gap is how a disposed widget gets used.
+    final sensory = ref.read(sensoryDirectorProvider)..syncWith(context);
+
+    final verdict = await _controller.stopAndJudge(
+      takeIndex: _state.takeIndex,
+      lessonTake: _take,
+    );
+
+    await sensory.play(
+      verdict.passed
+          ? sensory.choreography.forTakePassed()
+          : sensory.choreography.forTakeFailed(),
+    );
+
+    if (!mounted) return;
+    _advance(_loop.judged(_state, verdict));
+
+    if (verdict.passed) {
+      // The celebration sits on the button, then the loop moves on by itself.
+      // A pass needs no decision from the user, and asking for one would put a
+      // tap between every take.
+      final celebration = ResMotion.duration(
+        context,
+        FeedbackChoreography.takeCelebration,
+      );
+      await Future<void>.delayed(celebration);
+      if (!mounted) return;
+      _controller.bankTake(passedSanity: true);
+      final next = _loop.bank(_state, passedSanity: true);
+      _advance(next);
+      if (next.isComplete) await _controller.commitAttempt();
+    }
+  }
+
+  /// Past a third failure, with whatever was recorded.
+  Future<void> _continueAnyway() async {
+    ref.read(sensoryDirectorProvider).tap();
+    _controller.bankTake(passedSanity: false);
+    final next = _loop.bank(_state, passedSanity: false);
+    _advance(next);
+    if (next.isComplete) await _controller.commitAttempt();
   }
 
   void _playOutcomeOnce() {
@@ -109,23 +176,40 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
     // A lesson whose reference clip has not been chosen is written but not
     // playable. Refusing here is what makes `awaiting_selection` more than a
     // comment — nothing can ship having silently defaulted to some video.
-    if (!_briefRead) {
+    if (widget.lesson.isBlockedOnSelection) {
+      return _AwaitingSelection(
+        lesson: widget.lesson,
+        onBack: () => Navigator.of(context).pop(),
+      );
+    }
+
+    // The exercise brief, once per lesson.
+    if (_state.stage == TakeLoopStage.exerciseIntro) {
       final chunks = briefChunks(widget.lesson.brief);
-      if (chunks.isNotEmpty && !widget.lesson.isBlockedOnSelection) {
+      if (chunks.isEmpty) {
+        _advance(_loop.briefRead(_state));
+      } else {
         return PreExerciseCards(
           title: widget.lesson.title,
           chunks: chunks,
           sensory: ref.read(sensoryDirectorProvider),
           onBack: () => Navigator.of(context).pop(),
-          onDone: () => setState(() => _briefRead = true),
+          onDone: () => _advance(_loop.briefRead(_state)),
         );
       }
     }
 
-    if (widget.lesson.isBlockedOnSelection) {
-      return _AwaitingSelection(
-        lesson: widget.lesson,
+    // One card per take, then a horizontal slide into the record screen — the
+    // takes are a deck being paged through, and a vertical transition here
+    // would read as the same modal gesture the whole lesson arrived by.
+    if (_state.stage == TakeLoopStage.takeIntro) {
+      return PreExerciseCards(
+        key: ValueKey('take-intro-${_state.takeIndex}'),
+        title: '${widget.lesson.title} · Take ${_state.takeNumber}',
+        chunks: [_takeIntroLine()],
+        sensory: ref.read(sensoryDirectorProvider),
         onBack: () => Navigator.of(context).pop(),
+        onDone: () => _advance(_loop.takeIntroRead(_state)),
       );
     }
 
@@ -152,7 +236,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
         listenable: _controller,
         builder: (context, _) {
           return KeyedSubtree(
-            key: ValueKey(_controller.phase),
+            key: ValueKey((_controller.phase, _state.stage)),
             child: switch (_controller.phase) {
               LessonPhase.scored => Builder(
                 builder: (context) {
@@ -191,7 +275,28 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
                 message: _controller.error ?? 'Something went wrong.',
                 onBack: () => Navigator.of(context).pop(),
               ),
-              _ => RecordView(controller: _controller),
+              _ => RecordView(
+                controller: _controller,
+                takeNumber: _state.takeNumber,
+                takeCount: _loop.count,
+                takeLabel: _take.label,
+                stage: _state.stage,
+                failure: _state.lastFailure,
+                onRecord: () {
+                  _controller.sensory.tap();
+                  _controller.startRecording();
+                },
+                onStop: () {
+                  _controller.sensory.tap();
+                  _judgeTake();
+                },
+                onRetry: () {
+                  _controller.sensory.tap();
+                  _advance(_loop.retry(_state));
+                  _controller.startRecording();
+                },
+                onContinueAnyway: _continueAnyway,
+              ),
             },
           );
         },

@@ -31,67 +31,78 @@ void main() {
     '/../Frameworks/App.framework/Resources/flutter_assets/assets/sfx/$name',
   );
 
-  testWidgets('a swapped file is heard without restarting the app', (
-    tester,
-  ) async {
-    // The swap is performed by `scripts/verify_sound_reload.sh`, from outside
-    // the app, because the macOS build is sandboxed and cannot write its own
-    // bundle. That is also closer to the real workflow: a developer replaces a
-    // file with an editor while the app keeps running.
-    final tap = bundledAsset('tap.wav');
-    expect(
-      tap.existsSync(),
-      isTrue,
-      reason: 'the bundle layout changed; expected the asset at ${tap.path}',
-    );
+  // Driven by scripts/verify_sound_reload.sh, which performs the swap from
+  // outside the sandbox while this runs. Bare — through the ordinary runner —
+  // there is nothing to swap the file, so it would poll and fail forever. It
+  // skipped silently for two sessions before anyone noticed it was red.
+  final driven = Platform.environment['RESONANCE_SOUND_SWAP'] == '1';
 
-    final palette = SoundPalette();
-    addTearDown(palette.dispose);
+  testWidgets(
+    'a swapped file is heard without restarting the app',
+    (tester) async {
+      // The swap is performed by `scripts/verify_sound_reload.sh`, from outside
+      // the app, because the macOS build is sandboxed and cannot write its own
+      // bundle. That is also closer to the real workflow: a developer replaces a
+      // file with an editor while the app keeps running.
+      final tap = bundledAsset('tap.wav');
+      expect(
+        tap.existsSync(),
+        isTrue,
+        reason: 'the bundle layout changed; expected the asset at ${tap.path}',
+      );
 
-    // Warm the cache exactly as ordinary use would.
-    final before = await palette.play(SoundCue.tap);
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(before, isNotNull, reason: 'the first play should have loaded');
-    expect(
-      before!.inMilliseconds,
-      lessThan(100),
-      reason:
-          'tap.wav is a 20ms click; ${before.inMilliseconds}ms means the '
-          'harness started from an already-swapped bundle',
-    );
+      final palette = SoundPalette();
+      addTearDown(palette.dispose);
 
-    // Without a reload the cue does not load again — the problem being fixed.
-    final cached = await palette.play(SoundCue.tap);
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(
-      cached,
-      isNull,
-      reason: 'a cached cue must not reload; that is what makes a swap silent',
-    );
+      // Warm the cache exactly as ordinary use would.
+      final before = await palette.play(SoundCue.tap);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(before, isNotNull, reason: 'the first play should have loaded');
+      expect(
+        before!.inMilliseconds,
+        lessThan(100),
+        reason:
+            'tap.wav is a 20ms click; ${before.inMilliseconds}ms means the '
+            'harness started from an already-swapped bundle',
+      );
 
-    // Now wait for the file to change underneath, reloading each time. Polling
-    // rather than sleeping a fixed time keeps this honest on a slow machine.
-    Duration? after;
-    for (var attempt = 0; attempt < 40; attempt++) {
-      await palette.reloadAssetsFromDisk();
-      after = await palette.play(SoundCue.tap);
-      await tester.pump(const Duration(milliseconds: 250));
-      if (after != null && after.inMilliseconds > 300) break;
-    }
+      // Without a reload the cue does not load again — the problem being fixed.
+      final cached = await palette.play(SoundCue.tap);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(
+        cached,
+        isNull,
+        reason:
+            'a cached cue must not reload; that is what makes a swap silent',
+      );
 
-    expect(
-      after,
-      isNotNull,
-      reason: 'after a reload the cue must load from disk again',
-    );
-    expect(
-      after!.inMilliseconds,
-      greaterThan(300),
-      reason:
-          'tap.wav should now hold level_up.wav (539ms) but loaded as '
-          '${after.inMilliseconds}ms. Either the swap never happened — run this '
-          'through scripts/verify_sound_reload.sh — or the reload drops fewer '
-          'caches than it needs to.',
-    );
-  });
+      // Now wait for the file to change underneath, reloading each time. Polling
+      // rather than sleeping a fixed time keeps this honest on a slow machine.
+      Duration? after;
+      for (var attempt = 0; attempt < 40; attempt++) {
+        await palette.reloadAssetsFromDisk();
+        after = await palette.play(SoundCue.tap);
+        await tester.pump(const Duration(milliseconds: 250));
+        if (after != null && after.inMilliseconds > 300) break;
+      }
+
+      expect(
+        after,
+        isNotNull,
+        reason: 'after a reload the cue must load from disk again',
+      );
+      expect(
+        after!.inMilliseconds,
+        greaterThan(300),
+        reason:
+            'tap.wav should now hold level_up.wav (539ms) but loaded as '
+            '${after.inMilliseconds}ms. Either the swap never happened — run this '
+            'through scripts/verify_sound_reload.sh — or the reload drops fewer '
+            'caches than it needs to.',
+      );
+    },
+    // Skipped unless its script is driving the swap; testWidgets takes a
+    // bool, so the reason lives in the comment above .
+    skip: !driven,
+  );
 }
